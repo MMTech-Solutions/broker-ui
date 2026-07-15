@@ -130,6 +130,7 @@ export function IbPlansView() {
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Subscription</TableHead>
+              <TableHead>Subscriptions</TableHead>
               <TableHead>Programs</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[144px] text-right">Actions</TableHead>
@@ -139,7 +140,7 @@ export function IbPlansView() {
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={7}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -149,7 +150,7 @@ export function IbPlansView() {
             {!loading && ibPlans.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No IB plans found.
@@ -167,6 +168,15 @@ export function IbPlansView() {
                     <TableCell>
                       {subscriptionTypeLabels[plan.subscription_type] ??
                         plan.subscription_type}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-0.5 text-sm">
+                        <span>{plan.subscriptions_count ?? 0} total</span>
+                        <span className="text-muted-foreground">
+                          {plan.active_subscriptions_count ?? 0} active ·{" "}
+                          {plan.inactive_subscriptions_count ?? 0} inactive
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>{plan.programs_count ?? 0}</TableCell>
                     <TableCell>

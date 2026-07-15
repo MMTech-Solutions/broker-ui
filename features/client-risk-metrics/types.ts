@@ -68,6 +68,7 @@ export type GetRiskMetricsHistoryParams = {
   to_utc: string;
   granularity?: "day" | "hour" | "minute" | "snapshot";
   only_nonzero_delta?: boolean;
+  min_abs_delta?: number;
   sort?: "time_asc" | "time_desc" | "delta_abs_desc" | "delta_desc";
   offset?: number;
   limit?: number;

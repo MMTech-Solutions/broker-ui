@@ -26,6 +26,8 @@ export type ScheduledCommand = {
   is_automatic: boolean;
   parameters: ScheduledCommandParameters | null;
   allowed_parameters: string[];
+  last_automatic_run_at?: string | null;
+  last_automatic_run_status?: ScheduledCommandRunStatus | null;
   created_at?: string;
   updated_at?: string;
 };

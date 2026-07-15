@@ -2,6 +2,7 @@ import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 import type {
   CreateSharedRiskMetricInput,
+  GetRiskMetricsHistoryParams,
   GetRiskMetricsSummaryParams,
   RiskMetricsHistory,
   RiskMetricsSummary,
@@ -24,14 +25,7 @@ export async function getAccountRiskMetricsSummary(
 
 export async function getAccountRiskMetricsHistory(
   accountId: string,
-  params: {
-    metric_key: string;
-    from_utc: string;
-    to_utc: string;
-    granularity?: string;
-    sort?: string;
-    limit?: number;
-  },
+  params: GetRiskMetricsHistoryParams,
 ): Promise<BrokerSuccessResponse<RiskMetricsHistory>> {
   return browserBrokerRequest<RiskMetricsHistory>(
     `${RISK_METRICS_PATH}/${accountId}/risk-metrics/history`,

@@ -1,18 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { BarChart2Icon, RefreshCwIcon, WifiIcon, WifiOffIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  BarChart2Icon,
+  LayersIcon,
+  RefreshCwIcon,
+  WifiIcon,
+  WifiOffIcon,
+} from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Button } from "@/components/ui/button";
-import { applyRiskMetricChanges } from "@/features/client-risk-metrics/apply-metric-changes";
-import { getAccountRiskMetricsSummary } from "@/features/client-risk-metrics/api";
-import { RiskMetricsBalanceChart } from "@/features/client-risk-metrics/components/risk-metrics-balance-chart";
+import { ClientPositionsPanel } from "@/features/client-positions/components/client-positions-panel";
+import {
+  applyLiveEquityChange,
+  applyRiskMetricChanges,
+} from "@/features/client-risk-metrics/apply-metric-changes";
+import {
+  getAccountRiskMetricsHistory,
+  getAccountRiskMetricsSummary,
+} from "@/features/client-risk-metrics/api";
+import { RiskMetricsEquityChart } from "@/features/client-risk-metrics/components/risk-metrics-equity-chart";
 import { RiskMetricsShareDialog } from "@/features/client-risk-metrics/components/risk-metrics-share-dialog";
 import { RiskMetricsSummaryCards } from "@/features/client-risk-metrics/components/risk-metrics-summary-cards";
 import type {
   RiskMetricChangedPayload,
+  RiskMetricsHistory,
   RiskMetricsSummary,
 } from "@/features/client-risk-metrics/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
@@ -21,6 +35,7 @@ import {
   getEchoClient,
   isRealtimeConfigured,
   riskMetricsPrivateChannel,
+  subscribeEchoConnectionStatus,
 } from "@/lib/realtime/echo";
 
 const DAYS_OPTIONS = [
@@ -31,7 +46,7 @@ const DAYS_OPTIONS = [
   { value: 90, label: "90 días" },
 ];
 
-type Tab = "summary" | "chart";
+type Tab = "summary" | "chart" | "positions";
 type LiveStatus = "idle" | "connecting" | "connected" | "unavailable" | "error";
 
 type ClientRiskMetricsViewProps = {
@@ -44,9 +59,14 @@ export function ClientRiskMetricsView({
   accountLogin,
 }: ClientRiskMetricsViewProps) {
   const [summary, setSummary] = useState<RiskMetricsSummary | null>(null);
+  const [equityHistory, setEquityHistory] =
+    useState<RiskMetricsHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRefreshing, setHistoryRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [days, setDays] = useState(30);
   const [activeTab, setActiveTab] = useState<Tab>("summary");
   const [liveStatus, setLiveStatus] = useState<LiveStatus>("idle");
@@ -80,9 +100,56 @@ export function ClientRiskMetricsView({
     [accountId, days],
   );
 
+  const fetchEquityHistory = useCallback(
+    async (showLoader: boolean) => {
+      if (showLoader) setHistoryLoading(true);
+      else setHistoryRefreshing(true);
+      setHistoryError(null);
+
+      const to = new Date();
+      const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+
+      try {
+        const response = await getAccountRiskMetricsHistory(accountId, {
+          metric_key: "equity",
+          from_utc: from.toISOString(),
+          to_utc: to.toISOString(),
+          granularity: "hour",
+          sort: "time_asc",
+          limit: 5000,
+        });
+        setEquityHistory(response.data);
+      } catch (err) {
+        setHistoryError(formatBrokerApiError(err));
+      } finally {
+        setHistoryLoading(false);
+        setHistoryRefreshing(false);
+      }
+    },
+    [accountId, days],
+  );
+
   useEffect(() => {
+    if (activeTab === "positions") {
+      return;
+    }
+
     void fetchSummary(true);
-  }, [fetchSummary]);
+    if (activeTab === "chart") {
+      void fetchEquityHistory(true);
+    }
+  }, [fetchEquityHistory, fetchSummary, activeTab]);
+
+  const activeTabRef = useRef(activeTab);
+  const fetchEquityHistoryRef = useRef(fetchEquityHistory);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchEquityHistoryRef.current = fetchEquityHistory;
+  }, [fetchEquityHistory]);
 
   useEffect(() => {
     if (!isRealtimeConfigured()) {
@@ -90,7 +157,15 @@ export function ClientRiskMetricsView({
       return;
     }
 
-    const echo = getEchoClient();
+    let echo: ReturnType<typeof getEchoClient>;
+
+    try {
+      echo = getEchoClient();
+    } catch {
+      setLiveStatus("error");
+      return;
+    }
+
     if (!echo) {
       setLiveStatus("unavailable");
       return;
@@ -98,11 +173,36 @@ export function ClientRiskMetricsView({
 
     setLiveStatus("connecting");
     const channelName = riskMetricsPrivateChannel(accountId);
+    const unsubscribeConnection = subscribeEchoConnectionStatus(
+      echo,
+      (status) => {
+        if (status === "connected") {
+          // Keep "connecting" until private channel auth succeeds.
+          setLiveStatus((current) =>
+            current === "connected" ? current : "connecting",
+          );
+          return;
+        }
+
+        if (status === "failed" || status === "unavailable") {
+          setLiveStatus("error");
+          return;
+        }
+
+        if (status === "disconnected") {
+          setLiveStatus("error");
+        }
+      },
+    );
+
     const channel = echo.private(channelName);
 
     channel
       .subscribed(() => {
         setLiveStatus("connected");
+        if (activeTabRef.current === "chart") {
+          void fetchEquityHistoryRef.current(false);
+        }
       })
       .error(() => {
         setLiveStatus("error");
@@ -115,15 +215,22 @@ export function ClientRiskMetricsView({
 
           return applyRiskMetricChanges(current, payload);
         });
+        setEquityHistory((current) =>
+          current ? applyLiveEquityChange(current, payload) : current,
+        );
       });
 
     return () => {
-      echo.leave(channelName);
+      unsubscribeConnection();
+      echo?.leave(channelName);
     };
   }, [accountId]);
 
   function handleManualRefresh() {
     void fetchSummary(false);
+    if (activeTab === "chart") {
+      void fetchEquityHistory(false);
+    }
   }
 
   const liveLabel =
@@ -137,10 +244,12 @@ export function ClientRiskMetricsView({
             ? "Sin WebSocket"
             : null;
 
+  const showMetricsChrome = activeTab !== "positions";
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar breadcrumbs={breadcrumbs}>
-        {liveLabel ? (
+        {liveLabel && showMetricsChrome ? (
           <span
             className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${
               liveStatus === "connected"
@@ -156,24 +265,42 @@ export function ClientRiskMetricsView({
             {liveLabel}
           </span>
         ) : null}
-        <RiskMetricsShareDialog accountId={accountId} />
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={handleManualRefresh}
-          disabled={loading || refreshing}
-          aria-label="Actualizar métricas"
-        >
-          <RefreshCwIcon
-            className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-          />
-        </Button>
+        {showMetricsChrome ? (
+          <>
+            <RiskMetricsShareDialog accountId={accountId} />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleManualRefresh}
+              disabled={
+                loading ||
+                refreshing ||
+                historyLoading ||
+                historyRefreshing
+              }
+              aria-label="Actualizar métricas"
+            >
+              <RefreshCwIcon
+                className={`h-4 w-4 ${
+                  refreshing || historyRefreshing ? "animate-spin" : ""
+                }`}
+              />
+            </Button>
+          </>
+        ) : null}
       </PageContentToolbar>
 
-      {error ? (
+      {error && showMetricsChrome ? (
         <ApiErrorAlert
           title="No se pudieron cargar las métricas"
           message={error}
+        />
+      ) : null}
+
+      {historyError && activeTab === "chart" ? (
+        <ApiErrorAlert
+          title="No se pudo cargar el historial de equity"
+          message={historyError}
         />
       ) : null}
 
@@ -212,37 +339,55 @@ export function ClientRiskMetricsView({
                   strokeLinejoin="round"
                 />
               </svg>
-              Curva de balance
+              Curva de equity
+            </button>
+            <button
+              onClick={() => setActiveTab("positions")}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                activeTab === "positions"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayersIcon className="h-3.5 w-3.5" />
+              Posiciones
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Período:</span>
-            <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
-              {DAYS_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setDays(option.value)}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                    days === option.value
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+          {showMetricsChrome ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Período:</span>
+              <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+                {DAYS_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setDays(option.value)}
+                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                      days === option.value
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
 
         {activeTab === "summary" ? (
           <RiskMetricsSummaryCards summary={summary} loading={loading} />
+        ) : activeTab === "chart" ? (
+          <RiskMetricsEquityChart
+            history={equityHistory}
+            loading={historyLoading}
+          />
         ) : (
-          <RiskMetricsBalanceChart summary={summary} loading={loading} />
+          <ClientPositionsPanel accountId={accountId} />
         )}
 
-        {summary ? (
+        {summary && showMetricsChrome ? (
           <p className="text-xs text-muted-foreground">
             Fase: <span className="font-medium">{summary.phase_name}</span>
             {" · "}
@@ -254,7 +399,7 @@ export function ClientRiskMetricsView({
                 year: "numeric",
               })}
             </span>
-            {refreshing ? (
+            {refreshing || historyRefreshing ? (
               <span className="ml-2 text-muted-foreground/60">
                 Actualizando…
               </span>

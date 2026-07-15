@@ -8,6 +8,10 @@ export type IbPlan = {
   subscription_type: IbPlanSubscriptionType;
   is_active: boolean;
   programs_count?: number;
+  /** Solo presente para usuarios con `ib_plan.manage`. */
+  subscriptions_count?: number;
+  active_subscriptions_count?: number;
+  inactive_subscriptions_count?: number;
   thresholds_warning?: boolean;
   created_at?: string;
   updated_at?: string;

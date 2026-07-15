@@ -71,7 +71,8 @@ export function IbProgramDeleteDialog({
             <span className="font-medium text-foreground">
               {ibProgram?.name}
             </span>{" "}
-            from broker-service. This action cannot be undone.
+            from broker-service. Programs with active plan subscriptions cannot
+            be deleted. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
 

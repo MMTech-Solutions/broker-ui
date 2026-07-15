@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { HistoryIcon, PencilIcon, PlayIcon } from "lucide-react";
+import {
+  CheckIcon,
+  HistoryIcon,
+  PencilIcon,
+  PlayIcon,
+  TriangleAlertIcon,
+} from "lucide-react";
 
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
@@ -34,6 +40,7 @@ import { formatParameterFlags } from "@/features/scheduling/parameters";
 import {
   SCHEDULED_COMMAND_FEATURE_AREAS,
   type ScheduledCommand,
+  type ScheduledCommandRunStatus,
 } from "@/features/scheduling/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
@@ -50,6 +57,43 @@ const featureAreaLabels = Object.fromEntries(
 ) as Record<string, string>;
 
 type AutomaticFilter = "all" | "automatic" | "manual";
+
+function formatDateTime(value?: string | null): string {
+  if (!value) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function LastAutomaticRunStatusIcon({
+  status,
+}: {
+  status: ScheduledCommandRunStatus;
+}) {
+  if (status === "completed") {
+    return (
+      <CheckIcon
+        aria-label="completed"
+        className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"
+      />
+    );
+  }
+
+  if (status === "failed") {
+    return (
+      <TriangleAlertIcon
+        aria-label="failed"
+        className="size-3.5 shrink-0 text-destructive"
+      />
+    );
+  }
+
+  return null;
+}
 
 export function ScheduledCommandsView() {
   const [commands, setCommands] = useState<ScheduledCommand[]>([]);
@@ -243,6 +287,7 @@ export function ScheduledCommandsView() {
               <TableHead>Description</TableHead>
               <TableHead>Cron</TableHead>
               <TableHead>Mode</TableHead>
+              <TableHead>Last system run</TableHead>
               <TableHead>Parameters</TableHead>
               <TableHead className="w-[132px] text-right">Actions</TableHead>
             </TableRow>
@@ -251,7 +296,7 @@ export function ScheduledCommandsView() {
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -261,7 +306,7 @@ export function ScheduledCommandsView() {
             {!loading && commands.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No scheduled commands found.
@@ -318,6 +363,22 @@ export function ScheduledCommandsView() {
                       >
                         {command.is_automatic ? "Automatic" : "Manual"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {command.last_automatic_run_at ? (
+                        <div className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm">
+                          <span>
+                            {formatDateTime(command.last_automatic_run_at)}
+                          </span>
+                          {command.last_automatic_run_status ? (
+                            <LastAutomaticRunStatusIcon
+                              status={command.last_automatic_run_status}
+                            />
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
                       {formatParameterFlags(command.parameters)}

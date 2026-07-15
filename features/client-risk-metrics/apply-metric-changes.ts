@@ -1,5 +1,7 @@
 import type {
   RiskMetricChangedPayload,
+  RiskMetricsHistory,
+  RiskMetricsHistoryPoint,
   RiskMetricsSummary,
 } from "@/features/client-risk-metrics/types";
 
@@ -112,5 +114,61 @@ export function applyRiskMetricChanges(
         : summary.series_end_date_utc,
     phase_id: payload.phase_id ?? summary.phase_id,
     phase_name: payload.phase_name ?? summary.phase_name,
+  };
+}
+
+function toUnixSecond(value: string): number | null {
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? Math.floor(timestamp / 1000) : null;
+}
+
+/**
+ * Appends the latest equity change at its actual event timestamp. Points that
+ * land in the same second are replaced so Lightweight Charts receives unique,
+ * strictly ascending timestamps.
+ */
+export function applyLiveEquityChange(
+  history: RiskMetricsHistory,
+  payload: RiskMetricChangedPayload,
+): RiskMetricsHistory {
+  const equityChange = payload.changes.find((change) => change.key === "equity");
+  const value = equityChange
+    ? parseMetricJsonValue(equityChange.new_value_json)
+    : null;
+  const changedAtSecond = toUnixSecond(payload.changed_at);
+
+  if (value === null || changedAtSecond === null) {
+    return history;
+  }
+
+  const pointsBySecond = new Map<number, RiskMetricsHistoryPoint>();
+
+  for (const point of history.points) {
+    const second = toUnixSecond(point.at);
+    if (second !== null) {
+      pointsBySecond.set(second, point);
+    }
+  }
+
+  const previousPoint = pointsBySecond.get(changedAtSecond);
+  pointsBySecond.set(changedAtSecond, {
+    at: new Date(changedAtSecond * 1000).toISOString(),
+    value,
+    delta_from_prev: previousPoint ? value - previousPoint.value : null,
+  });
+
+  const points = Array.from(pointsBySecond.entries())
+    .sort(([left], [right]) => left - right)
+    .map(([, point]) => point)
+    .slice(-5000);
+
+  return {
+    ...history,
+    points,
+    summary: {
+      ...history.summary,
+      rows_returned: points.length,
+      last_at: points.at(-1)?.at ?? history.summary.last_at,
+    },
   };
 }
