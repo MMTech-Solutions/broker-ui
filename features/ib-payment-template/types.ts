@@ -41,6 +41,6 @@ export type UpdateIbPaymentTemplateLevelInput = {
 export type IbPaymentTemplateLevelDraft = {
   key: string;
   name: string;
-  ratePercent: string;
+  rate: string;
   sort_order: number;
 };

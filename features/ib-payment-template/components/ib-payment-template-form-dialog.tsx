@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createIbPaymentTemplate } from "@/features/ib-payment-template/api";
-import { parsePaymentTemplateRatePercentInput } from "@/features/ib-payment-template/format";
+import { parsePaymentTemplateRateInput } from "@/features/ib-payment-template/format";
 import type { IbPaymentTemplateLevelDraft } from "@/features/ib-payment-template/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
@@ -30,7 +30,7 @@ function createLevelDraft(index: number): IbPaymentTemplateLevelDraft {
   return {
     key: crypto.randomUUID(),
     name: "",
-    ratePercent: "",
+    rate: "",
     sort_order: index,
   };
 }
@@ -102,7 +102,7 @@ export function IbPaymentTemplateFormDialog({
       }
 
       const parsedLevels = levels.map((level, index) => {
-        const rate = parsePaymentTemplateRatePercentInput(level.ratePercent);
+        const rate = parsePaymentTemplateRateInput(level.rate);
 
         if (!level.name.trim()) {
           throw new Error(`Level ${index + 1} name is required.`);
@@ -110,7 +110,7 @@ export function IbPaymentTemplateFormDialog({
 
         if (rate === null) {
           throw new Error(
-            `Level ${index + 1} rate must be a number between 0 and 100.`,
+            `Level ${index + 1} rate must be a number between 0 and 1 (e.g. 0.3 = 30%).`,
           );
         }
 
@@ -210,17 +210,17 @@ export function IbPaymentTemplateFormDialog({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor={`level-rate-${level.key}`}>Rate (%)</Label>
+                      <Label htmlFor={`level-rate-${level.key}`}>Rate (0–1)</Label>
                       <Input
                         id={`level-rate-${level.key}`}
                         type="number"
                         min={0}
-                        max={100}
+                        max={1}
                         step="0.01"
-                        value={level.ratePercent}
+                        value={level.rate}
                         onChange={(event) =>
                           updateLevel(level.key, {
-                            ratePercent: event.target.value,
+                            rate: event.target.value,
                           })
                         }
                         disabled={submitting}

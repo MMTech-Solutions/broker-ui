@@ -23,7 +23,7 @@ export async function listAvailableBonusOffers(): Promise<
   BrokerSuccessResponse<BonusOffer[]>
 > {
   // Use bonus-assignments path to avoid colliding with admin GET bonus-offers/{uuid}
-  // when "available" would match ShowBonusOffer (bonus.manage required).
+  // when "available" would match ShowBonusOffer (broker.bonus.manage required).
   return browserBrokerRequest<BonusOffer[]>(
     `${BONUS_ASSIGNMENTS_PATH}/available-offers`,
   );

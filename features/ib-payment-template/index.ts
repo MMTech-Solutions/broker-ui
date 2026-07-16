@@ -8,8 +8,7 @@ export {
 } from "@/features/ib-payment-template/api";
 export {
   formatPaymentTemplateRate,
-  parsePaymentTemplateRatePercent,
-  parsePaymentTemplateRatePercentInput,
+  parsePaymentTemplateRateInput,
 } from "@/features/ib-payment-template/format";
 export type {
   CreateIbPaymentTemplateInput,

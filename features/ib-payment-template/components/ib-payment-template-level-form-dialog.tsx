@@ -18,7 +18,7 @@ import {
   createIbPaymentTemplateLevel,
   updateIbPaymentTemplateLevel,
 } from "@/features/ib-payment-template/api";
-import { parsePaymentTemplateRatePercentInput } from "@/features/ib-payment-template/format";
+import { parsePaymentTemplateRateInput } from "@/features/ib-payment-template/format";
 import type {
   IbPaymentTemplate,
   IbPaymentTemplateLevel,
@@ -35,13 +35,13 @@ type IbPaymentTemplateLevelFormDialogProps = {
 
 type FormState = {
   name: string;
-  ratePercent: string;
+  rate: string;
   sort_order: number;
 };
 
 const emptyForm: FormState = {
   name: "",
-  ratePercent: "",
+  rate: "",
   sort_order: 0,
 };
 
@@ -77,7 +77,7 @@ export function IbPaymentTemplateLevelFormDialog({
     if (level) {
       setForm({
         name: level.name,
-        ratePercent: String(level.rate * 100),
+        rate: String(level.rate),
         sort_order: level.sort_order,
       });
       return;
@@ -105,10 +105,10 @@ export function IbPaymentTemplateLevelFormDialog({
         return;
       }
 
-      const rate = parsePaymentTemplateRatePercentInput(form.ratePercent);
+      const rate = parsePaymentTemplateRateInput(form.rate);
 
       if (rate === null) {
-        setError("Rate must be a number between 0 and 100.");
+        setError("Rate must be a number between 0 and 1 (e.g. 0.3 = 30%).");
         return;
       }
 
@@ -186,23 +186,26 @@ export function IbPaymentTemplateLevelFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ib-payment-template-level-rate">Rate (%)</Label>
+              <Label htmlFor="ib-payment-template-level-rate">Rate (0–1)</Label>
               <Input
                 id="ib-payment-template-level-rate"
                 type="number"
                 min={0}
-                max={100}
+                max={1}
                 step="0.01"
-                value={form.ratePercent}
+                value={form.rate}
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
-                    ratePercent: event.target.value,
+                    rate: event.target.value,
                   }))
                 }
                 disabled={submitting}
                 required
               />
+              <p className="text-sm text-muted-foreground">
+                Factor entre 0 y 1. Ejemplo: 0.3 = 30%.
+              </p>
             </div>
 
             <div className="space-y-2">

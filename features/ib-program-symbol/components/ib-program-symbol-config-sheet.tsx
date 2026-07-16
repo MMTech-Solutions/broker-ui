@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -113,51 +114,81 @@ export function IbProgramSymbolConfigSheet({
             <div className="space-y-3">
               <Label>Usage flags</Label>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={form.use_for_volume_payment}
-                    onCheckedChange={(checked) =>
-                      setForm((current) =>
-                        current
-                          ? {
-                              ...current,
-                              use_for_volume_payment: checked === true,
-                            }
-                          : current,
-                      )
-                    }
-                  />
-                  Volume payment
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={form.use_for_plan_progression}
-                    onCheckedChange={(checked) =>
-                      setForm((current) =>
-                        current
-                          ? {
-                              ...current,
-                              use_for_plan_progression: checked === true,
-                            }
-                          : current,
-                      )
-                    }
-                  />
-                  Plan progression
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={form.use_for_cpa}
-                    onCheckedChange={(checked) =>
-                      setForm((current) =>
-                        current
-                          ? { ...current, use_for_cpa: checked === true }
-                          : current,
-                      )
-                    }
-                  />
-                  CPA
-                </label>
+                <Card size="sm">
+                  <CardContent className="space-y-1.5">
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      <Checkbox
+                        checked={form.use_for_volume_payment}
+                        onCheckedChange={(checked) =>
+                          setForm((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  use_for_volume_payment: checked === true,
+                                }
+                              : current,
+                          )
+                        }
+                      />
+                      Volume payment
+                    </label>
+                    <p className="text-sm text-muted-foreground pl-6">
+                      Genera comisiones IB por el volumen operado en este
+                      símbolo. Configura la comisión y la plantilla de pago
+                      abajo, y activa la regla de volumen del programa en
+                      Program payment rules.
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card size="sm">
+                  <CardContent className="space-y-1.5">
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      <Checkbox
+                        checked={form.use_for_plan_progression}
+                        onCheckedChange={(checked) =>
+                          setForm((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  use_for_plan_progression: checked === true,
+                                }
+                              : current,
+                          )
+                        }
+                      />
+                      Plan progression
+                    </label>
+                    <p className="text-sm text-muted-foreground pl-6">
+                      Cuenta el volumen de los referidos en este símbolo para
+                      la progresión automática del plan. Configura los rangos
+                      de volumen (mín/máx) del programa al asignarlo a un plan
+                      IB.
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card size="sm">
+                  <CardContent className="space-y-1.5">
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      <Checkbox
+                        checked={form.use_for_cpa}
+                        onCheckedChange={(checked) =>
+                          setForm((current) =>
+                            current
+                              ? { ...current, use_for_cpa: checked === true }
+                              : current,
+                          )
+                        }
+                      />
+                      CPA
+                    </label>
+                    <p className="text-sm text-muted-foreground pl-6">
+                      Incluye este símbolo al medir el volumen de referidos
+                      para elegibilidad CPA. Configura umbrales y montos de
+                      recompensa en la regla CPA del programa en Program
+                      payment rules.
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 

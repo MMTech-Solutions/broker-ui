@@ -175,7 +175,7 @@ export async function listTradingServerConfigSchemas(
 ): Promise<BrokerSuccessResponse<TradingServerConfigSchema[]>> {
   if (configSchemasDeniedPlatforms.has(platformId)) {
     throw new BrokerApiError(
-      "You do not have permission to read trading server config schemas (trading_server.manage).",
+      "You do not have permission to read trading server config schemas (broker.trading_server.manage).",
       {
         status: 403,
         code: "FORBIDDEN",
