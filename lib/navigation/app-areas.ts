@@ -12,21 +12,34 @@ export const APP_AREAS = {
     href: "/",
     match: (pathname: string) =>
       pathname !== "/login" &&
+      !pathname.startsWith("/login/") &&
       pathname !== "/client" &&
       !pathname.startsWith("/client/"),
   },
   login: {
     id: "login",
-    label: "Iniciar sesión",
+    label: "Login cliente",
     href: "/login",
     match: (pathname: string) =>
-      pathname === "/login" || pathname.startsWith("/login/"),
+      pathname === "/login" ||
+      (pathname.startsWith("/login/") && !pathname.startsWith("/login/admin")),
+  },
+  loginAdmin: {
+    id: "loginAdmin",
+    label: "Login admin",
+    href: "/login/admin",
+    match: (pathname: string) =>
+      pathname === "/login/admin" || pathname.startsWith("/login/admin/"),
   },
 } as const;
 
 export type AppAreaId = (typeof APP_AREAS)[keyof typeof APP_AREAS]["id"];
 
 export function resolveAppArea(pathname: string): AppAreaId {
+  if (APP_AREAS.loginAdmin.match(pathname)) {
+    return "loginAdmin";
+  }
+
   if (APP_AREAS.login.match(pathname)) {
     return "login";
   }

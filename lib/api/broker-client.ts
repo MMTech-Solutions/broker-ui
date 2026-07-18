@@ -3,13 +3,13 @@ import "server-only";
 import {
   buildBrokerApiUrl,
   buildBrokerGatewayHeaders,
+  rbacSurfaceToAuthArea,
 } from "@/lib/api/broker-config";
 import { BrokerApiError } from "@/lib/api/errors";
-import {
-  resolveRbacSurfaceFromApiPath,
-} from "@/lib/api/rbac-surface";
+import { resolveRbacSurfaceFromApiPath } from "@/lib/api/rbac-surface";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 import { isBrokerSuccessResponse } from "@/lib/api/types/broker-response";
+import { resolveBrokerAuthCredentials } from "@/lib/auth/session.server";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -25,7 +25,25 @@ export async function brokerRequest<T>(
   options: BrokerRequestOptions = {},
 ): Promise<BrokerSuccessResponse<T>> {
   const method = options.method ?? "GET";
-  const headers = new Headers(buildBrokerGatewayHeaders());
+  const surface = resolveRbacSurfaceFromApiPath(path);
+  const auth = await resolveBrokerAuthCredentials(
+    rbacSurfaceToAuthArea(surface),
+  );
+
+  if (!auth) {
+    throw BrokerApiError.fromResponse(
+      401,
+      { success: false, meta: { message: "Unauthenticated." } },
+      "Unauthenticated.",
+    );
+  }
+
+  const headers = new Headers(
+    buildBrokerGatewayHeaders(
+      {},
+      { accessToken: auth.accessToken, userinfo: auth.userinfo },
+    ),
+  );
   const incomingHeaders = new Headers(options.headers);
 
   incomingHeaders.forEach((value, key) => {
@@ -77,7 +95,23 @@ export async function proxyBrokerRequest(
   const incomingUrl = new URL(request.url);
   const targetPath = pathSegments.join("/");
   const surface = resolveRbacSurfaceFromApiPath(targetPath);
-  const headers = new Headers(buildBrokerGatewayHeaders({}, { surface }));
+  const auth = await resolveBrokerAuthCredentials(
+    rbacSurfaceToAuthArea(surface),
+  );
+
+  if (!auth) {
+    return Response.json(
+      { success: false, meta: { message: "Unauthenticated." } },
+      { status: 401 },
+    );
+  }
+
+  const headers = new Headers(
+    buildBrokerGatewayHeaders(
+      {},
+      { accessToken: auth.accessToken, userinfo: auth.userinfo },
+    ),
+  );
 
   const contentType = request.headers.get("Content-Type");
   if (contentType) {

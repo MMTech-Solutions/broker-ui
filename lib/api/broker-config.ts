@@ -1,6 +1,6 @@
-import { env } from "@/lib/env";
+import type { AuthArea } from "@/lib/auth/types";
 import type { RbacSurface } from "@/lib/api/rbac-surface";
-import { resolveRbacUserinfoHeaderValue } from "@/lib/api/rbac-userinfo";
+import { env } from "@/lib/env";
 
 export const brokerConfig = {
   baseUrl: env.brokerServiceUrl(),
@@ -17,8 +17,13 @@ export function buildBrokerApiUrl(path: string, search = ""): string {
   return `${brokerConfig.baseUrl}${prefix}/${normalizedPath}${search}`;
 }
 
+export function rbacSurfaceToAuthArea(surface: RbacSurface): AuthArea {
+  return surface === "admin_panel" ? "admin" : "client";
+}
+
 type BuildBrokerGatewayHeadersOptions = {
-  surface?: RbacSurface;
+  accessToken?: string | null;
+  userinfo?: string | null;
 };
 
 export function buildBrokerGatewayHeaders(
@@ -31,10 +36,12 @@ export function buildBrokerGatewayHeaders(
     ...extraHeaders,
   };
 
-  const userinfo = resolveRbacUserinfoHeaderValue(options.surface);
+  if (options.accessToken) {
+    headers.Authorization = `Bearer ${options.accessToken}`;
+  }
 
-  if (userinfo) {
-    headers[brokerConfig.userinfoHeader] = userinfo;
+  if (options.userinfo) {
+    headers[brokerConfig.userinfoHeader] = options.userinfo;
   }
 
   return headers;

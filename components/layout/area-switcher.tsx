@@ -6,7 +6,12 @@ import { usePathname } from "next/navigation";
 import { APP_AREAS, resolveAppArea } from "@/lib/navigation/app-areas";
 import { cn } from "@/lib/utils";
 
-const areaTabs = [APP_AREAS.client, APP_AREAS.admin, APP_AREAS.login] as const;
+const areaTabs = [
+  APP_AREAS.client,
+  APP_AREAS.admin,
+  APP_AREAS.login,
+  APP_AREAS.loginAdmin,
+] as const;
 
 export function AreaSwitcher() {
   const pathname = usePathname();

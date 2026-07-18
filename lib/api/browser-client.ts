@@ -88,6 +88,17 @@ export async function browserBrokerRequest<T>(
     );
   }
 
+  if (response.status === 401 && typeof window !== "undefined") {
+    const path = window.location.pathname;
+    const isClient = path === "/client" || path.startsWith("/client/");
+    const loginPath = isClient ? "/login" : "/login/admin";
+    if (!path.startsWith("/login")) {
+      window.location.assign(
+        `${loginPath}?next=${encodeURIComponent(path)}`,
+      );
+    }
+  }
+
   if (!response.ok || !isBrokerSuccessResponse<T>(payload)) {
     throw BrokerApiError.fromResponse(response.status, payload);
   }
