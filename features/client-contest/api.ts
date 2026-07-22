@@ -92,13 +92,21 @@ export async function unsubscribeFromContest(
 export async function listContestLeaderboard(
   contestId: string,
   filters: ClientContestLeaderboardFilters = {},
-): Promise<BrokerSuccessResponse<ContestSubscription[]>> {
+): Promise<
+  BrokerSuccessResponse<ContestSubscription[]> & {
+    meta: ClientContestLeaderboardMeta;
+  }
+> {
   return browserBrokerRequest<ContestSubscription[]>(
     `${CONTESTS_PATH}/${contestId}/leaderboard`,
     {
       searchParams: compactFilters(filters),
     },
-  );
+  ) as Promise<
+    BrokerSuccessResponse<ContestSubscription[]> & {
+      meta: ClientContestLeaderboardMeta;
+    }
+  >;
 }
 
 export async function getContestLeaderboardTop(

@@ -33,10 +33,54 @@ export function getServerGroupCurrency(
     return { code: currency, precision: 2 };
   }
 
+  const code = currency.code ?? currency.iso_code;
+  const precision =
+    typeof currency.precision === "number" ? currency.precision : undefined;
+
+  // Empty `{}` from API serialization must not silently become USD/2.
+  if (!code || precision === undefined) {
+    return { code: code ?? "USD", precision: precision ?? 2 };
+  }
+
   return {
-    code: currency.code ?? currency.iso_code ?? "USD",
-    precision: currency.precision ?? 2,
+    code,
+    precision,
   };
+}
+
+export function hasResolvedServerGroupCurrency(
+  currency: ServerGroup["currency"],
+): boolean {
+  if (currency == null) {
+    return false;
+  }
+
+  if (typeof currency === "string") {
+    return currency.trim().length > 0;
+  }
+
+  const code = currency.code ?? currency.iso_code;
+
+  return Boolean(code) && typeof currency.precision === "number";
+}
+
+export function formatServerGroupOptionLabel(
+  groupName: string,
+  currency: ServerGroup["currency"],
+  tradingServerSignature?: string | null,
+): string {
+  const resolved = getServerGroupCurrency(currency);
+  const currencyPart = hasResolvedServerGroupCurrency(currency)
+    ? `${resolved.code} (precision ${resolved.precision})`
+    : "currency unavailable";
+
+  const serverPart = tradingServerSignature
+    ? `${tradingServerSignature.slice(0, 8)}…`
+    : null;
+
+  return serverPart
+    ? `${groupName} · ${currencyPart} · ${serverPart}`
+    : `${groupName} · ${currencyPart}`;
 }
 
 export function formatCurrencyLabel(currency: ServerGroup["currency"]): string {

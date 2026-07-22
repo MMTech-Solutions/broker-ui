@@ -51,9 +51,12 @@ export async function browserBrokerRequest<T>(
 
   headers.set("Accept", "application/json");
 
-  let body: string | undefined;
+  let body: BodyInit | undefined;
 
-  if (options.body !== undefined) {
+  if (options.body instanceof FormData) {
+    // Let the runtime set multipart boundary; do not force JSON Content-Type.
+    body = options.body;
+  } else if (options.body !== undefined) {
     headers.set("Content-Type", "application/json");
     body = JSON.stringify(options.body);
   }

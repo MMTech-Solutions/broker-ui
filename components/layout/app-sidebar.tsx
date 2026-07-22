@@ -108,7 +108,7 @@ const bonusNavigation = [
     icon: LayoutTemplateIcon,
   },
   {
-    title: "Bonus assignment logs",
+    title: "Bonus logs",
     href: "/bonus-assignment-logs",
     icon: HistoryIcon,
   },

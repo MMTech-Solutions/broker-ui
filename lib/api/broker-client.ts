@@ -32,7 +32,11 @@ export async function brokerRequest<T>(
     headers.set(key, value);
   });
 
-  if (options.body && !headers.has("Content-Type")) {
+  if (
+    options.body &&
+    !(options.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -84,8 +88,9 @@ export async function proxyBrokerRequest(
     headers.set("Content-Type", contentType);
   }
 
+  // Use arrayBuffer so multipart uploads (and any binary body) are not corrupted.
   const body = MUTATING_METHODS.has(request.method)
-    ? await request.text()
+    ? await request.arrayBuffer()
     : undefined;
 
   const upstream = await fetch(
@@ -93,7 +98,7 @@ export async function proxyBrokerRequest(
     {
       method: request.method,
       headers,
-      body: body || undefined,
+      body: body && body.byteLength > 0 ? body : undefined,
       cache: "no-store",
     },
   );

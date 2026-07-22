@@ -66,6 +66,34 @@ export function bonusAssignmentStatusVariant(
   }
 }
 
+export function depositBonusIntentStatusLabel(value: string): string {
+  switch (value) {
+    case "watching":
+      return "Watching";
+    case "applied":
+      return "Applied";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return value;
+  }
+}
+
+export function depositBonusIntentStatusVariant(
+  value: string,
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (value) {
+    case "watching":
+      return "default";
+    case "applied":
+      return "secondary";
+    case "cancelled":
+      return "destructive";
+    default:
+      return "outline";
+  }
+}
+
 export function truncateId(value: string): string {
   return value.length > 12 ? `${value.slice(0, 8)}…` : value;
 }

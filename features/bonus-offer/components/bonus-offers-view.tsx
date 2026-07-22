@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   GiftIcon,
+  LayersIcon,
   ListXIcon,
   PencilIcon,
   PlusIcon,
@@ -14,6 +15,7 @@ import {
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +33,7 @@ import { BonusOfferAdminAssignDialog } from "@/features/bonus-offer/components/b
 import { BonusOfferDeleteDialog } from "@/features/bonus-offer/components/bonus-offer-delete-dialog";
 import { BonusOfferFormDialog } from "@/features/bonus-offer/components/bonus-offer-form-dialog";
 import { BonusOfferIntroducingBrokersDialog } from "@/features/bonus-offer/components/bonus-offer-introducing-brokers-dialog";
+import { BonusOfferServerGroupsDialog } from "@/features/bonus-offer/components/bonus-offer-server-groups-dialog";
 import { bonusOfferExcludedInstrumentsPath } from "@/features/bonus-excluded-instrument/routes";
 import {
   BONUS_OFFER_TYPES,
@@ -50,6 +53,8 @@ const bonusOfferTypeLabels = Object.fromEntries(
 ) as Record<string, string>;
 
 function formatRewardSummary(offer: BonusOffer): string {
+  const precision = offer.currency_precision ?? 2;
+
   if (offer.type === "deposit_triggered") {
     const percent =
       offer.deposit_percent != null
@@ -57,10 +62,26 @@ function formatRewardSummary(offer: BonusOffer): string {
         : "—";
     const max = offer.max_credit_amount;
 
-    return max != null ? `${percent}% (max ${max})` : `${percent}%`;
+    if (max == null) {
+      return `${percent}%`;
+    }
+
+    const maxMajor = new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: precision,
+    }).format(Number(max));
+
+    return `${percent}% (max ${maxMajor})`;
   }
 
-  return offer.credit_amount != null ? String(offer.credit_amount) : "—";
+  if (offer.credit_amount == null) {
+    return "—";
+  }
+
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: precision,
+  }).format(Number(offer.credit_amount));
 }
 
 function formatExpiresAt(value?: string | null): string {
@@ -79,6 +100,7 @@ export function BonusOffersView() {
   const [pagination, setPagination] = useState<BrokerPaginationMeta | null>(
     null,
   );
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +114,10 @@ export function BonusOffersView() {
 
   const [ibsOpen, setIbsOpen] = useState(false);
   const [offerForIbs, setOfferForIbs] = useState<BonusOffer | null>(null);
+
+  const [serverGroupsOpen, setServerGroupsOpen] = useState(false);
+  const [offerForServerGroups, setOfferForServerGroups] =
+    useState<BonusOffer | null>(null);
 
   const [assignOpen, setAssignOpen] = useState(false);
   const [offerForAssign, setOfferForAssign] = useState<BonusOffer | null>(null);
@@ -112,10 +138,12 @@ export function BonusOffersView() {
 
         setBonusOffers(response.data);
         setPagination(response.meta.pagination ?? null);
+        setWarnings(response.meta.warnings ?? []);
       } catch (loadError) {
         setError(formatBrokerApiError(loadError));
         setBonusOffers([]);
         setPagination(null);
+        setWarnings([]);
       } finally {
         if (!options?.silent) {
           setLoading(false);
@@ -151,6 +179,11 @@ export function BonusOffersView() {
     setIbsOpen(true);
   }
 
+  function openServerGroupsDialog(offer: BonusOffer) {
+    setOfferForServerGroups(offer);
+    setServerGroupsOpen(true);
+  }
+
   function openAssignDialog(offer: BonusOffer) {
     setOfferForAssign(offer);
     setAssignOpen(true);
@@ -177,6 +210,19 @@ export function BonusOffersView() {
         <ApiErrorAlert title="Could not load bonus offers" message={error} />
       ) : null}
 
+      {!loading && warnings.length > 0 ? (
+        <Alert variant="warning">
+          <AlertTitle>Operator warnings</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc space-y-1 pl-4">
+              {warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="rounded-xl border">
         <Table>
           <TableHeader>
@@ -185,19 +231,20 @@ export function BonusOffersView() {
               <TableHead>Type</TableHead>
               <TableHead>Reward</TableHead>
               <TableHead>Platform</TableHead>
+              <TableHead>Server groups</TableHead>
               <TableHead>Excluded</TableHead>
               <TableHead>IBs</TableHead>
               <TableHead>Assignments</TableHead>
               <TableHead>Claim expires</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[196px] text-right">Actions</TableHead>
+              <TableHead className="w-[220px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={10}>
+                    <TableCell colSpan={11}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -207,7 +254,7 @@ export function BonusOffersView() {
             {!loading && bonusOffers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={11}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No bonus offers found.
@@ -228,6 +275,7 @@ export function BonusOffersView() {
                         {offer.platform_id.slice(0, 8)}…
                       </span>
                     </TableCell>
+                    <TableCell>{offer.server_groups_count ?? 0}</TableCell>
                     <TableCell>{offer.excluded_instruments_count ?? 0}</TableCell>
                     <TableCell>
                       {offer.type === "deposit_triggered"
@@ -261,6 +309,14 @@ export function BonusOffersView() {
                           disabled={!offer.is_active}
                         >
                           <GiftIcon />
+                        </ActionTooltipButton>
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          tooltip={`Server groups for ${offer.name}`}
+                          onClick={() => openServerGroupsDialog(offer)}
+                        >
+                          <LayersIcon />
                         </ActionTooltipButton>
                         {offer.type === "deposit_triggered" ? (
                           <ActionTooltipButton
@@ -359,6 +415,13 @@ export function BonusOffersView() {
         bonusOffer={offerForIbs}
         open={ibsOpen}
         onOpenChange={setIbsOpen}
+        onSuccess={handleMutationSuccess}
+      />
+
+      <BonusOfferServerGroupsDialog
+        bonusOffer={offerForServerGroups}
+        open={serverGroupsOpen}
+        onOpenChange={setServerGroupsOpen}
         onSuccess={handleMutationSuccess}
       />
 

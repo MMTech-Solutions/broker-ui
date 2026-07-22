@@ -6,6 +6,10 @@ import type {
   ContestStatus,
   ContestSubscription,
 } from "@/features/contest/types";
+import type {
+  BrokerPaginationMeta,
+  BrokerSuccessMeta,
+} from "@/lib/api/types/broker-response";
 
 export type ClientContestListFilters = {
   status?: ContestStatus;
@@ -29,6 +33,14 @@ export type ClientContestLeaderboardFilters = {
   page?: number;
   per_page?: number;
   include_non_ranked?: boolean;
+};
+
+export type ClientContestLeaderboardMeta = BrokerSuccessMeta & {
+  include_non_ranked?: boolean;
+  non_ranked?: {
+    data: ContestSubscription[];
+    pagination: BrokerPaginationMeta;
+  };
 };
 
 export type {

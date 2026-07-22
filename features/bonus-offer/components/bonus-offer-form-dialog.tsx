@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,21 @@ import {
   BONUS_OFFER_FIELD_HELP,
   BonusOfferFieldLabel,
 } from "@/features/bonus-offer/components/bonus-offer-field-label";
-import { formatDepositPercentValue } from "@/features/bonus-offer/format";
+import {
+  formatDepositPercentValue,
+  minorUnitsToMajorInput,
+} from "@/features/bonus-offer/format";
+import {
+  listServerGroupsForAdmin,
+  listTradingServersForAdmin,
+} from "@/features/trading-server/api";
+import {
+  formatServerGroupOptionLabel,
+  getServerGroupCurrency,
+  hasResolvedServerGroupCurrency,
+} from "@/features/trading-server/format";
+import type { ServerGroup } from "@/features/trading-server/types";
+import { parseMajorAmountToMinorUnits } from "@/features/initial-amount/format";
 
 type BonusOfferFormDialogProps = {
   open: boolean;
@@ -60,6 +74,8 @@ type FormState = {
   bonus_offer_template_id: string;
   platform_id: string;
   is_active: boolean;
+  /** Used when saving with is_active=false (API-required). */
+  invalidate_assignments: boolean;
   credit_amount: string;
   deposit_percent: string;
   max_credit_amount: string;
@@ -72,6 +88,14 @@ type FormState = {
   activity_per_credit_unit: string;
   burn_on_withdrawal: boolean;
   burn_on_negative_balance: boolean;
+  server_group_ids: string[];
+};
+
+type ServerGroupOption = {
+  id: string;
+  label: string;
+  currencyCode: string;
+  precision: number;
 };
 
 const emptyForm: FormState = {
@@ -80,6 +104,7 @@ const emptyForm: FormState = {
   bonus_offer_template_id: "",
   platform_id: "",
   is_active: true,
+  invalidate_assignments: true,
   credit_amount: "",
   deposit_percent: "",
   max_credit_amount: "",
@@ -92,6 +117,7 @@ const emptyForm: FormState = {
   activity_per_credit_unit: "0.1",
   burn_on_withdrawal: true,
   burn_on_negative_balance: true,
+  server_group_ids: [],
 };
 
 function toDateTimeLocalValue(value?: string | null): string {
@@ -123,25 +149,43 @@ function toOptionalNumber(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function offerToForm(offer: BonusOffer): FormState {
+function toMinorUnits(
+  value: string,
+  precision: number,
+): number | undefined {
+  return parseMajorAmountToMinorUnits(value, precision);
+}
+
+function offerToForm(offer: BonusOffer, precision: number | null): FormState {
+  const toMajorInput = (value: string | number | null | undefined) => {
+    if (value == null || value === "") {
+      return "";
+    }
+
+    // API already returns monetary fields in major units.
+    return String(value);
+  };
+
   return {
     type: offer.type,
     name: offer.name,
     bonus_offer_template_id: offer.bonus_offer_template_id ?? "",
     platform_id: offer.platform_id,
-    is_active: offer.is_active,
-    credit_amount:
-      offer.credit_amount != null ? String(offer.credit_amount) : "",
+    is_active: offer.is_active ?? true,
+    invalidate_assignments: true,
+    credit_amount: toMajorInput(offer.credit_amount),
     deposit_percent: formatDepositPercentValue(offer.deposit_percent),
-    max_credit_amount:
-      offer.max_credit_amount != null ? String(offer.max_credit_amount) : "",
+    max_credit_amount: toMajorInput(offer.max_credit_amount),
     deposit_application_mode:
       offer.deposit_application_mode ?? "once_per_account",
     claim_expires_at: toDateTimeLocalValue(offer.claim_expires_at),
-    min_real_balance:
-      offer.min_real_balance != null ? String(offer.min_real_balance) : "",
+    min_real_balance: toMajorInput(offer.min_real_balance),
     min_deposit_amount:
-      offer.min_deposit_amount != null ? String(offer.min_deposit_amount) : "0",
+      offer.min_deposit_amount != null
+        ? toMajorInput(offer.min_deposit_amount)
+        : precision == null
+          ? "0"
+          : minorUnitsToMajorInput(0, precision),
     min_position_duration_seconds:
       offer.min_position_duration_seconds != null
         ? String(offer.min_position_duration_seconds)
@@ -156,16 +200,23 @@ function offerToForm(offer: BonusOffer): FormState {
         : "",
     burn_on_withdrawal: offer.burn_on_withdrawal ?? true,
     burn_on_negative_balance: offer.burn_on_negative_balance ?? true,
+    server_group_ids: (offer.server_groups ?? []).map(
+      (entry) => entry.server_group_id,
+    ),
   };
 }
 
-function buildCreatePayload(form: FormState): CreateBonusOfferInput {
+function buildCreatePayload(
+  form: FormState,
+  precision: number,
+): CreateBonusOfferInput {
   const payload: CreateBonusOfferInput = {
     type: form.type,
     name: form.name.trim(),
     is_active: form.is_active,
     burn_on_withdrawal: form.burn_on_withdrawal,
     burn_on_negative_balance: form.burn_on_negative_balance,
+    server_group_ids: form.server_group_ids,
   };
 
   if (form.bonus_offer_template_id) {
@@ -177,10 +228,13 @@ function buildCreatePayload(form: FormState): CreateBonusOfferInput {
   }
 
   if (form.type === "manual_claim") {
-    payload.credit_amount = Number(form.credit_amount);
+    payload.credit_amount = toMinorUnits(form.credit_amount, precision);
   } else {
     payload.deposit_percent = Number(form.deposit_percent);
-    payload.max_credit_amount = Number(form.max_credit_amount);
+    payload.max_credit_amount = toMinorUnits(
+      form.max_credit_amount,
+      precision,
+    );
     payload.deposit_application_mode = form.deposit_application_mode;
   }
 
@@ -188,20 +242,36 @@ function buildCreatePayload(form: FormState): CreateBonusOfferInput {
     payload.claim_expires_at = new Date(form.claim_expires_at).toISOString();
   }
 
-  const minRealBalance = toOptionalNumber(form.min_real_balance);
+  const minRealBalance = toMinorUnits(form.min_real_balance, precision);
 
   if (minRealBalance !== undefined) {
     payload.min_real_balance = minRealBalance;
   }
 
-  payload.min_deposit_amount = toOptionalNumber(form.min_deposit_amount) ?? 0;
+  payload.min_deposit_amount =
+    toMinorUnits(form.min_deposit_amount, precision) ?? 0;
   payload.min_position_duration_seconds =
     toOptionalNumber(form.min_position_duration_seconds) ?? 0;
 
   return payload;
 }
 
-function buildUpdatePayload(form: FormState): UpdateBonusOfferInput {
+function buildUpdatePayload(
+  form: FormState,
+  precision: number | null,
+): UpdateBonusOfferInput {
+  const toStoredAmount = (value: string): number | null | undefined => {
+    if (!value.trim()) {
+      return null;
+    }
+
+    if (precision == null) {
+      return toOptionalNumber(value);
+    }
+
+    return toMinorUnits(value, precision);
+  };
+
   const payload: UpdateBonusOfferInput = {
     type: form.type,
     name: form.name.trim(),
@@ -213,15 +283,19 @@ function buildUpdatePayload(form: FormState): UpdateBonusOfferInput {
     burn_on_negative_balance: form.burn_on_negative_balance,
   };
 
+  if (!form.is_active) {
+    payload.invalidate_assignments = form.invalidate_assignments;
+  }
+
   if (form.type === "manual_claim") {
-    payload.credit_amount = toOptionalNumber(form.credit_amount) ?? null;
+    payload.credit_amount = toStoredAmount(form.credit_amount) ?? null;
     payload.deposit_percent = null;
     payload.max_credit_amount = null;
     payload.deposit_application_mode = null;
   } else {
     payload.deposit_percent = toOptionalNumber(form.deposit_percent) ?? null;
     payload.max_credit_amount =
-      toOptionalNumber(form.max_credit_amount) ?? null;
+      toStoredAmount(form.max_credit_amount) ?? null;
     payload.deposit_application_mode = form.deposit_application_mode;
     payload.credit_amount = null;
   }
@@ -230,15 +304,22 @@ function buildUpdatePayload(form: FormState): UpdateBonusOfferInput {
     ? new Date(form.claim_expires_at).toISOString()
     : null;
 
-  payload.min_real_balance = toOptionalNumber(form.min_real_balance) ?? null;
-  payload.min_deposit_amount = toOptionalNumber(form.min_deposit_amount) ?? 0;
+  payload.min_real_balance = toStoredAmount(form.min_real_balance) ?? null;
+  payload.min_deposit_amount =
+    (precision == null
+      ? toOptionalNumber(form.min_deposit_amount)
+      : toMinorUnits(form.min_deposit_amount, precision)) ?? 0;
   payload.min_position_duration_seconds =
     toOptionalNumber(form.min_position_duration_seconds) ?? 0;
 
   return payload;
 }
 
-function validateForm(form: FormState, mode: "create" | "edit"): string | null {
+function validateForm(
+  form: FormState,
+  mode: "create" | "edit",
+  precision: number | null,
+): string | null {
   if (!form.name.trim()) {
     return "Name is required.";
   }
@@ -257,6 +338,14 @@ function validateForm(form: FormState, mode: "create" | "edit"): string | null {
     }
   }
 
+  if (mode === "create" && form.server_group_ids.length === 0) {
+    return "Select at least one server group.";
+  }
+
+  if (mode === "create" && precision == null) {
+    return "Select server groups with a shared currency precision before entering amounts.";
+  }
+
   if (form.type === "manual_claim" && !form.credit_amount.trim()) {
     return "Credit amount is required for manual claim offers.";
   }
@@ -267,7 +356,79 @@ function validateForm(form: FormState, mode: "create" | "edit"): string | null {
     }
   }
 
+  if (precision != null) {
+    if (
+      form.type === "manual_claim" &&
+      toMinorUnits(form.credit_amount, precision) == null
+    ) {
+      return "Credit amount must be a valid major-unit amount.";
+    }
+
+    if (
+      form.type === "deposit_triggered" &&
+      toMinorUnits(form.max_credit_amount, precision) == null
+    ) {
+      return "Max credit amount must be a valid major-unit amount.";
+    }
+
+    if (
+      form.min_real_balance.trim() &&
+      toMinorUnits(form.min_real_balance, precision) == null
+    ) {
+      return "Min real balance must be a valid major-unit amount.";
+    }
+
+    if (toMinorUnits(form.min_deposit_amount || "0", precision) == null) {
+      return "Min deposit amount must be a valid major-unit amount.";
+    }
+  }
+
   return null;
+}
+
+function toServerGroupOption(
+  server: { connection_signature: string },
+  group: ServerGroup,
+): ServerGroupOption {
+  const currency = getServerGroupCurrency(group.currency);
+  const currencyResolved = hasResolvedServerGroupCurrency(group.currency);
+
+  return {
+    id: group.id,
+    label: formatServerGroupOptionLabel(
+      group.name,
+      group.currency,
+      server.connection_signature,
+    ),
+    currencyCode: currencyResolved ? currency.code : "—",
+    precision: currencyResolved ? currency.precision : -1,
+  };
+}
+
+async function loadServerGroupOptionsForPlatform(
+  platformId: string,
+): Promise<ServerGroupOption[]> {
+  const serversResponse = await listTradingServersForAdmin({
+    per_page: 100,
+    is_active: true,
+    platform_id: platformId,
+  });
+
+  const groupsByServer = await Promise.all(
+    serversResponse.data.map(async (server) => {
+      const groupsResponse = await listServerGroupsForAdmin(server.id, {
+        per_page: 100,
+      });
+
+      return groupsResponse.data.map((group) =>
+        toServerGroupOption(server, group),
+      );
+    }),
+  );
+
+  return groupsByServer
+    .flat()
+    .sort((left, right) => left.label.localeCompare(right.label));
 }
 
 export function BonusOfferFormDialog({
@@ -280,13 +441,88 @@ export function BonusOfferFormDialog({
   const [form, setForm] = useState<FormState>(emptyForm);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [templates, setTemplates] = useState<BonusOfferTemplate[]>([]);
+  const [serverGroupOptions, setServerGroupOptions] = useState<
+    ServerGroupOption[]
+  >([]);
   const [loading, setLoading] = useState(false);
+  const [loadingServerGroups, setLoadingServerGroups] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [editPrecision, setEditPrecision] = useState<number | null>(null);
+  const [initialIsActive, setInitialIsActive] = useState(true);
 
   const usesTemplate = mode === "create" && form.bonus_offer_template_id !== "";
   const bonusOfferId = bonusOffer?.id;
+  const showInvalidateAssignments =
+    mode === "edit" && !form.is_active && initialIsActive;
+
+  const effectivePlatformId = useMemo(() => {
+    if (mode === "edit") {
+      return form.platform_id;
+    }
+
+    if (form.bonus_offer_template_id) {
+      return (
+        templates.find(
+          (template) => template.id === form.bonus_offer_template_id,
+        )?.platform_id ?? ""
+      );
+    }
+
+    return form.platform_id;
+  }, [
+    form.bonus_offer_template_id,
+    form.platform_id,
+    mode,
+    templates,
+  ]);
+
+  const selectedServerGroups = useMemo(
+    () =>
+      serverGroupOptions.filter((option) =>
+        form.server_group_ids.includes(option.id),
+      ),
+    [form.server_group_ids, serverGroupOptions],
+  );
+
+  const lockedPrecision = useMemo(() => {
+    if (mode === "edit") {
+      return editPrecision;
+    }
+
+    if (selectedServerGroups.length === 0) {
+      return null;
+    }
+
+    const precision = selectedServerGroups[0]?.precision;
+
+    if (precision == null || precision < 0) {
+      return null;
+    }
+
+    return precision;
+  }, [editPrecision, mode, selectedServerGroups]);
+
+  const amountUnitHint = useMemo(() => {
+    if (lockedPrecision == null) {
+      return "Select server groups first to enter amounts in major currency units.";
+    }
+
+    const currencies = [
+      ...new Set(selectedServerGroups.map((group) => group.currencyCode)),
+    ];
+
+    const currencyLabel =
+      currencies.length > 0 ? currencies.join(", ") : "selected currencies";
+
+    return `Amounts in major units for ${currencyLabel} (precision ${lockedPrecision}).`;
+  }, [lockedPrecision, selectedServerGroups]);
+
+  const selectedSet = useMemo(
+    () => new Set(form.server_group_ids),
+    [form.server_group_ids],
+  );
 
   useEffect(() => {
     if (!open) {
@@ -299,6 +535,9 @@ export function BonusOfferFormDialog({
       setLoading(true);
       setLoadError(null);
       setSubmitError(null);
+      setEditPrecision(null);
+      setInitialIsActive(true);
+      setServerGroupOptions([]);
 
       try {
         const catalog = await loadBonusOfferFormCatalog();
@@ -317,7 +556,32 @@ export function BonusOfferFormDialog({
             return;
           }
 
-          setForm(offerToForm(offerResponse.data));
+          const offer = offerResponse.data;
+          const options = await loadServerGroupOptionsForPlatform(
+            offer.platform_id,
+          );
+
+          if (cancelled) {
+            return;
+          }
+
+          setServerGroupOptions(options);
+
+          const linkedIds = new Set(
+            (offer.server_groups ?? []).map((entry) => entry.server_group_id),
+          );
+          const linkedOptions = options.filter((option) =>
+            linkedIds.has(option.id),
+          );
+          const precisions = [
+            ...new Set(linkedOptions.map((option) => option.precision)),
+          ];
+          const precision =
+            precisions.length === 1 ? (precisions[0] ?? null) : null;
+
+          setEditPrecision(precision);
+          setInitialIsActive(offer.is_active ?? true);
+          setForm(offerToForm(offer, precision));
           return;
         }
 
@@ -340,10 +604,102 @@ export function BonusOfferFormDialog({
     };
   }, [bonusOfferId, mode, open]);
 
+  useEffect(() => {
+    if (!open || mode !== "create" || !effectivePlatformId) {
+      if (mode === "create") {
+        setServerGroupOptions([]);
+      }
+
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadGroups() {
+      setLoadingServerGroups(true);
+
+      try {
+        const options =
+          await loadServerGroupOptionsForPlatform(effectivePlatformId);
+
+        if (cancelled) {
+          return;
+        }
+
+        setServerGroupOptions(options);
+        setForm((current) => ({
+          ...current,
+          server_group_ids: current.server_group_ids.filter((id) =>
+            options.some((option) => option.id === id),
+          ),
+        }));
+      } catch (error) {
+        if (!cancelled) {
+          setServerGroupOptions([]);
+          setSubmitError(formatBrokerApiError(error));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingServerGroups(false);
+        }
+      }
+    }
+
+    void loadGroups();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectivePlatformId, mode, open]);
+
+  useEffect(() => {
+    if (mode !== "create" || lockedPrecision == null) {
+      return;
+    }
+
+    const selectedTemplate = templates.find(
+      (template) => template.id === form.bonus_offer_template_id,
+    );
+
+    if (!selectedTemplate) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      min_deposit_amount: minorUnitsToMajorInput(
+        selectedTemplate.min_deposit_amount ?? 0,
+        lockedPrecision,
+      ),
+    }));
+  }, [form.bonus_offer_template_id, lockedPrecision, mode, templates]);
+
+  function toggleServerGroup(serverGroupId: string, checked: boolean) {
+    setForm((current) => {
+      if (!checked) {
+        return {
+          ...current,
+          server_group_ids: current.server_group_ids.filter(
+            (id) => id !== serverGroupId,
+          ),
+        };
+      }
+
+      if (current.server_group_ids.includes(serverGroupId)) {
+        return current;
+      }
+
+      return {
+        ...current,
+        server_group_ids: [...current.server_group_ids, serverGroupId],
+      };
+    });
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const validationError = validateForm(form, mode);
+    const validationError = validateForm(form, mode, lockedPrecision);
 
     if (validationError) {
       setSubmitError(validationError);
@@ -355,9 +711,17 @@ export function BonusOfferFormDialog({
 
     try {
       if (mode === "create") {
-        await createBonusOffer(buildCreatePayload(form));
+        if (lockedPrecision == null) {
+          setSubmitError("Select at least one server group.");
+          return;
+        }
+
+        await createBonusOffer(buildCreatePayload(form, lockedPrecision));
       } else if (bonusOfferId) {
-        await updateBonusOffer(bonusOfferId, buildUpdatePayload(form));
+        await updateBonusOffer(
+          bonusOfferId,
+          buildUpdatePayload(form, lockedPrecision),
+        );
       }
 
       onOpenChange(false);
@@ -368,6 +732,9 @@ export function BonusOfferFormDialog({
       setSubmitting(false);
     }
   }
+
+  const amountInputsDisabled =
+    submitting || (mode === "create" && lockedPrecision == null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -473,23 +840,22 @@ export function BonusOfferFormDialog({
                     <Select
                       value={form.bonus_offer_template_id || "none"}
                       onValueChange={(value) => {
-                        const templateId = value === "none" ? "" : (value ?? "");
-                        const selectedTemplate = templates.find(
-                          (template) => template.id === templateId,
-                        );
+                        const templateId =
+                          value === "none" ? "" : (value ?? "");
 
                         setForm((current) => ({
                           ...current,
                           bonus_offer_template_id: templateId,
-                          min_deposit_amount:
-                            selectedTemplate != null
-                              ? String(selectedTemplate.min_deposit_amount ?? 0)
-                              : current.min_deposit_amount,
+                          server_group_ids: [],
+                          min_deposit_amount: "0",
                           min_position_duration_seconds:
-                            selectedTemplate != null
+                            templates.find(
+                              (template) => template.id === templateId,
+                            ) != null
                               ? String(
-                                  selectedTemplate.min_position_duration_seconds ??
-                                    0,
+                                  templates.find(
+                                    (template) => template.id === templateId,
+                                  )?.min_position_duration_seconds ?? 0,
                                 )
                               : current.min_position_duration_seconds,
                         }));
@@ -528,9 +894,10 @@ export function BonusOfferFormDialog({
                         setForm((current) => ({
                           ...current,
                           platform_id: value === "none" ? "" : (value ?? ""),
+                          server_group_ids: [],
                         }))
                       }
-                      disabled={submitting}
+                      disabled={submitting || mode === "edit"}
                     >
                       <SelectTrigger id="bonus-offer-platform" className="w-full">
                         <SelectValue placeholder="Select platform" />
@@ -547,6 +914,79 @@ export function BonusOfferFormDialog({
                   </div>
                 ) : null}
 
+                {mode === "create" ? (
+                  <div className="space-y-2">
+                    <BonusOfferFieldLabel
+                      htmlFor="bonus-offer-server-groups"
+                      help={BONUS_OFFER_FIELD_HELP.server_groups}
+                    >
+                      Server groups
+                    </BonusOfferFieldLabel>
+                    <p className="text-xs text-muted-foreground">
+                      {amountUnitHint}
+                    </p>
+                    {!effectivePlatformId ? (
+                      <p className="text-sm text-muted-foreground">
+                        Select a platform or template first.
+                      </p>
+                    ) : null}
+                    {effectivePlatformId && loadingServerGroups ? (
+                      <Skeleton className="h-24 w-full" />
+                    ) : null}
+                    {effectivePlatformId &&
+                    !loadingServerGroups &&
+                    serverGroupOptions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No server groups found for this platform.
+                      </p>
+                    ) : null}
+                    {effectivePlatformId && !loadingServerGroups
+                      ? serverGroupOptions.map((option) => {
+                          const checkboxId = `bonus-offer-form-group-${option.id}`;
+                          const currencyUnavailable = option.precision < 0;
+                          const disabledByPrecision =
+                            lockedPrecision != null &&
+                            option.precision !== lockedPrecision &&
+                            !selectedSet.has(option.id);
+
+                          return (
+                            <div
+                              key={option.id}
+                              className="flex items-center gap-3 rounded-lg border p-3"
+                            >
+                              <Checkbox
+                                id={checkboxId}
+                                checked={selectedSet.has(option.id)}
+                                onCheckedChange={(checked) =>
+                                  toggleServerGroup(
+                                    option.id,
+                                    checked === true,
+                                  )
+                                }
+                                disabled={
+                                  submitting ||
+                                  currencyUnavailable ||
+                                  disabledByPrecision
+                                }
+                              />
+                              <label
+                                htmlFor={checkboxId}
+                                className="flex-1 cursor-pointer text-sm leading-snug"
+                              >
+                                {option.label}
+                                {currencyUnavailable
+                                  ? " — currency unavailable"
+                                  : disabledByPrecision
+                                    ? " — different precision"
+                                    : ""}
+                              </label>
+                            </div>
+                          );
+                        })
+                      : null}
+                  </div>
+                ) : null}
+
                 {form.type === "manual_claim" ? (
                   <div className="space-y-2">
                     <BonusOfferFieldLabel
@@ -558,7 +998,12 @@ export function BonusOfferFormDialog({
                     <Input
                       id="bonus-offer-credit-amount"
                       type="number"
-                      min={1}
+                      min={0}
+                      step={
+                        lockedPrecision == null
+                          ? "1"
+                          : (10 ** -lockedPrecision).toFixed(lockedPrecision)
+                      }
                       value={form.credit_amount}
                       onChange={(event) =>
                         setForm((current) => ({
@@ -566,7 +1011,7 @@ export function BonusOfferFormDialog({
                           credit_amount: event.target.value,
                         }))
                       }
-                      disabled={submitting}
+                      disabled={amountInputsDisabled}
                     />
                   </div>
                 ) : (
@@ -604,7 +1049,12 @@ export function BonusOfferFormDialog({
                       <Input
                         id="bonus-offer-max-credit"
                         type="number"
-                        min={1}
+                        min={0}
+                        step={
+                          lockedPrecision == null
+                            ? "1"
+                            : (10 ** -lockedPrecision).toFixed(lockedPrecision)
+                        }
                         value={form.max_credit_amount}
                         onChange={(event) =>
                           setForm((current) => ({
@@ -612,7 +1062,7 @@ export function BonusOfferFormDialog({
                             max_credit_amount: event.target.value,
                           }))
                         }
-                        disabled={submitting}
+                        disabled={amountInputsDisabled}
                       />
                     </div>
 
@@ -685,6 +1135,11 @@ export function BonusOfferFormDialog({
                       id="bonus-offer-min-balance"
                       type="number"
                       min={0}
+                      step={
+                        lockedPrecision == null
+                          ? "1"
+                          : (10 ** -lockedPrecision).toFixed(lockedPrecision)
+                      }
                       value={form.min_real_balance}
                       onChange={(event) =>
                         setForm((current) => ({
@@ -692,7 +1147,7 @@ export function BonusOfferFormDialog({
                           min_real_balance: event.target.value,
                         }))
                       }
-                      disabled={submitting}
+                      disabled={amountInputsDisabled}
                     />
                   </div>
                 </div>
@@ -709,6 +1164,11 @@ export function BonusOfferFormDialog({
                       id="bonus-offer-min-deposit"
                       type="number"
                       min={0}
+                      step={
+                        lockedPrecision == null
+                          ? "1"
+                          : (10 ** -lockedPrecision).toFixed(lockedPrecision)
+                      }
                       value={form.min_deposit_amount}
                       onChange={(event) =>
                         setForm((current) => ({
@@ -716,7 +1176,7 @@ export function BonusOfferFormDialog({
                           min_deposit_amount: event.target.value,
                         }))
                       }
-                      disabled={submitting}
+                      disabled={amountInputsDisabled}
                     />
                   </div>
 
@@ -798,6 +1258,10 @@ export function BonusOfferFormDialog({
                         setForm((current) => ({
                           ...current,
                           is_active: checked === true,
+                          invalidate_assignments:
+                            checked === true
+                              ? current.invalidate_assignments
+                              : true,
                         }))
                       }
                       disabled={submitting}
@@ -850,6 +1314,36 @@ export function BonusOfferFormDialog({
                     </BonusOfferFieldLabel>
                   </div>
                 </div>
+
+                {showInvalidateAssignments ? (
+                  <div className="flex items-start gap-2 rounded-lg border border-border px-3 py-2.5">
+                    <Checkbox
+                      id="bonus-offer-invalidate-assignments"
+                      checked={form.invalidate_assignments}
+                      onCheckedChange={(checked) =>
+                        setForm((current) => ({
+                          ...current,
+                          invalidate_assignments: checked === true,
+                        }))
+                      }
+                      disabled={submitting}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-1">
+                      <BonusOfferFieldLabel
+                        htmlFor="bonus-offer-invalidate-assignments"
+                        help={BONUS_OFFER_FIELD_HELP.invalidate_assignments}
+                      >
+                        Cancel open assignments
+                      </BonusOfferFieldLabel>
+                      <p className="text-xs text-muted-foreground leading-snug">
+                        Required when deactivating. Leave checked to abort open
+                        assignments; uncheck to keep them running on their
+                        frozen rules snapshot.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
               </>
             )}
           </div>

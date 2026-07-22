@@ -67,11 +67,12 @@ export function BonusOfferTemplateDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete bonus offer template</AlertDialogTitle>
           <AlertDialogDescription>
-            This will remove{" "}
+            This will soft-delete{" "}
             <span className="font-medium text-foreground">
               {bonusOfferTemplate?.name}
             </span>
-            . Templates linked to existing bonus offers cannot be deleted.
+            . Existing bonus offers created from this template are not affected;
+            the template can no longer seed new offers.
           </AlertDialogDescription>
         </AlertDialogHeader>
 

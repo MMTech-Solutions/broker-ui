@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, Trash2Icon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
@@ -26,15 +26,15 @@ const settingsBreadcrumbs: BreadcrumbItem[] = [
   { label: "Global settings", current: true },
 ];
 
+const BANNER_ACCEPT = "image/jpeg,image/jpg,image/png,image/webp";
+
 type FormState = {
-  banner_image_url: string;
   help_html: string;
   start_reminder_days: string;
   closing_alert_days: string;
 };
 
 const emptyForm: FormState = {
-  banner_image_url: "",
   help_html: "",
   start_reminder_days: "",
   closing_alert_days: "",
@@ -42,7 +42,6 @@ const emptyForm: FormState = {
 
 function settingsToForm(settings: ContestGlobalSettings): FormState {
   return {
-    banner_image_url: settings.banner_image_url ?? "",
     help_html: settings.help_html ?? "",
     start_reminder_days:
       settings.start_reminder_days != null
@@ -57,11 +56,41 @@ function settingsToForm(settings: ContestGlobalSettings): FormState {
 
 export function ContestGlobalSettingsView() {
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [currentBannerUrl, setCurrentBannerUrl] = useState<string | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerObjectUrl, setBannerObjectUrl] = useState<string | null>(null);
+  const [removeBanner, setRemoveBanner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!bannerFile) {
+      setBannerObjectUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(bannerFile);
+    setBannerObjectUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [bannerFile]);
+
+  const bannerPreviewUrl = useMemo(() => {
+    if (bannerObjectUrl) {
+      return bannerObjectUrl;
+    }
+
+    if (removeBanner) {
+      return null;
+    }
+
+    return currentBannerUrl;
+  }, [bannerObjectUrl, currentBannerUrl, removeBanner]);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -70,6 +99,9 @@ export function ContestGlobalSettingsView() {
     try {
       const response = await getContestGlobalSettings();
       setForm(settingsToForm(response.data));
+      setCurrentBannerUrl(response.data.banner_image_url);
+      setBannerFile(null);
+      setRemoveBanner(false);
     } catch (loadError) {
       setError(formatBrokerApiError(loadError));
     } finally {
@@ -80,6 +112,17 @@ export function ContestGlobalSettingsView() {
   useEffect(() => {
     void loadSettings();
   }, [loadSettings]);
+
+  function handleBannerChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setBannerFile(file);
+    setRemoveBanner(false);
+  }
+
+  function handleRemoveBanner() {
+    setBannerFile(null);
+    setRemoveBanner(true);
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,7 +135,8 @@ export function ContestGlobalSettingsView() {
       const closingAlertDays = parseOptionalInteger(form.closing_alert_days);
 
       await updateContestGlobalSettings({
-        banner_image_url: form.banner_image_url.trim() || null,
+        banner: bannerFile,
+        remove_banner: removeBanner && !bannerFile,
         help_html: form.help_html.trim() || null,
         start_reminder_days: startReminderDays ?? null,
         closing_alert_days: closingAlertDays ?? null,
@@ -144,19 +188,58 @@ export function ContestGlobalSettingsView() {
           onSubmit={handleSubmit}
         >
           <div className="space-y-2">
-            <Label htmlFor="contest-banner-url">Banner image URL</Label>
+            <Label htmlFor="contest-banner-file">Banner image</Label>
+            <p className="text-xs text-muted-foreground">
+              JPEG, PNG or WebP. Uploaded to storage on save; leave empty to keep
+              the current banner.
+            </p>
+
+            {bannerPreviewUrl ? (
+              <div className="overflow-hidden rounded-lg border bg-muted/30">
+                <img
+                  src={bannerPreviewUrl}
+                  alt="Contest banner preview"
+                  className="max-h-48 w-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+                No banner configured
+              </div>
+            )}
+
             <Input
-              id="contest-banner-url"
-              value={form.banner_image_url}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  banner_image_url: event.target.value,
-                }))
-              }
+              id="contest-banner-file"
+              type="file"
+              accept={BANNER_ACCEPT}
+              onChange={handleBannerChange}
               disabled={submitting}
-              placeholder="https://..."
             />
+
+            {bannerFile ? (
+              <p className="text-xs text-muted-foreground">
+                Selected: {bannerFile.name}
+              </p>
+            ) : null}
+
+            {(currentBannerUrl || bannerFile) && !removeBanner ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRemoveBanner}
+                disabled={submitting}
+              >
+                <Trash2Icon />
+                Remove banner
+              </Button>
+            ) : null}
+
+            {removeBanner ? (
+              <p className="text-xs text-muted-foreground">
+                Banner will be removed on save.
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
@@ -186,7 +269,7 @@ export function ContestGlobalSettingsView() {
               <Input
                 id="contest-start-reminder-days"
                 type="number"
-                min={0}
+                min={1}
                 value={form.start_reminder_days}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -205,7 +288,7 @@ export function ContestGlobalSettingsView() {
               <Input
                 id="contest-closing-alert-days"
                 type="number"
-                min={0}
+                min={1}
                 value={form.closing_alert_days}
                 onChange={(event) =>
                   setForm((current) => ({

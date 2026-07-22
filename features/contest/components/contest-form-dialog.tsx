@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { createContest, loadContestFormCatalog, updateContest } from "@/features/contest/api";
 import {
   fromDateTimeLocalValue,
-  parseOptionalInteger,
   toDateTimeLocalValue,
 } from "@/features/contest/format";
 import type {
@@ -35,6 +34,10 @@ import type {
 } from "@/features/contest/types";
 import type { ContestFormCatalogServerGroup } from "@/features/contest/types";
 import type { EligibleIntroducingBroker } from "@/features/contest/types";
+import {
+  minorUnitsToMajorValue,
+  parseMajorAmountToMinorUnits,
+} from "@/features/initial-amount/format";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
 type ContestFormDialogProps = {
@@ -70,19 +73,37 @@ const emptyForm: FormState = {
 };
 
 const NONE_IB_VALUE = "__none__";
+const DEFAULT_CURRENCY_PRECISION = 2;
 
 function contestToForm(contest: Contest): FormState {
+  const precision =
+    contest.server_group?.currency_precision ?? DEFAULT_CURRENCY_PRECISION;
+
   return {
     name: contest.name,
-    min_balance_threshold: String(contest.min_balance_threshold),
-    max_balance_threshold: String(contest.max_balance_threshold),
-    entry_fee: String(contest.entry_fee),
+    min_balance_threshold: minorUnitsToMajorValue(
+      contest.min_balance_threshold,
+      precision,
+    ),
+    max_balance_threshold: minorUnitsToMajorValue(
+      contest.max_balance_threshold,
+      precision,
+    ),
+    entry_fee: minorUnitsToMajorValue(contest.entry_fee, precision),
     access_code: "",
     starts_at: toDateTimeLocalValue(contest.starts_at),
     ends_at: toDateTimeLocalValue(contest.ends_at),
     linked_ib_user_id: contest.linked_ib_user_id ?? "",
     server_group_id: contest.server_group_id,
   };
+}
+
+function amountStep(precision: number): string {
+  if (precision <= 0) {
+    return "1";
+  }
+
+  return `0.${"0".repeat(precision - 1)}1`;
 }
 
 export function ContestFormDialog({
@@ -102,6 +123,19 @@ export function ContestFormDialog({
   const [eligibleIbs, setEligibleIbs] = useState<EligibleIntroducingBroker[]>(
     [],
   );
+
+  const selectedServerGroup = useMemo(
+    () => serverGroups.find((group) => group.id === form.server_group_id),
+    [form.server_group_id, serverGroups],
+  );
+
+  const currencyPrecision =
+    selectedServerGroup?.currency_precision ??
+    contest?.server_group?.currency_precision ??
+    DEFAULT_CURRENCY_PRECISION;
+
+  const currencyCode =
+    selectedServerGroup?.currency ?? contest?.server_group?.currency ?? null;
 
   useEffect(() => {
     if (!open) {
@@ -147,19 +181,30 @@ export function ContestFormDialog({
         return;
       }
 
-      const minBalance = parseOptionalInteger(form.min_balance_threshold);
-      const maxBalance = parseOptionalInteger(form.max_balance_threshold);
-      const entryFee = parseOptionalInteger(form.entry_fee);
+      const precision =
+        selectedServerGroup?.currency_precision ??
+        contest?.server_group?.currency_precision ??
+        DEFAULT_CURRENCY_PRECISION;
+
+      const minBalance = parseMajorAmountToMinorUnits(
+        form.min_balance_threshold,
+        precision,
+      );
+      const maxBalance = parseMajorAmountToMinorUnits(
+        form.max_balance_threshold,
+        precision,
+      );
+      const entryFee = parseMajorAmountToMinorUnits(form.entry_fee, precision);
       const startsAt = fromDateTimeLocalValue(form.starts_at);
       const endsAt = fromDateTimeLocalValue(form.ends_at);
 
       if (minBalance === undefined || maxBalance === undefined) {
-        setError("Balance thresholds must be valid integers.");
+        setError("Balance thresholds must be valid monetary amounts.");
         return;
       }
 
       if (entryFee === undefined) {
-        setError("Entry fee must be a valid integer.");
+        setError("Entry fee must be a valid monetary amount.");
         return;
       }
 
@@ -210,6 +255,9 @@ export function ContestFormDialog({
     }
   }
 
+  const monetaryStep = amountStep(currencyPrecision);
+  const currencyHint = currencyCode ? ` (${currencyCode})` : "";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] min-w-0 flex-col gap-0 overflow-hidden sm:max-w-2xl">
@@ -218,8 +266,10 @@ export function ContestFormDialog({
             {mode === "create" ? "Create contest" : "Edit contest"}
           </DialogTitle>
           <DialogDescription>
-            Monetary fields use minor currency units (e.g. cents). Leave access
-            code empty for a public contest.
+            Enter fees and balance limits in currency units of the selected
+            server group
+            {currencyCode ? ` (${currencyCode})` : ""}. Leave access code empty
+            for a public contest.
           </DialogDescription>
         </DialogHeader>
 
@@ -264,12 +314,14 @@ export function ContestFormDialog({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="contest-min-balance">Min balance threshold</Label>
+                <Label htmlFor="contest-min-balance">
+                  Min balance threshold{currencyHint}
+                </Label>
                 <Input
                   id="contest-min-balance"
                   type="number"
                   min={0}
-                  step={1}
+                  step={monetaryStep}
                   value={form.min_balance_threshold}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -283,12 +335,14 @@ export function ContestFormDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contest-max-balance">Max balance threshold</Label>
+                <Label htmlFor="contest-max-balance">
+                  Max balance threshold{currencyHint}
+                </Label>
                 <Input
                   id="contest-max-balance"
                   type="number"
                   min={0}
-                  step={1}
+                  step={monetaryStep}
                   value={form.max_balance_threshold}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -303,12 +357,12 @@ export function ContestFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="contest-entry-fee">Entry fee</Label>
+              <Label htmlFor="contest-entry-fee">Entry fee{currencyHint}</Label>
               <Input
                 id="contest-entry-fee"
                 type="number"
                 min={0}
-                step={1}
+                step={monetaryStep}
                 value={form.entry_fee}
                 onChange={(event) =>
                   setForm((current) => ({

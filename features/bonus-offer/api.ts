@@ -5,11 +5,14 @@ import type {
   BonusOffer,
   BonusOfferIntroducingBroker,
   BonusOfferListFilters,
+  BonusOfferServerGroup,
   CreateBonusOfferInput,
   EligibleIntroducingBroker,
   ListEligibleIntroducingBrokersFilters,
   SyncBonusExcludedInstrumentsInput,
   SyncBonusOfferIntroducingBrokersInput,
+  SyncBonusOfferServerGroupsInput,
+  DeleteBonusOfferInput,
   UpdateBonusOfferInput,
 } from "@/features/bonus-offer/types";
 import type { BonusAssignment } from "@/features/bonus-assignment-logs/types";
@@ -77,11 +80,15 @@ export async function updateBonusOffer(
 
 export async function deleteBonusOffer(
   bonusOfferId: string,
+  input: DeleteBonusOfferInput,
 ): Promise<BrokerSuccessResponse<void>> {
   return browserBrokerRequest<void>(
     `${BONUS_OFFERS_PATH}/${bonusOfferId}`,
     {
       method: "DELETE",
+      searchParams: {
+        invalidate_assignments: input.invalidate_assignments,
+      },
     },
   );
 }
@@ -116,6 +123,19 @@ export async function syncBonusOfferIntroducingBrokers(
 ): Promise<BrokerSuccessResponse<BonusOfferIntroducingBroker[]>> {
   return browserBrokerRequest<BonusOfferIntroducingBroker[]>(
     `${BONUS_OFFERS_PATH}/${bonusOfferId}/introducing-brokers`,
+    {
+      method: "PATCH",
+      body: input,
+    },
+  );
+}
+
+export async function syncBonusOfferServerGroups(
+  bonusOfferId: string,
+  input: SyncBonusOfferServerGroupsInput,
+): Promise<BrokerSuccessResponse<BonusOfferServerGroup[]>> {
+  return browserBrokerRequest<BonusOfferServerGroup[]>(
+    `${BONUS_OFFERS_PATH}/${bonusOfferId}/server-groups`,
     {
       method: "PATCH",
       body: input,

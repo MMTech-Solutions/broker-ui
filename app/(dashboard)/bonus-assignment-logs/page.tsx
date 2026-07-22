@@ -5,8 +5,8 @@ export default function BonusAssignmentLogsPage() {
   return (
     <>
       <SiteHeader
-        title="Bonus assignment logs"
-        description="Administrative view of all user bonus assignments and their current status."
+        title="Bonus logs"
+        description="Assignments and deposit intents: runtime status for bonus grants and deferred once-per-account deposit evaluations."
       />
       <BonusAssignmentLogsView />
     </>

@@ -29,6 +29,27 @@ export function formatBonusMinorAmount(
   return formatInitialAmount(parsed);
 }
 
+/** Formats amounts already expressed in major currency units (e.g. assignment credited_amount). */
+export function formatBonusMajorAmount(
+  value: string | number | null | undefined,
+  precision = 2,
+): string {
+  if (value == null || value === "") {
+    return "—";
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return String(value);
+  }
+
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: precision,
+    maximumFractionDigits: precision,
+  }).format(parsed);
+}
+
 export function formatBonusDateTime(value?: string | null): string {
   if (!value) {
     return "—";
@@ -81,6 +102,8 @@ export function clientBonusAssignmentStatusVariant(
 }
 
 export function formatOfferRewardSummary(offer: BonusOffer): string {
+  const precision = offer.currency_precision ?? 2;
+
   if (offer.type === "deposit_triggered") {
     const percent =
       offer.deposit_percent != null
@@ -88,14 +111,14 @@ export function formatOfferRewardSummary(offer: BonusOffer): string {
         : "—";
     const max =
       offer.max_credit_amount != null
-        ? formatBonusMinorAmount(offer.max_credit_amount)
+        ? formatBonusMajorAmount(offer.max_credit_amount, precision)
         : null;
 
     return max != null ? `${percent}% (máx. ${max})` : `${percent}% del depósito`;
   }
 
   return offer.credit_amount != null
-    ? formatBonusMinorAmount(offer.credit_amount)
+    ? formatBonusMajorAmount(offer.credit_amount, precision)
     : "—";
 }
 
@@ -110,37 +133,25 @@ export function getConversionProgress(assignment: BonusAssignment): {
   accumulatedActivity: number;
   percent: number;
 } | null {
-  const offer = assignment.bonus_offer;
-
   if (
-    !offer?.activity_per_credit_unit ||
-    assignment.credited_amount == null
+    assignment.required_activity == null ||
+    assignment.progress_ratio == null
   ) {
     return null;
   }
 
-  const activityPerUnit = Number(offer.activity_per_credit_unit);
-  const creditedAmount = Number(assignment.credited_amount);
+  const requiredActivity = Number(assignment.required_activity);
+  const progressRatio = Number(assignment.progress_ratio);
   const accumulated = Number(assignment.accumulated_activity ?? 0);
 
-  if (
-    !Number.isFinite(activityPerUnit) ||
-    activityPerUnit <= 0 ||
-    !Number.isFinite(creditedAmount)
-  ) {
+  if (!Number.isFinite(requiredActivity) || !Number.isFinite(progressRatio)) {
     return null;
   }
-
-  const requiredActivity = creditedAmount / activityPerUnit;
-  const percent =
-    requiredActivity > 0
-      ? Math.min(100, (accumulated / requiredActivity) * 100)
-      : 0;
 
   return {
     requiredActivity,
-    accumulatedActivity: accumulated,
-    percent,
+    accumulatedActivity: Number.isFinite(accumulated) ? accumulated : 0,
+    percent: Math.min(100, Math.max(0, progressRatio * 100)),
   };
 }
 
@@ -169,13 +180,13 @@ export function getOfferTermsSummary(offer: BonusOffer): string[] {
 
   if (offer.min_real_balance != null && Number(offer.min_real_balance) > 0) {
     terms.push(
-      `Balance real mínimo requerido: ${formatBonusMinorAmount(offer.min_real_balance)}.`,
+      `Balance real mínimo requerido: ${formatBonusMajorAmount(offer.min_real_balance, offer.currency_precision ?? 2)}.`,
     );
   }
 
   if (offer.min_deposit_amount != null && Number(offer.min_deposit_amount) > 0) {
     terms.push(
-      `Depósito mínimo acumulado requerido: ${formatBonusMinorAmount(offer.min_deposit_amount)}.`,
+      `Depósito mínimo acumulado requerido: ${formatBonusMajorAmount(offer.min_deposit_amount, offer.currency_precision ?? 2)}.`,
     );
   }
 
