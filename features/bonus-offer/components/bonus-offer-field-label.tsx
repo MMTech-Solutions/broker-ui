@@ -27,6 +27,8 @@ export const BONUS_OFFER_FIELD_HELP = {
     "Maximum bonus credit cap in major currency units applied per qualifying deposit. Converted to minor units using the selected server groups' currency precision.",
   deposit_application_mode:
     "Once per account grants the bonus only the first time; per deposit grants it on every qualifying deposit.",
+  introducing_brokers:
+    "Active IB partners linked to this deposit offer. Traders whose direct referrer is one of these IBs receive this offer instead of the default. Leave empty to keep this as the system default deposit offer (only one default is allowed).",
   claim_expires_at:
     "Deadline after which manual claims are no longer accepted. Leave empty for no expiration.",
   min_real_balance:
@@ -38,7 +40,7 @@ export const BONUS_OFFER_FIELD_HELP = {
   conversion_window_days:
     "Number of days from bonus activation during which the trader must reach the activity threshold to convert credit into real balance.",
   activity_per_credit_unit:
-    "Closed trading volume required per one unit of credited bonus. Required activity = credited amount ÷ this value.",
+    "Major units of bonus credit covered by one unit of closed trading volume (legacy lotperunit). Stored as integer minor credit per volume using the server groups' currency precision. Required activity = credited amount (minor) ÷ stored value.",
   is_active:
     "Inactive offers cannot be claimed manually nor triggered by deposits until reactivated. Deactivating requires choosing whether open assignments are cancelled or kept on their rules snapshot.",
   invalidate_assignments:

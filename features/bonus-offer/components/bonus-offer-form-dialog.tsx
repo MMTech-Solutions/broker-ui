@@ -25,7 +25,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   createBonusOffer,
   getBonusOffer,
+  listEligibleIntroducingBrokers,
   loadBonusOfferFormCatalog,
+  syncBonusOfferIntroducingBrokers,
   updateBonusOffer,
 } from "@/features/bonus-offer/api";
 import {
@@ -89,7 +91,12 @@ type FormState = {
   burn_on_withdrawal: boolean;
   burn_on_negative_balance: boolean;
   server_group_ids: string[];
+  introducing_broker_external_user_ids: string[];
 };
+
+function sortedIdsSignature(ids: string[]): string {
+  return [...ids].sort().join("|");
+}
 
 type ServerGroupOption = {
   id: string;
@@ -118,6 +125,7 @@ const emptyForm: FormState = {
   burn_on_withdrawal: true,
   burn_on_negative_balance: true,
   server_group_ids: [],
+  introducing_broker_external_user_ids: [],
 };
 
 function toDateTimeLocalValue(value?: string | null): string {
@@ -203,6 +211,9 @@ function offerToForm(offer: BonusOffer, precision: number | null): FormState {
     server_group_ids: (offer.server_groups ?? []).map(
       (entry) => entry.server_group_id,
     ),
+    introducing_broker_external_user_ids: (
+      offer.introducing_brokers ?? []
+    ).map((broker) => broker.external_user_id),
   };
 }
 
@@ -236,6 +247,8 @@ function buildCreatePayload(
       precision,
     );
     payload.deposit_application_mode = form.deposit_application_mode;
+    payload.introducing_broker_external_user_ids =
+      form.introducing_broker_external_user_ids;
   }
 
   if (form.claim_expires_at) {
@@ -451,11 +464,16 @@ export function BonusOfferFormDialog({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [editPrecision, setEditPrecision] = useState<number | null>(null);
   const [initialIsActive, setInitialIsActive] = useState(true);
+  const [eligibleIbIds, setEligibleIbIds] = useState<string[]>([]);
+  const [loadingIbs, setLoadingIbs] = useState(false);
+  const [ibSearch, setIbSearch] = useState("");
+  const [initialIbSignature, setInitialIbSignature] = useState("");
 
   const usesTemplate = mode === "create" && form.bonus_offer_template_id !== "";
   const bonusOfferId = bonusOffer?.id;
   const showInvalidateAssignments =
     mode === "edit" && !form.is_active && initialIsActive;
+  const showIntroducingBrokers = form.type === "deposit_triggered";
 
   const effectivePlatformId = useMemo(() => {
     if (mode === "edit") {
@@ -524,6 +542,31 @@ export function BonusOfferFormDialog({
     [form.server_group_ids],
   );
 
+  const selectedIbSet = useMemo(
+    () => new Set(form.introducing_broker_external_user_ids),
+    [form.introducing_broker_external_user_ids],
+  );
+
+  const filteredEligibleIbIds = useMemo(() => {
+    const query = ibSearch.trim().toLowerCase();
+    const ids = [
+      ...new Set([
+        ...eligibleIbIds,
+        ...form.introducing_broker_external_user_ids,
+      ]),
+    ].sort((left, right) => left.localeCompare(right));
+
+    if (!query) {
+      return ids;
+    }
+
+    return ids.filter((id) => id.toLowerCase().includes(query));
+  }, [eligibleIbIds, form.introducing_broker_external_user_ids, ibSearch]);
+
+  const ibsDirty =
+    sortedIdsSignature(form.introducing_broker_external_user_ids) !==
+    initialIbSignature;
+
   useEffect(() => {
     if (!open) {
       return;
@@ -538,6 +581,9 @@ export function BonusOfferFormDialog({
       setEditPrecision(null);
       setInitialIsActive(true);
       setServerGroupOptions([]);
+      setEligibleIbIds([]);
+      setIbSearch("");
+      setInitialIbSignature("");
 
       try {
         const catalog = await loadBonusOfferFormCatalog();
@@ -579,13 +625,19 @@ export function BonusOfferFormDialog({
           const precision =
             precisions.length === 1 ? (precisions[0] ?? null) : null;
 
+          const linkedIbIds = (offer.introducing_brokers ?? []).map(
+            (broker) => broker.external_user_id,
+          );
+
           setEditPrecision(precision);
           setInitialIsActive(offer.is_active ?? true);
+          setInitialIbSignature(sortedIdsSignature(linkedIbIds));
           setForm(offerToForm(offer, precision));
           return;
         }
 
         setForm(emptyForm);
+        setInitialIbSignature("");
       } catch (error) {
         if (!cancelled) {
           setLoadError(formatBrokerApiError(error));
@@ -674,6 +726,49 @@ export function BonusOfferFormDialog({
     }));
   }, [form.bonus_offer_template_id, lockedPrecision, mode, templates]);
 
+  useEffect(() => {
+    if (!open || !showIntroducingBrokers || loading) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadEligibleIbs() {
+      setLoadingIbs(true);
+
+      try {
+        const response = await listEligibleIntroducingBrokers(
+          mode === "edit" && bonusOfferId
+            ? { exclude_bonus_offer_id: bonusOfferId }
+            : {},
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        setEligibleIbIds(
+          response.data.map((broker) => broker.external_user_id),
+        );
+      } catch (error) {
+        if (!cancelled) {
+          setEligibleIbIds([]);
+          setSubmitError(formatBrokerApiError(error));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingIbs(false);
+        }
+      }
+    }
+
+    void loadEligibleIbs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bonusOfferId, loading, mode, open, showIntroducingBrokers]);
+
   function toggleServerGroup(serverGroupId: string, checked: boolean) {
     setForm((current) => {
       if (!checked) {
@@ -692,6 +787,32 @@ export function BonusOfferFormDialog({
       return {
         ...current,
         server_group_ids: [...current.server_group_ids, serverGroupId],
+      };
+    });
+  }
+
+  function toggleIntroducingBroker(externalUserId: string, checked: boolean) {
+    setForm((current) => {
+      if (checked) {
+        return current.introducing_broker_external_user_ids.includes(
+          externalUserId,
+        )
+          ? current
+          : {
+              ...current,
+              introducing_broker_external_user_ids: [
+                ...current.introducing_broker_external_user_ids,
+                externalUserId,
+              ],
+            };
+      }
+
+      return {
+        ...current,
+        introducing_broker_external_user_ids:
+          current.introducing_broker_external_user_ids.filter(
+            (id) => id !== externalUserId,
+          ),
       };
     });
   }
@@ -722,6 +843,12 @@ export function BonusOfferFormDialog({
           bonusOfferId,
           buildUpdatePayload(form, lockedPrecision),
         );
+
+        if (showIntroducingBrokers && ibsDirty) {
+          await syncBonusOfferIntroducingBrokers(bonusOfferId, {
+            external_user_ids: form.introducing_broker_external_user_ids,
+          });
+        }
       }
 
       onOpenChange(false);
@@ -786,11 +913,19 @@ export function BonusOfferFormDialog({
                     <Select
                       value={form.type}
                       onValueChange={(value) =>
-                        setForm((current) => ({
-                          ...current,
-                          type: (value ??
-                            "deposit_triggered") as BonusOfferType,
-                        }))
+                        setForm((current) => {
+                          const nextType = (value ??
+                            "deposit_triggered") as BonusOfferType;
+
+                          return {
+                            ...current,
+                            type: nextType,
+                            introducing_broker_external_user_ids:
+                              nextType === "deposit_triggered"
+                                ? current.introducing_broker_external_user_ids
+                                : [],
+                          };
+                        })
                       }
                       disabled={submitting || mode === "edit"}
                     >
@@ -1101,6 +1236,88 @@ export function BonusOfferFormDialog({
                     </div>
                   </div>
                 )}
+
+                {showIntroducingBrokers ? (
+                  <div className="space-y-2">
+                    <BonusOfferFieldLabel
+                      htmlFor="bonus-offer-ib-search"
+                      help={BONUS_OFFER_FIELD_HELP.introducing_brokers}
+                    >
+                      Introducing brokers
+                    </BonusOfferFieldLabel>
+                    <p className="text-xs text-muted-foreground">
+                      {form.introducing_broker_external_user_ids.length === 0
+                        ? "No IBs selected — this offer acts as the system default deposit bonus when no IB-linked offer matches."
+                        : `${form.introducing_broker_external_user_ids.length} IB${form.introducing_broker_external_user_ids.length === 1 ? "" : "s"} selected.`}
+                    </p>
+                    {loadingIbs ? (
+                      <Skeleton className="h-24 w-full" />
+                    ) : (
+                      <>
+                        <Input
+                          id="bonus-offer-ib-search"
+                          value={ibSearch}
+                          onChange={(event) => setIbSearch(event.target.value)}
+                          placeholder="Filter by external user ID"
+                          disabled={
+                            submitting ||
+                            (eligibleIbIds.length === 0 &&
+                              form.introducing_broker_external_user_ids
+                                .length === 0)
+                          }
+                        />
+
+                        <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border p-2">
+                          {eligibleIbIds.length === 0 &&
+                          form.introducing_broker_external_user_ids.length ===
+                            0 ? (
+                            <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                              No eligible introducing brokers. Active IB
+                              partners already linked to another deposit offer
+                              are excluded.
+                            </p>
+                          ) : null}
+
+                          {(eligibleIbIds.length > 0 ||
+                            form.introducing_broker_external_user_ids.length >
+                              0) &&
+                          filteredEligibleIbIds.length === 0 ? (
+                            <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                              No introducing brokers match this search.
+                            </p>
+                          ) : null}
+
+                          {filteredEligibleIbIds.map((externalUserId) => {
+                            const checkboxId = `bonus-offer-form-ib-${externalUserId}`;
+
+                            return (
+                              <label
+                                key={externalUserId}
+                                htmlFor={checkboxId}
+                                className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/60"
+                              >
+                                <Checkbox
+                                  id={checkboxId}
+                                  checked={selectedIbSet.has(externalUserId)}
+                                  onCheckedChange={(value) =>
+                                    toggleIntroducingBroker(
+                                      externalUserId,
+                                      value === true,
+                                    )
+                                  }
+                                  disabled={submitting}
+                                />
+                                <span className="font-mono text-sm break-all">
+                                  {externalUserId}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : null}
 
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">

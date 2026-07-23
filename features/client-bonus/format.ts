@@ -166,7 +166,7 @@ export function getOfferTermsSummary(offer: BonusOffer): string[] {
 
   if (offer.activity_per_credit_unit != null) {
     terms.push(
-      `Actividad requerida: ${offer.activity_per_credit_unit} unidades por cada unidad de crédito acreditada.`,
+      `Actividad: ${offer.activity_per_credit_unit} unidades de crédito (major) por cada unidad de volumen cerrado.`,
     );
   }
 

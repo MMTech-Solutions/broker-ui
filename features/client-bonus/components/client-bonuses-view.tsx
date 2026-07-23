@@ -393,7 +393,7 @@ export function ClientBonusesView() {
                           </TableCell>
                           <TableCell className="tabular-nums">
                             {progress
-                              ? `${progress.percent.toFixed(0)}%`
+                              ? `${progress.percent.toFixed(1)}%`
                               : "—"}
                           </TableCell>
                           <TableCell>

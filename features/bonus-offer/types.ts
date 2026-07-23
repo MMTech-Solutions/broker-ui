@@ -6,7 +6,11 @@ export type BonusExcludedInstrument = {
   id: string;
   bonus_offer_id: string;
   server_group_id: string;
-  symbol: string;
+  symbol_id: string;
+  /** Present when symbol relation is loaded. */
+  alpha?: string | null;
+  /** Present when symbol relation is loaded. */
+  name?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -100,6 +104,8 @@ export type CreateBonusOfferInput = {
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
   server_group_ids: string[];
+  /** Only for deposit_triggered. Empty = default deposit offer (no IB link). */
+  introducing_broker_external_user_ids?: string[];
 };
 
 export type UpdateBonusOfferInput = {
@@ -130,7 +136,7 @@ export type DeleteBonusOfferInput = {
 export type SyncBonusExcludedInstrumentsInput = {
   instruments: {
     server_group_id: string;
-    symbol: string;
+    symbol_id: string;
   }[];
 };
 
