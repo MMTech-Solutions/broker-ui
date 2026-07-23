@@ -1,8 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FilterXIcon, SearchIcon } from "lucide-react";
+import {
+  FilterXIcon,
+  LockIcon,
+  PauseCircleIcon,
+  PlayCircleIcon,
+  SearchIcon,
+  UnlockIcon,
+} from "lucide-react";
 
+import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +34,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listTradingAccounts } from "@/features/trading-account/api";
+import {
+  TradingAccountAccessDialog,
+  type TradingAccountAccessAction,
+} from "@/features/trading-account/components/trading-account-access-dialog";
 import {
   EMPTY_TRADING_ACCOUNT_FILTERS,
   type TradingAccount,
@@ -111,6 +123,13 @@ export function TradingAccountsView() {
   >([]);
   const [serverGroupsLoading, setServerGroupsLoading] = useState(true);
 
+  const [accessAccount, setAccessAccount] = useState<TradingAccount | null>(
+    null,
+  );
+  const [accessAction, setAccessAction] =
+    useState<TradingAccountAccessAction | null>(null);
+  const [accessDialogOpen, setAccessDialogOpen] = useState(false);
+
   const loadServerGroupOptions = useCallback(async () => {
     setServerGroupsLoading(true);
 
@@ -189,6 +208,15 @@ export function TradingAccountsView() {
     setDraftFilters(EMPTY_TRADING_ACCOUNT_FILTERS);
     setPage(1);
     setAppliedFilters({});
+  }
+
+  function openAccessDialog(
+    account: TradingAccount,
+    action: TradingAccountAccessAction,
+  ) {
+    setAccessAccount(account);
+    setAccessAction(action);
+    setAccessDialogOpen(true);
   }
 
   return (
@@ -324,13 +352,14 @@ export function TradingAccountsView() {
               <TableHead className="text-right">Equity</TableHead>
               <TableHead>Trading</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-[120px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={9}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -340,7 +369,7 @@ export function TradingAccountsView() {
             {!loading && accounts.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No trading accounts found.
@@ -387,6 +416,59 @@ export function TradingAccountsView() {
                         {account.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        {account.is_trading_enabled ? (
+                          <ActionTooltipButton
+                            variant="ghost"
+                            size="icon-sm"
+                            tooltip="Disable trading"
+                            disabled={!account.is_active}
+                            onClick={() =>
+                              openAccessDialog(account, "disable_trading")
+                            }
+                          >
+                            <PauseCircleIcon />
+                          </ActionTooltipButton>
+                        ) : (
+                          <ActionTooltipButton
+                            variant="ghost"
+                            size="icon-sm"
+                            tooltip="Enable trading"
+                            disabled={!account.is_active}
+                            onClick={() =>
+                              openAccessDialog(account, "enable_trading")
+                            }
+                          >
+                            <PlayCircleIcon />
+                          </ActionTooltipButton>
+                        )}
+
+                        {account.is_active ? (
+                          <ActionTooltipButton
+                            variant="ghost"
+                            size="icon-sm"
+                            tooltip="Deactivate account"
+                            onClick={() =>
+                              openAccessDialog(account, "deactivate_account")
+                            }
+                          >
+                            <LockIcon />
+                          </ActionTooltipButton>
+                        ) : (
+                          <ActionTooltipButton
+                            variant="ghost"
+                            size="icon-sm"
+                            tooltip="Reactivate account"
+                            onClick={() =>
+                              openAccessDialog(account, "reactivate_account")
+                            }
+                          >
+                            <UnlockIcon />
+                          </ActionTooltipButton>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               : null}
@@ -424,6 +506,22 @@ export function TradingAccountsView() {
           </div>
         </div>
       ) : null}
+
+      <TradingAccountAccessDialog
+        account={accessAccount}
+        action={accessAction}
+        open={accessDialogOpen}
+        onOpenChange={(open) => {
+          setAccessDialogOpen(open);
+          if (!open) {
+            setAccessAccount(null);
+            setAccessAction(null);
+          }
+        }}
+        onSuccess={() => {
+          void loadTradingAccounts(page, appliedFilters);
+        }}
+      />
     </div>
   );
 }
