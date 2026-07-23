@@ -46,7 +46,7 @@ const emptyForm: FormState = {
   name: "",
   description: "",
   requires_approval: true,
-  is_active: true,
+  is_active: false,
 };
 
 function planToForm(plan: InsurancePlan): FormState {

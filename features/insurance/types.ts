@@ -88,6 +88,7 @@ export type AccountInsurance = {
   insured_amount: string | number;
   coverage_percent: number;
   premium_charged: string | number;
+  premium_external_transaction_id?: string | null;
   is_free: boolean;
   started_at?: string | null;
   expires_at?: string | null;
