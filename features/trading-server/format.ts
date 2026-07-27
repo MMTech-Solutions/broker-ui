@@ -20,6 +20,8 @@ const CONFIGURATION_WARNING_LABELS: Record<string, string> = {
   countries_restrictions_empty:
     "Country restrictions are enabled but no countries are listed.",
   no_leverages_assigned: "No leverages are assigned to this group.",
+  currency_precision_missing:
+    "Currency precision is not configured. Set it before activating this group.",
 };
 
 export function formatConfigurationWarning(code: string): string {
@@ -133,6 +135,7 @@ export type ServerGroupEditFormState = {
   is_withdrawal_enabled: boolean;
   use_countries_restrictions: boolean;
   restricted_countries: RestrictedCountry[];
+  currency_precision: string;
   default_amount: string;
   default_amount_type: BalanceAdjustmentType;
   account_limits: string;
@@ -145,6 +148,9 @@ export function buildServerGroupEditFormState(
   serverGroup: ServerGroup,
 ): ServerGroupEditFormState {
   const currency = getServerGroupCurrency(serverGroup.currency);
+  const precisionMissing = (serverGroup.configuration_warnings ?? []).includes(
+    "currency_precision_missing",
+  );
 
   return {
     description: serverGroup.description ?? "",
@@ -155,6 +161,7 @@ export function buildServerGroupEditFormState(
     is_withdrawal_enabled: serverGroup.is_withdrawal_enabled ?? true,
     use_countries_restrictions: serverGroup.use_countries_restrictions ?? false,
     restricted_countries: serverGroup.restricted_countries ?? [],
+    currency_precision: precisionMissing ? "" : String(currency.precision),
     default_amount: decimalMajorToMinorUnits(
       serverGroup.default_amount,
       currency.precision,
@@ -188,6 +195,8 @@ export function buildUpdateServerGroupInput(
     .map((value) => value.trim())
     .filter(Boolean);
 
+  const currencyPrecision = parseOptionalMinorUnits(form.currency_precision);
+
   return {
     description: form.description.trim() || null,
     is_default: form.is_default,
@@ -197,6 +206,9 @@ export function buildUpdateServerGroupInput(
     is_withdrawal_enabled: form.is_withdrawal_enabled,
     use_countries_restrictions: form.use_countries_restrictions,
     restricted_countries: restrictedCountries,
+    ...(currencyPrecision !== undefined
+      ? { currency_precision: currencyPrecision }
+      : {}),
     default_amount: parseOptionalMinorUnits(form.default_amount) ?? 0,
     default_amount_type: form.default_amount_type,
     account_limits: parseOptionalMinorUnits(form.account_limits) ?? 0,

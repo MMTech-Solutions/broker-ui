@@ -134,7 +134,8 @@ export function ServerGroupEditSheet({
           <SheetTitle>{serverGroup?.name ?? "Server group"}</SheetTitle>
           <SheetDescription>
             Edit commercial settings for this server group. Synced fields such as
-            name, meta name, and currency are read-only.
+            name, meta name, and currency code are read-only. Currency precision
+            must be set by an admin before activating the group.
           </SheetDescription>
         </SheetHeader>
 
@@ -159,16 +160,16 @@ export function ServerGroupEditSheet({
               <ApiErrorAlert title="Could not save server group" message={error} />
             ) : null}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="server-group-meta-name">Meta name</Label>
-                <Input
-                  id="server-group-meta-name"
-                  value={serverGroup?.meta_name ?? ""}
-                  disabled
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="server-group-meta-name">Meta name</Label>
+              <Input
+                id="server-group-meta-name"
+                value={serverGroup?.meta_name ?? ""}
+                disabled
+              />
+            </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="server-group-currency">Currency</Label>
                 <Input
@@ -176,6 +177,34 @@ export function ServerGroupEditSheet({
                   value={currencyLabel}
                   disabled
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="server-group-currency-precision">
+                  Currency precision
+                </Label>
+                <Input
+                  id="server-group-currency-precision"
+                  inputMode="numeric"
+                  min={0}
+                  max={8}
+                  placeholder="e.g. 2 for USD, 0 for JPY"
+                  value={form.currency_precision}
+                  onChange={(event) =>
+                    setForm((current) =>
+                      current
+                        ? {
+                            ...current,
+                            currency_precision: event.target.value,
+                          }
+                        : current,
+                    )
+                  }
+                  disabled={submitting}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Decimal places (0–8). Required to activate the group.
+                </p>
               </div>
             </div>
 
