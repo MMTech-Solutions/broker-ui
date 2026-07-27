@@ -10,6 +10,10 @@ const CONFIGURATION_WARNING_LABELS: Record<string, string> = {
   default_and_private:
     "This group is marked as default and private at the same time.",
   default_inactive: "The default group is inactive.",
+  default_with_auto_create_disabled:
+    "This group is marked as default, but create-default-account on registration is disabled.",
+  auto_create_without_default_group:
+    "Create-default-account on registration is enabled, but there is no active default server group.",
   deposit_disabled_with_default_amount:
     "Default amount is set but deposits are disabled.",
   withdrawal_disabled: "Withdrawals are disabled for this group.",

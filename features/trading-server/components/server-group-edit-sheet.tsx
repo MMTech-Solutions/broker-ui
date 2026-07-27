@@ -90,9 +90,13 @@ export function ServerGroupEditSheet({
         buildUpdateServerGroupInput(form),
       );
 
-      setWarnings(response.meta.configuration_warnings ?? []);
+      const nextWarnings = response.meta.configuration_warnings ?? [];
+      setWarnings(nextWarnings);
       onSuccess(response.data);
-      onOpenChange(false);
+
+      if (nextWarnings.length === 0) {
+        onOpenChange(false);
+      }
     } catch (submitError) {
       setError(formatBrokerApiError(submitError));
     } finally {
