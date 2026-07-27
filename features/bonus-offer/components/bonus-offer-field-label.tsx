@@ -42,7 +42,7 @@ export const BONUS_OFFER_FIELD_HELP = {
   activity_per_credit_unit:
     "Major units of bonus credit covered by one unit of closed trading volume (legacy lotperunit). Stored as integer minor credit per volume using the server groups' currency precision. Required activity = credited amount (minor) ÷ stored value.",
   is_active:
-    "Inactive offers cannot be claimed manually nor triggered by deposits until reactivated. Deactivating requires choosing whether open assignments are cancelled or kept on their rules snapshot.",
+    "New offers start inactive (draft). Inactive offers cannot be claimed manually nor triggered by deposits until activated. Deactivating an active offer requires choosing whether open assignments are cancelled or kept on their rules snapshot.",
   invalidate_assignments:
     "Cancel open assignments (active, queued, pending removal) when deactivating. Active/pending-removal credit is removed from trading; queued assignments are only invalidated. If disabled, open assignments keep evaluating with their frozen rules snapshot.",
   burn_on_withdrawal:

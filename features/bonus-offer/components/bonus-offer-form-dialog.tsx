@@ -110,7 +110,7 @@ const emptyForm: FormState = {
   name: "",
   bonus_offer_template_id: "",
   platform_id: "",
-  is_active: true,
+  is_active: false,
   invalidate_assignments: true,
   credit_amount: "",
   deposit_percent: "",
@@ -871,7 +871,9 @@ export function BonusOfferFormDialog({
             {mode === "create" ? "Create bonus offer" : "Edit bonus offer"}
           </DialogTitle>
           <DialogDescription>
-            Configure bonus offer rules, rewards, and conversion settings.
+            {mode === "create"
+              ? "New offers are saved inactive (draft). Activate them when ready to publish to catalog and deposit flows."
+              : "Configure bonus offer rules, rewards, and conversion settings."}
           </DialogDescription>
         </DialogHeader>
 
