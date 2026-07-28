@@ -1,3 +1,7 @@
+/**
+ * Admin broker configs (`v1/admin/configs`).
+ * Requires IAM permission `broker.configs.manage` (enforced by API; UI does not gate nav).
+ */
 export const MASKED_SECRET_VALUE = "********";
 
 export type ConfigSchemaOption = {

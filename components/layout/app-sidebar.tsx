@@ -149,6 +149,11 @@ const contestsNavigation = [
     href: "/contest-subscriptions",
     icon: UsersIcon,
   },
+  {
+    title: "Contest settings",
+    href: "/contest-settings",
+    icon: Settings2Icon,
+  },
 ] as const;
 
 const systemNavigation = [

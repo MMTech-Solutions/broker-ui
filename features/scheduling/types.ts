@@ -1,3 +1,7 @@
+/**
+ * Admin scheduled commands (`v1/admin/scheduled-commands`).
+ * Requires IAM permission `broker.scheduling.manage` (enforced by API; UI does not gate nav).
+ */
 export type ScheduledCommandFeatureArea =
   | "ib"
   | "bonus"
