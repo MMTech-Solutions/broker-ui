@@ -12,7 +12,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   open_positions_bridge: "Open positions bridge",
   scheduling: "Scheduling",
   user: "User",
-  bonus: "Bonus",
 };
 
 export function categoryLabel(category: string): string {
