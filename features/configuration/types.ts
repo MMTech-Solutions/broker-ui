@@ -13,6 +13,7 @@ export type ConfigSchema = {
   type: "string" | "text" | "integer" | "number" | "bool" | "select" | "file";
   required: boolean;
   label: string;
+  description?: string;
   placeholder?: string;
   secret?: boolean;
   options?: ConfigSchemaOption[];
