@@ -50,12 +50,12 @@ function toSearchParams(
 
 function resolveServerGroupCurrency(currency: ServerGroup["currency"]): {
   code?: string;
-  precision: number;
+  precision: number | null;
 } {
   const resolved = getServerGroupCurrency(currency);
 
   return {
-    code: currency == null ? undefined : resolved.code,
+    code: resolved.code || undefined,
     precision: resolved.precision,
   };
 }
@@ -418,7 +418,7 @@ export async function loadContestFormCatalog(): Promise<{
           tradingServerId: tradingServer.id,
           tradingServerLabel: tradingServer.connection_signature,
           currency: currency.code,
-          currency_precision: currency.precision,
+          currency_precision: currency.precision ?? undefined,
           label: buildServerGroupLabel(
             serverGroup,
             tradingServer.connection_signature,

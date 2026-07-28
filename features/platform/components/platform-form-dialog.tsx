@@ -45,14 +45,12 @@ type PlatformFormDialogProps = {
 type FormState = {
   name: string;
   custom_name: string;
-  volume_factor: string;
   is_active: boolean;
 };
 
 const emptyForm: FormState = {
   name: "",
   custom_name: "",
-  volume_factor: "1",
   is_active: true,
 };
 
@@ -82,7 +80,6 @@ export function PlatformFormDialog({
       setForm({
         name: platform.name,
         custom_name: platform.custom_name ?? "",
-        volume_factor: String(platform.volume_factor),
         is_active: platform.is_active ?? true,
       });
       return;
@@ -130,14 +127,6 @@ export function PlatformFormDialog({
     setSubmitting(true);
     setError(null);
 
-    const volumeFactor = Number.parseInt(form.volume_factor, 10);
-
-    if (Number.isNaN(volumeFactor)) {
-      setError("volume_factor: must be a valid integer.");
-      setSubmitting(false);
-      return;
-    }
-
     try {
       if (mode === "create") {
         if (!form.name) {
@@ -148,13 +137,11 @@ export function PlatformFormDialog({
         await createPlatform({
           name: form.name,
           custom_name: form.custom_name.trim() || null,
-          volume_factor: volumeFactor,
           is_active: form.is_active,
         });
       } else if (platform) {
         const payload: UpdatePlatformInput = {
           custom_name: form.custom_name.trim() || null,
-          volume_factor: volumeFactor,
           is_active: form.is_active,
         };
 
@@ -251,24 +238,6 @@ export function PlatformFormDialog({
               }
               placeholder="MetaTrader 5"
               disabled={submitting}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="platform-volume-factor">Volume factor</Label>
-            <Input
-              id="platform-volume-factor"
-              type="number"
-              min={1}
-              value={form.volume_factor}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  volume_factor: event.target.value,
-                }))
-              }
-              disabled={submitting}
-              required
             />
           </div>
 

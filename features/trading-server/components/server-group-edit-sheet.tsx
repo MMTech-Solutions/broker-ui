@@ -30,9 +30,14 @@ import {
   buildUpdateServerGroupInput,
   formatConfigurationWarning,
   formatCurrencyLabel,
+  parseOptionalMinorUnits,
   type ServerGroupEditFormState,
 } from "@/features/trading-server/format";
-import type { RestrictedCountry, ServerGroup } from "@/features/trading-server/types";
+import type {
+  BookType,
+  RestrictedCountry,
+  ServerGroup,
+} from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
 type ServerGroupEditSheetProps = {
@@ -77,6 +82,15 @@ export function ServerGroupEditSheet({
 
   async function handleSubmit() {
     if (!serverGroup || !form) {
+      return;
+    }
+
+    const precision = parseOptionalMinorUnits(form.currency_precision);
+
+    if (form.is_active && precision === undefined) {
+      setError(
+        "Currency precision is required before activating this server group.",
+      );
       return;
     }
 
@@ -196,6 +210,10 @@ export function ServerGroupEditSheet({
                         ? {
                             ...current,
                             currency_precision: event.target.value,
+                            ...(event.target.value.trim() === "" &&
+                            current.is_active
+                              ? { is_active: false }
+                              : {}),
                           }
                         : current,
                     )
@@ -206,6 +224,39 @@ export function ServerGroupEditSheet({
                   Decimal places (0–8). Required to activate the group.
                 </p>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="server-group-book-type">Book type</Label>
+              <Select
+                value={form.book_type || "__none__"}
+                onValueChange={(value) =>
+                  setForm((current) =>
+                    current
+                      ? {
+                          ...current,
+                          book_type:
+                            value === "__none__" || value == null
+                              ? ""
+                              : (value as BookType),
+                        }
+                      : current,
+                  )
+                }
+                disabled={submitting}
+              >
+                <SelectTrigger id="server-group-book-type">
+                  <SelectValue placeholder="Not set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Not set</SelectItem>
+                  <SelectItem value="a_book">A-book</SelectItem>
+                  <SelectItem value="b_book">B-book</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Local broker setting (not synced from the trading platform).
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -234,7 +285,13 @@ export function ServerGroupEditSheet({
                   ["is_withdrawal_enabled", "Withdrawals enabled"],
                   ["use_countries_restrictions", "Country restrictions"],
                 ] as const
-              ).map(([field, label]) => (
+              ).map(([field, label]) => {
+                const precisionUnset =
+                  parseOptionalMinorUnits(form.currency_precision) ===
+                  undefined;
+                const disableActive = field === "is_active" && precisionUnset;
+
+                return (
                 <div key={field} className="flex items-center gap-2">
                   <Checkbox
                     id={`server-group-${field}`}
@@ -246,11 +303,12 @@ export function ServerGroupEditSheet({
                           : current,
                       )
                     }
-                    disabled={submitting}
+                    disabled={submitting || disableActive}
                   />
                   <Label htmlFor={`server-group-${field}`}>{label}</Label>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="space-y-3 rounded-lg border p-4">

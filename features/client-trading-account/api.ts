@@ -84,7 +84,6 @@ function buildPlatformsFromTradingServers(
     id,
     name,
     custom_name: null,
-    volume_factor: 0,
     is_active: true,
   }));
 }

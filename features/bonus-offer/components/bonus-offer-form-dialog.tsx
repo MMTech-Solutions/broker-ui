@@ -414,7 +414,7 @@ function toServerGroupOption(
       server.connection_signature,
     ),
     currencyCode: currencyResolved ? currency.code : "—",
-    precision: currencyResolved ? currency.precision : -1,
+    precision: currencyResolved ? (currency.precision as number) : -1,
   };
 }
 

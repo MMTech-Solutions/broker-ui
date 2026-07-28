@@ -36,6 +36,7 @@ import {
 import { ServerGroupEditSheet } from "@/features/trading-server/components/server-group-edit-sheet";
 import { ServerGroupLeveragesSyncDialog } from "@/features/trading-server/components/server-group-leverages-sync-dialog";
 import {
+  formatBookTypeLabel,
   formatConfigurationWarning,
   formatCurrencyLabel,
 } from "@/features/trading-server/format";
@@ -304,6 +305,7 @@ export function TradingServerGroupsView({
               <TableHead>Name</TableHead>
               <TableHead>Meta name</TableHead>
               <TableHead>Currency</TableHead>
+              <TableHead>Book</TableHead>
               <TableHead className="text-right">Default amount</TableHead>
               <TableHead className="w-[120px]">Accounts</TableHead>
               <TableHead>Status</TableHead>
@@ -314,7 +316,7 @@ export function TradingServerGroupsView({
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -324,7 +326,7 @@ export function TradingServerGroupsView({
             {!loading && serverGroups.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No server groups found for this trading server.
@@ -345,6 +347,9 @@ export function TradingServerGroupsView({
                     <TableCell>{serverGroup.meta_name}</TableCell>
                     <TableCell>
                       {formatCurrencyLabel(serverGroup.currency)}
+                    </TableCell>
+                    <TableCell>
+                      {formatBookTypeLabel(serverGroup.book_type)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {serverGroup.default_amount ?? "—"}

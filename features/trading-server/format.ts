@@ -1,5 +1,6 @@
 import type {
   BalanceAdjustmentType,
+  BookType,
   RestrictedCountry,
   ServerGroup,
   ServerGroupCurrency,
@@ -28,29 +29,29 @@ export function formatConfigurationWarning(code: string): string {
   return CONFIGURATION_WARNING_LABELS[code] ?? code;
 }
 
+/**
+ * Normalize server-group currency without fabricating defaults.
+ * Missing code or precision stay empty/null so callers can gate money ops.
+ */
 export function getServerGroupCurrency(
   currency: ServerGroup["currency"],
 ): ServerGroupCurrency {
   if (currency == null) {
-    return { code: "USD", precision: 2 };
+    return { code: "", precision: null };
   }
 
   if (typeof currency === "string") {
-    return { code: currency, precision: 2 };
+    return { code: currency.trim(), precision: null };
   }
 
-  const code = currency.code ?? currency.iso_code;
+  const code = (currency.code ?? currency.iso_code ?? "").trim();
   const precision =
-    typeof currency.precision === "number" ? currency.precision : undefined;
-
-  // Empty `{}` from API serialization must not silently become USD/2.
-  if (!code || precision === undefined) {
-    return { code: code ?? "USD", precision: precision ?? 2 };
-  }
+    typeof currency.precision === "number" ? currency.precision : null;
 
   return {
     code,
     precision,
+    ...(currency.iso_code ? { iso_code: currency.iso_code } : {}),
   };
 }
 
@@ -62,7 +63,7 @@ export function hasResolvedServerGroupCurrency(
   }
 
   if (typeof currency === "string") {
-    return currency.trim().length > 0;
+    return false;
   }
 
   const code = currency.code ?? currency.iso_code;
@@ -78,7 +79,9 @@ export function formatServerGroupOptionLabel(
   const resolved = getServerGroupCurrency(currency);
   const currencyPart = hasResolvedServerGroupCurrency(currency)
     ? `${resolved.code} (precision ${resolved.precision})`
-    : "currency unavailable";
+    : resolved.code
+      ? `${resolved.code} (precision unset)`
+      : "currency unavailable";
 
   const serverPart = tradingServerSignature
     ? `${tradingServerSignature.slice(0, 8)}…`
@@ -90,7 +93,21 @@ export function formatServerGroupOptionLabel(
 }
 
 export function formatCurrencyLabel(currency: ServerGroup["currency"]): string {
-  return getServerGroupCurrency(currency).code;
+  const code = getServerGroupCurrency(currency).code;
+
+  return code || "—";
+}
+
+export function formatBookTypeLabel(bookType: BookType | null | undefined): string {
+  if (bookType === "a_book") {
+    return "A-book";
+  }
+
+  if (bookType === "b_book") {
+    return "B-book";
+  }
+
+  return "—";
 }
 
 export function decimalMajorToMinorUnits(
@@ -136,6 +153,7 @@ export type ServerGroupEditFormState = {
   use_countries_restrictions: boolean;
   restricted_countries: RestrictedCountry[];
   currency_precision: string;
+  book_type: BookType | "";
   default_amount: string;
   default_amount_type: BalanceAdjustmentType;
   account_limits: string;
@@ -148,9 +166,12 @@ export function buildServerGroupEditFormState(
   serverGroup: ServerGroup,
 ): ServerGroupEditFormState {
   const currency = getServerGroupCurrency(serverGroup.currency);
-  const precisionMissing = (serverGroup.configuration_warnings ?? []).includes(
-    "currency_precision_missing",
-  );
+  const precisionMissing =
+    (serverGroup.configuration_warnings ?? []).includes(
+      "currency_precision_missing",
+    ) || currency.precision == null;
+
+  const precision = currency.precision;
 
   return {
     description: serverGroup.description ?? "",
@@ -161,21 +182,22 @@ export function buildServerGroupEditFormState(
     is_withdrawal_enabled: serverGroup.is_withdrawal_enabled ?? true,
     use_countries_restrictions: serverGroup.use_countries_restrictions ?? false,
     restricted_countries: serverGroup.restricted_countries ?? [],
-    currency_precision: precisionMissing ? "" : String(currency.precision),
-    default_amount: decimalMajorToMinorUnits(
-      serverGroup.default_amount,
-      currency.precision,
-    ),
+    currency_precision: precisionMissing ? "" : String(precision),
+    book_type: serverGroup.book_type ?? "",
+    default_amount:
+      precision == null
+        ? ""
+        : decimalMajorToMinorUnits(serverGroup.default_amount, precision),
     default_amount_type: serverGroup.default_amount_type ?? "BALANCE",
     account_limits: String(serverGroup.account_limits ?? 0),
-    min_deposit: decimalMajorToMinorUnits(
-      serverGroup.min_deposit,
-      currency.precision,
-    ),
-    min_withdrawal: decimalMajorToMinorUnits(
-      serverGroup.min_withdrawal,
-      currency.precision,
-    ),
+    min_deposit:
+      precision == null
+        ? ""
+        : decimalMajorToMinorUnits(serverGroup.min_deposit, precision),
+    min_withdrawal:
+      precision == null
+        ? ""
+        : decimalMajorToMinorUnits(serverGroup.min_withdrawal, precision),
     ib_external_user_ids: (serverGroup.ib_external_user_ids ?? []).join("\n"),
   };
 }
@@ -206,6 +228,7 @@ export function buildUpdateServerGroupInput(
     is_withdrawal_enabled: form.is_withdrawal_enabled,
     use_countries_restrictions: form.use_countries_restrictions,
     restricted_countries: restrictedCountries,
+    book_type: form.book_type === "" ? null : form.book_type,
     ...(currencyPrecision !== undefined
       ? { currency_precision: currencyPrecision }
       : {}),
