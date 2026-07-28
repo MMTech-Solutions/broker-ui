@@ -113,7 +113,7 @@ export type UpdateBonusOfferInput = {
   name?: string;
   platform_id?: string;
   is_active?: boolean;
-  /** Required by API when `is_active` is false. */
+  /** Required by API when deactivating (`is_active` false on an active offer). */
   invalidate_assignments?: boolean;
   credit_amount?: number | null;
   deposit_percent?: number | null;

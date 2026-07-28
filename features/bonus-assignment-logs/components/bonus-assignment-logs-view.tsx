@@ -28,12 +28,15 @@ import {
 import {
   BONUS_ASSIGNMENT_STATUSES,
   DEPOSIT_BONUS_INTENT_STATUSES,
+  bonusAssignmentOfferLabel,
   bonusAssignmentStatusLabel,
   bonusAssignmentStatusVariant,
   depositBonusIntentStatusLabel,
   depositBonusIntentStatusVariant,
+  formatActivityProgress,
   formatDateTimeValue,
   formatMoneyValue,
+  formatProgressPercent,
   listBonusAssignments,
   listDepositBonusIntents,
   truncateId,
@@ -43,6 +46,7 @@ import {
   type DepositBonusIntent,
   type DepositBonusIntentStatus,
 } from "@/features/bonus-assignment-logs";
+import { BonusAssignmentDetailDialog } from "@/features/bonus-assignment-logs/components/bonus-assignment-detail-dialog";
 import { listBonusOffers } from "@/features/bonus-offer/api";
 import type { BonusOffer } from "@/features/bonus-offer/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
@@ -74,6 +78,10 @@ export function BonusAssignmentLogsView() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<
+    string | null
+  >(null);
 
   const [offerFilter, setOfferFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -217,6 +225,11 @@ export function BonusAssignmentLogsView() {
     void loadIntents(page);
   }
 
+  function openAssignmentDetail(assignmentId: string) {
+    setSelectedAssignmentId(assignmentId);
+    setDetailOpen(true);
+  }
+
   const totalPages = pagination?.last_page ?? 1;
 
   return (
@@ -329,7 +342,11 @@ export function BonusAssignmentLogsView() {
       ) : null}
 
       {activeTab === "assignments" ? (
-        <AssignmentsTable loading={loading} assignments={assignments} />
+        <AssignmentsTable
+          loading={loading}
+          assignments={assignments}
+          onOpenDetail={openAssignmentDetail}
+        />
       ) : (
         <DepositIntentsTable loading={loading} intents={intents} />
       )}
@@ -360,6 +377,17 @@ export function BonusAssignmentLogsView() {
           </Button>
         </div>
       </div>
+
+      <BonusAssignmentDetailDialog
+        assignmentId={selectedAssignmentId}
+        open={detailOpen}
+        onOpenChange={(open) => {
+          setDetailOpen(open);
+          if (!open) {
+            setSelectedAssignmentId(null);
+          }
+        }}
+      />
     </div>
   );
 }
@@ -367,9 +395,11 @@ export function BonusAssignmentLogsView() {
 function AssignmentsTable({
   loading,
   assignments,
+  onOpenDetail,
 }: {
   loading: boolean;
   assignments: BonusAssignment[];
+  onOpenDetail: (assignmentId: string) => void;
 }) {
   return (
     <div className="rounded-lg border">
@@ -382,17 +412,19 @@ function AssignmentsTable({
             <TableHead>User</TableHead>
             <TableHead>Credited</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Progress</TableHead>
             <TableHead>Activated</TableHead>
             <TableHead>Conversion deadline</TableHead>
             <TableHead>Activity</TableHead>
             <TableHead>Pending removal</TableHead>
+            <TableHead className="w-[1%] whitespace-nowrap">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {loading
             ? Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={`assignment-skeleton-${index}`}>
-                  {Array.from({ length: 10 }).map((__, cellIndex) => (
+                  {Array.from({ length: 12 }).map((__, cellIndex) => (
                     <TableCell
                       key={`assignment-skeleton-${index}-${cellIndex}`}
                     >
@@ -406,7 +438,7 @@ function AssignmentsTable({
           {!loading && assignments.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={10}
+                colSpan={12}
                 className="text-center text-muted-foreground"
               >
                 No bonus assignments found.
@@ -421,8 +453,7 @@ function AssignmentsTable({
                     {formatDateTimeValue(assignment.created_at)}
                   </TableCell>
                   <TableCell>
-                    {assignment.bonus_offer?.name ??
-                      truncateId(assignment.bonus_offer_id)}
+                    {bonusAssignmentOfferLabel(assignment)}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {truncateId(assignment.account_id)}
@@ -440,17 +471,33 @@ function AssignmentsTable({
                       {bonusAssignmentStatusLabel(assignment.status)}
                     </Badge>
                   </TableCell>
+                  <TableCell className="tabular-nums text-sm">
+                    {formatProgressPercent(assignment.progress_ratio)}
+                  </TableCell>
                   <TableCell>
                     {formatDateTimeValue(assignment.activated_at)}
                   </TableCell>
                   <TableCell>
                     {formatDateTimeValue(assignment.conversion_deadline_at)}
                   </TableCell>
-                  <TableCell>
-                    {formatMoneyValue(assignment.accumulated_activity ?? null)}
+                  <TableCell className="tabular-nums text-sm">
+                    {formatActivityProgress(
+                      assignment.accumulated_activity,
+                      assignment.required_activity,
+                    )}
                   </TableCell>
                   <TableCell>
                     {assignment.pending_removal ? "Yes" : "No"}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onOpenDetail(assignment.id)}
+                    >
+                      View
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))

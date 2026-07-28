@@ -1,4 +1,7 @@
-import type { BonusOffer } from "@/features/bonus-offer/types";
+import type {
+  BonusOffer,
+  BonusOfferType,
+} from "@/features/bonus-offer/types";
 
 export type BonusAssignmentStatus =
   | "queued"
@@ -8,6 +11,15 @@ export type BonusAssignmentStatus =
   | "pending_removal";
 
 export type DepositBonusIntentStatus = "watching" | "applied" | "cancelled";
+
+/** Frozen excluded instrument on the assignment snapshot at grant time. */
+export type BonusAssignmentExcludedInstrument = {
+  server_group_id: string;
+  symbol_id?: string;
+  alpha?: string;
+  /** Legacy snapshot shape. */
+  symbol?: string;
+};
 
 export type BonusAssignment = {
   id: string;
@@ -28,6 +40,22 @@ export type BonusAssignment = {
   progress_ratio?: number | null;
   pending_removal?: boolean;
   source_external_transaction_id?: string | null;
+  /** Snapshot: offer name frozen at grant time. */
+  offer_name?: string | null;
+  /** Snapshot: offer type frozen at grant time. */
+  offer_type?: BonusOfferType | null;
+  /** Snapshot: major units of credit per closed volume unit. */
+  activity_per_credit_unit?: string | number | null;
+  /** Snapshot: conversion window in days from activation. */
+  conversion_window_days?: number | null;
+  /** Snapshot: minimum open duration for activity to count. */
+  min_position_duration_seconds?: string | number | null;
+  /** Snapshot: cancel on withdrawal. */
+  burn_on_withdrawal?: boolean | null;
+  /** Snapshot: cancel on non-positive equity. */
+  burn_on_negative_balance?: boolean | null;
+  /** Snapshot: instruments excluded from activity. */
+  excluded_instruments?: BonusAssignmentExcludedInstrument[];
   bonus_offer?: BonusOffer;
   created_at?: string | null;
   updated_at?: string | null;
