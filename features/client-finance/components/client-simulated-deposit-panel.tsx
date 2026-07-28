@@ -28,11 +28,13 @@ import { formatBrokerApiError } from "@/lib/api/errors";
 
 type ClientSimulatedDepositPanelProps = {
   accounts: TradingAccount[];
+  currencyPrecisionByAccountId: Map<string, number | null>;
   onDeposited: () => void;
 };
 
 export function ClientSimulatedDepositPanel({
   accounts,
+  currencyPrecisionByAccountId,
   onDeposited,
 }: ClientSimulatedDepositPanelProps) {
   const [accountId, setAccountId] = useState("");
@@ -54,7 +56,16 @@ export function ClientSimulatedDepositPanel({
       return;
     }
 
-    const minorAmount = parseMajorAmountToMinorUnits(amount);
+    const precision = currencyPrecisionByAccountId.get(accountId);
+
+    if (precision == null || !Number.isFinite(precision)) {
+      setError(
+        "La precisión de moneda del grupo de servidor no está configurada. No se puede depositar hasta que un administrador la configure.",
+      );
+      return;
+    }
+
+    const minorAmount = parseMajorAmountToMinorUnits(amount, precision);
 
     if (minorAmount === undefined || minorAmount <= 0) {
       setError("Ingresa un monto válido mayor que cero.");

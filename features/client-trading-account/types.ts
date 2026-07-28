@@ -63,4 +63,6 @@ export type EnrichedClientTradingAccount = TradingAccount & {
   tradingServerId: string | null;
   platformId: string | null;
   environment: number | null;
+  currencyCode: string | null;
+  currencyPrecision: number | null;
 };

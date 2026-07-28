@@ -48,11 +48,16 @@ import {
   type FinancePaymentStatus,
   type InternalTransaction,
 } from "@/features/client-finance/types";
-import { listClientTradingAccounts } from "@/features/client-trading-account/api";
+import { listClientTradingAccounts, loadClientAccountCatalog } from "@/features/client-trading-account/api";
+import type { ClientAccountCatalog } from "@/features/client-trading-account/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
 import type { TradingAccount } from "@/features/trading-account/types";
+import {
+  getServerGroupCurrency,
+  hasResolvedServerGroupCurrency,
+} from "@/features/trading-server/format";
 import { cn } from "@/lib/utils";
 
 const clientFinanceBreadcrumbs: BreadcrumbItem[] = [
@@ -68,6 +73,7 @@ const financeTabs: { value: ClientFinanceTab; label: string }[] = [
 export function ClientFinanceView() {
   const [activeTab, setActiveTab] = useState<ClientFinanceTab>("transfers");
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+  const [catalog, setCatalog] = useState<ClientAccountCatalog | null>(null);
   const [accountsLoading, setAccountsLoading] = useState(true);
 
   const [internalTransfers, setInternalTransfers] = useState<
@@ -126,14 +132,35 @@ export function ClientFinanceView() {
     );
   }, [externalStatusFilter]);
 
+  const currencyPrecisionByAccountId = useMemo(() => {
+    const map = new Map<string, number | null>();
+
+    for (const account of accounts) {
+      const group = catalog?.serverGroupById.get(account.server_group_id);
+      if (!group || !hasResolvedServerGroupCurrency(group.currency)) {
+        map.set(account.id, null);
+        continue;
+      }
+
+      map.set(account.id, getServerGroupCurrency(group.currency).precision);
+    }
+
+    return map;
+  }, [accounts, catalog]);
+
   const loadAccounts = useCallback(async () => {
     setAccountsLoading(true);
 
     try {
-      const response = await listClientTradingAccounts({ per_page: 100 });
-      setAccounts(response.data);
+      const [accountsResponse, catalogResponse] = await Promise.all([
+        listClientTradingAccounts({ per_page: 100 }),
+        loadClientAccountCatalog(),
+      ]);
+      setAccounts(accountsResponse.data);
+      setCatalog(catalogResponse);
     } catch {
       setAccounts([]);
+      setCatalog(null);
     } finally {
       setAccountsLoading(false);
     }
@@ -274,6 +301,7 @@ export function ClientFinanceView() {
           ) : (
             <ClientInternalTransferPanel
               accounts={accounts}
+              currencyPrecisionByAccountId={currencyPrecisionByAccountId}
               onTransferred={handleTransferSuccess}
             />
           )}
@@ -411,6 +439,7 @@ export function ClientFinanceView() {
           ) : (
             <ClientSimulatedDepositPanel
               accounts={accounts}
+              currencyPrecisionByAccountId={currencyPrecisionByAccountId}
               onDeposited={handleDepositSuccess}
             />
           )}

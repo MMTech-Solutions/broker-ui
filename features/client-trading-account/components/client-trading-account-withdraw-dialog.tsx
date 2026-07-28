@@ -59,7 +59,20 @@ export function ClientTradingAccountWithdrawDialog({
       return;
     }
 
-    const minorAmount = parseMajorAmountToMinorUnits(amount);
+    if (
+      account.currencyPrecision == null ||
+      !Number.isFinite(account.currencyPrecision)
+    ) {
+      setError(
+        "La precisión de moneda del grupo de servidor no está configurada. No se puede retirar hasta que un administrador la configure.",
+      );
+      return;
+    }
+
+    const minorAmount = parseMajorAmountToMinorUnits(
+      amount,
+      account.currencyPrecision,
+    );
 
     if (minorAmount === undefined || minorAmount <= 0) {
       setError("Ingresa un monto válido mayor que cero.");

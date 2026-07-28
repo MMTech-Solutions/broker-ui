@@ -47,6 +47,10 @@ import { ClientInsuranceContractDialog } from "@/features/client-insurance/compo
 import { ClientInsuranceEligibleAccountsDialog } from "@/features/client-insurance/components/client-insurance-eligible-accounts-dialog";
 import { loadInsuranceEligibleAccountIds } from "@/features/client-insurance/api";
 import type { ClientInsuranceEligibleAccount } from "@/features/client-insurance/types";
+import {
+  getServerGroupCurrency,
+  hasResolvedServerGroupCurrency,
+} from "@/features/trading-server/format";
 import { TRADING_SERVER_ENVIRONMENT } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
@@ -71,6 +75,8 @@ function enrichAccounts(
       tradingServerId: null,
       platformId: null,
       environment: null,
+      currencyCode: null,
+      currencyPrecision: null,
     }));
   }
 
@@ -83,6 +89,10 @@ function enrichAccounts(
     const platform = tradingServer
       ? catalog.platformById.get(tradingServer.platform_id)
       : null;
+    const currency = getServerGroupCurrency(serverGroup?.currency);
+    const currencyResolved = hasResolvedServerGroupCurrency(
+      serverGroup?.currency,
+    );
 
     return {
       ...account,
@@ -96,6 +106,8 @@ function enrichAccounts(
       tradingServerId: serverGroup?.trading_server_id ?? null,
       platformId: tradingServer?.platform_id ?? null,
       environment: serverGroup?.environment ?? tradingServer?.environment ?? null,
+      currencyCode: currencyResolved ? currency.code : null,
+      currencyPrecision: currencyResolved ? currency.precision : null,
     };
   });
 }
