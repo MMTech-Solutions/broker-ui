@@ -278,7 +278,17 @@ export function IbProgramPaymentRulesView() {
     }
 
     if (selectedRuleType === "cpa" && "cpa_reward_amount" in rule) {
-      return `Threshold ${formatAmount(rule.cpa_progression_volume_threshold)} · Min deposit ${formatAmount(rule.cpa_min_external_deposit_amount)} · Reward ${formatAmount(rule.cpa_reward_amount)}`;
+      const currency =
+        "currency" in rule && typeof rule.currency === "string"
+          ? rule.currency
+          : "—";
+      const precision =
+        "currency_precision" in rule &&
+        typeof rule.currency_precision === "number"
+          ? rule.currency_precision
+          : "—";
+
+      return `Threshold ${formatAmount(rule.cpa_progression_volume_threshold)} · Min deposit ${formatAmount(rule.cpa_min_external_deposit_amount)} · Reward ${formatAmount(rule.cpa_reward_amount)} · ${currency} (precision ${precision})`;
     }
 
     return "Symbol rates configured per program symbol";

@@ -17,6 +17,8 @@ export type IbProgramCpaRule = IbProgramVolumeRule & {
   cpa_progression_volume_threshold: string;
   cpa_min_external_deposit_amount: string;
   cpa_reward_amount: string;
+  currency: string;
+  currency_precision: number;
 };
 
 export type IbProgramPaymentRuleListFilters = {
@@ -54,6 +56,8 @@ export type CreateIbProgramCpaRuleInput = {
   cpa_progression_volume_threshold: number;
   cpa_min_external_deposit_amount: number;
   cpa_reward_amount: number;
+  currency: string;
+  currency_precision: number;
 };
 
 export type UpdateIbProgramCpaRuleInput = {
@@ -62,6 +66,8 @@ export type UpdateIbProgramCpaRuleInput = {
   cpa_progression_volume_threshold?: number;
   cpa_min_external_deposit_amount?: number;
   cpa_reward_amount?: number;
+  currency?: string;
+  currency_precision?: number;
 };
 
 export const IB_PROGRAM_PAYMENT_RULE_TYPES: {
@@ -85,6 +91,6 @@ export const IB_PROGRAM_PAYMENT_RULE_TYPES: {
     value: "cpa",
     label: "CPA",
     description:
-      "One-time rewards when referred traders meet deposit and volume thresholds.",
+      "One-time rewards when referred traders meet deposit and volume thresholds. Progress is cumulative from referral capture (captured_at), not reset by settlement period.",
   },
 ];
