@@ -1,6 +1,7 @@
 import type {
   TradingAccount,
   TradingAccountListFilters,
+  UpdateTradingAccountInput,
 } from "@/features/trading-account/types";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
@@ -23,4 +24,17 @@ export async function listTradingAccounts(
   return browserBrokerRequest<TradingAccount[]>(TRADING_ACCOUNTS_PATH, {
     searchParams: toSearchParams(filters),
   });
+}
+
+export async function updateTradingAccount(
+  accountId: string,
+  input: UpdateTradingAccountInput,
+): Promise<BrokerSuccessResponse<TradingAccount>> {
+  return browserBrokerRequest<TradingAccount>(
+    `${TRADING_ACCOUNTS_PATH}/${accountId}`,
+    {
+      method: "PATCH",
+      body: input,
+    },
+  );
 }

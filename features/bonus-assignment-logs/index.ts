@@ -1,7 +1,13 @@
-export { getBonusAssignment, listBonusAssignments } from "@/features/bonus-assignment-logs/api";
+export {
+  getBonusAssignment,
+  listBonusAssignments,
+  listDepositBonusIntents,
+} from "@/features/bonus-assignment-logs/api";
 export {
   bonusAssignmentStatusLabel,
   bonusAssignmentStatusVariant,
+  depositBonusIntentStatusLabel,
+  depositBonusIntentStatusVariant,
   formatDateTimeValue,
   formatMoneyValue,
   truncateId,
@@ -10,5 +16,12 @@ export type {
   BonusAssignment,
   BonusAssignmentListFilters,
   BonusAssignmentStatus,
+  BonusLogsTab,
+  DepositBonusIntent,
+  DepositBonusIntentListFilters,
+  DepositBonusIntentStatus,
 } from "@/features/bonus-assignment-logs/types";
-export { BONUS_ASSIGNMENT_STATUSES } from "@/features/bonus-assignment-logs/types";
+export {
+  BONUS_ASSIGNMENT_STATUSES,
+  DEPOSIT_BONUS_INTENT_STATUSES,
+} from "@/features/bonus-assignment-logs/types";

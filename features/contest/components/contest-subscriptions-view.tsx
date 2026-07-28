@@ -311,6 +311,7 @@ export function ContestSubscriptionsView({
                         {formatMinorUnits(
                           subscription.entry_fee_charged,
                           selectedContest?.server_group?.currency,
+                          selectedContest?.server_group?.currency_precision,
                         )}
                       </TableCell>
                       <TableCell>

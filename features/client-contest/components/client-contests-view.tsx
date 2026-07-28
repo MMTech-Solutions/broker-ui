@@ -2,19 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, CircleHelpIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -24,8 +24,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listPublicContests } from "@/features/client-contest/api";
-import type { Contest, ContestStatus } from "@/features/client-contest/types";
+import {
+  getPublicContestGlobalSettings,
+  listPublicContests,
+} from "@/features/client-contest/api";
+import type {
+  Contest,
+  ContestGlobalSettings,
+  ContestStatus,
+} from "@/features/client-contest/types";
 import {
   formatContestDateRange,
   formatMinorUnits,
@@ -35,6 +42,7 @@ import { CONTEST_STATUSES } from "@/features/contest/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
+import { cn } from "@/lib/utils";
 
 const clientContestsBreadcrumbs: BreadcrumbItem[] = [
   { label: "Inicio", href: "/client" },
@@ -66,6 +74,10 @@ export function ClientContestsView() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [globalSettings, setGlobalSettings] =
+    useState<ContestGlobalSettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const loadContests = useCallback(async () => {
     setLoading(true);
@@ -92,6 +104,39 @@ export function ClientContestsView() {
     void loadContests();
   }, [loadContests]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSettings() {
+      setSettingsLoading(true);
+
+      try {
+        const response = await getPublicContestGlobalSettings();
+        if (!cancelled) {
+          setGlobalSettings(response.data);
+        }
+      } catch {
+        if (!cancelled) {
+          setGlobalSettings(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setSettingsLoading(false);
+        }
+      }
+    }
+
+    void loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const bannerUrl = globalSettings?.banner_image_url ?? null;
+  const helpHtml = globalSettings?.help_html?.trim() || null;
+  const hasHelp = Boolean(helpHtml);
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar
@@ -99,39 +144,89 @@ export function ClientContestsView() {
         backHref="/client"
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      {settingsLoading ? (
+        <Skeleton className="h-[120px] w-full rounded-lg" />
+      ) : bannerUrl ? (
+        <div className="h-[250px] overflow-hidden rounded-lg border bg-muted/20">
+          <img
+            src={bannerUrl}
+            alt="Banner de concursos"
+            className="size-full object-cover"
+          />
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">
             Filtra por estado y abre un concurso para ver reglas, premios e
             inscribirte.
           </p>
         </div>
-        <div className="flex w-full max-w-xs flex-col gap-1.5">
-          <label htmlFor="client-contest-status" className="text-xs font-medium">
-            Estado
-          </label>
-          <Select
-            value={status}
-            onValueChange={(value) => {
-              setStatus(value as ContestStatus);
-              setPage(1);
-            }}
+        <div className="flex flex-wrap items-center gap-2">
+          {hasHelp ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setHelpOpen(true)}
+            >
+              <CircleHelpIcon />
+              Ayuda
+            </Button>
+          ) : null}
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            role="group"
+            aria-label="Estado"
           >
-            <SelectTrigger id="client-contest-status" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CLIENT_CONTEST_STATUSES.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+            {CLIENT_CONTEST_STATUSES.map((option) => {
+              const isActive = status === option.value;
+
+              return (
+                <Button
+                  key={option.value}
+                  type="button"
+                  size="sm"
+                  variant={isActive ? "default" : "outline"}
+                  aria-pressed={isActive}
+                  className={cn(!isActive && "bg-background")}
+                  onClick={() => {
+                    setStatus(option.value);
+                    setPage(1);
+                  }}
+                >
                   {statusLabelsEs[option.value]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                </Button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {error ? <ApiErrorAlert message={error} /> : null}
+
+      <Sheet open={helpOpen} onOpenChange={setHelpOpen}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Ayuda de concursos</SheetTitle>
+            <SheetDescription>
+              Información general publicada por el broker.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            {helpHtml ? (
+              <div
+                className="prose prose-sm dark:prose-invert max-w-none text-sm"
+                dangerouslySetInnerHTML={{ __html: helpHtml }}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No hay contenido de ayuda configurado.
+              </p>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <div className="rounded-lg border">
         <Table>
@@ -190,6 +285,7 @@ export function ClientContestsView() {
                       {formatMinorUnits(
                         contest.entry_fee,
                         contest.server_group?.currency,
+                        contest.server_group?.currency_precision,
                       )}
                     </TableCell>
                     <TableCell className="text-right">

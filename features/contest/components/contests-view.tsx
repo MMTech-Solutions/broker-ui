@@ -341,6 +341,7 @@ export function ContestsView() {
                       {formatMinorUnits(
                         contest.entry_fee,
                         contest.server_group?.currency,
+                        contest.server_group?.currency_precision,
                       )}
                     </TableCell>
                     <TableCell>

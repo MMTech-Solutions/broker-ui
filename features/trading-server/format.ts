@@ -10,12 +10,18 @@ const CONFIGURATION_WARNING_LABELS: Record<string, string> = {
   default_and_private:
     "This group is marked as default and private at the same time.",
   default_inactive: "The default group is inactive.",
+  default_with_auto_create_disabled:
+    "This group is marked as default, but create-default-account on registration is disabled.",
+  auto_create_without_default_group:
+    "Create-default-account on registration is enabled, but there is no active default server group.",
   deposit_disabled_with_default_amount:
     "Default amount is set but deposits are disabled.",
   withdrawal_disabled: "Withdrawals are disabled for this group.",
   countries_restrictions_empty:
     "Country restrictions are enabled but no countries are listed.",
   no_leverages_assigned: "No leverages are assigned to this group.",
+  currency_precision_missing:
+    "Currency precision is not configured. Set it before activating this group.",
 };
 
 export function formatConfigurationWarning(code: string): string {
@@ -33,10 +39,54 @@ export function getServerGroupCurrency(
     return { code: currency, precision: 2 };
   }
 
+  const code = currency.code ?? currency.iso_code;
+  const precision =
+    typeof currency.precision === "number" ? currency.precision : undefined;
+
+  // Empty `{}` from API serialization must not silently become USD/2.
+  if (!code || precision === undefined) {
+    return { code: code ?? "USD", precision: precision ?? 2 };
+  }
+
   return {
-    code: currency.code ?? currency.iso_code ?? "USD",
-    precision: currency.precision ?? 2,
+    code,
+    precision,
   };
+}
+
+export function hasResolvedServerGroupCurrency(
+  currency: ServerGroup["currency"],
+): boolean {
+  if (currency == null) {
+    return false;
+  }
+
+  if (typeof currency === "string") {
+    return currency.trim().length > 0;
+  }
+
+  const code = currency.code ?? currency.iso_code;
+
+  return Boolean(code) && typeof currency.precision === "number";
+}
+
+export function formatServerGroupOptionLabel(
+  groupName: string,
+  currency: ServerGroup["currency"],
+  tradingServerSignature?: string | null,
+): string {
+  const resolved = getServerGroupCurrency(currency);
+  const currencyPart = hasResolvedServerGroupCurrency(currency)
+    ? `${resolved.code} (precision ${resolved.precision})`
+    : "currency unavailable";
+
+  const serverPart = tradingServerSignature
+    ? `${tradingServerSignature.slice(0, 8)}…`
+    : null;
+
+  return serverPart
+    ? `${groupName} · ${currencyPart} · ${serverPart}`
+    : `${groupName} · ${currencyPart}`;
 }
 
 export function formatCurrencyLabel(currency: ServerGroup["currency"]): string {
@@ -85,6 +135,7 @@ export type ServerGroupEditFormState = {
   is_withdrawal_enabled: boolean;
   use_countries_restrictions: boolean;
   restricted_countries: RestrictedCountry[];
+  currency_precision: string;
   default_amount: string;
   default_amount_type: BalanceAdjustmentType;
   account_limits: string;
@@ -97,6 +148,9 @@ export function buildServerGroupEditFormState(
   serverGroup: ServerGroup,
 ): ServerGroupEditFormState {
   const currency = getServerGroupCurrency(serverGroup.currency);
+  const precisionMissing = (serverGroup.configuration_warnings ?? []).includes(
+    "currency_precision_missing",
+  );
 
   return {
     description: serverGroup.description ?? "",
@@ -107,6 +161,7 @@ export function buildServerGroupEditFormState(
     is_withdrawal_enabled: serverGroup.is_withdrawal_enabled ?? true,
     use_countries_restrictions: serverGroup.use_countries_restrictions ?? false,
     restricted_countries: serverGroup.restricted_countries ?? [],
+    currency_precision: precisionMissing ? "" : String(currency.precision),
     default_amount: decimalMajorToMinorUnits(
       serverGroup.default_amount,
       currency.precision,
@@ -140,6 +195,8 @@ export function buildUpdateServerGroupInput(
     .map((value) => value.trim())
     .filter(Boolean);
 
+  const currencyPrecision = parseOptionalMinorUnits(form.currency_precision);
+
   return {
     description: form.description.trim() || null,
     is_default: form.is_default,
@@ -149,6 +206,9 @@ export function buildUpdateServerGroupInput(
     is_withdrawal_enabled: form.is_withdrawal_enabled,
     use_countries_restrictions: form.use_countries_restrictions,
     restricted_countries: restrictedCountries,
+    ...(currencyPrecision !== undefined
+      ? { currency_precision: currencyPrecision }
+      : {}),
     default_amount: parseOptionalMinorUnits(form.default_amount) ?? 0,
     default_amount_type: form.default_amount_type,
     account_limits: parseOptionalMinorUnits(form.account_limits) ?? 0,

@@ -19,7 +19,7 @@ import {
   clientBonusAssignmentStatusLabel,
   clientBonusAssignmentStatusVariant,
   formatBonusDateTime,
-  formatBonusMinorAmount,
+  formatBonusMajorAmount,
   formatOfferRewardSummary,
   formatOfferTypeLabel,
   getConversionProgress,
@@ -133,7 +133,10 @@ export function ClientBonusAssignmentDetailDialog({
                 <div>
                   <dt className="text-muted-foreground">Crédito acreditado</dt>
                   <dd className="font-medium tabular-nums">
-                    {formatBonusMinorAmount(assignment.credited_amount)}
+                    {formatBonusMajorAmount(
+                      assignment.credited_amount,
+                      assignment.currency_precision ?? 2,
+                    )}
                   </dd>
                 </div>
                 {offer ? (

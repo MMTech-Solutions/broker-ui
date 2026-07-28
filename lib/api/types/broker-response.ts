@@ -11,6 +11,7 @@ export type BrokerSuccessMeta = {
   filters?: Record<string, unknown>;
   thresholds_warning_message?: string;
   configuration_warnings?: string[];
+  warnings?: string[];
 };
 
 export type BrokerSuccessResponse<T> = {

@@ -12,6 +12,7 @@ export {
   loadBonusOfferFormCatalog,
   syncBonusExcludedInstruments,
   syncBonusOfferIntroducingBrokers,
+  syncBonusOfferServerGroups,
   updateBonusOffer,
 } from "@/features/bonus-offer/api";
 export type {
@@ -22,6 +23,7 @@ export type {
   BonusOffer,
   BonusOfferIntroducingBroker,
   BonusOfferListFilters,
+  BonusOfferServerGroup,
   BonusOfferTemplate,
   BonusOfferType,
   CreateBonusOfferInput,
@@ -30,6 +32,7 @@ export type {
   ListEligibleIntroducingBrokersFilters,
   SyncBonusExcludedInstrumentsInput,
   SyncBonusOfferIntroducingBrokersInput,
+  SyncBonusOfferServerGroupsInput,
   UpdateBonusOfferInput,
 } from "@/features/bonus-offer/types";
 export {

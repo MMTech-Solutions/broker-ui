@@ -6,7 +6,11 @@ export type BonusExcludedInstrument = {
   id: string;
   bonus_offer_id: string;
   server_group_id: string;
-  symbol: string;
+  symbol_id: string;
+  /** Present when symbol relation is loaded. */
+  alpha?: string | null;
+  /** Present when symbol relation is loaded. */
+  name?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -15,6 +19,14 @@ export type BonusOfferIntroducingBroker = {
   id: string;
   bonus_offer_id: string;
   external_user_id: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type BonusOfferServerGroup = {
+  id: string;
+  bonus_offer_id: string;
+  server_group_id: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -30,24 +42,31 @@ export type BonusOffer = {
   bonus_offer_template_id: string | null;
   platform_id: string;
   is_active?: boolean;
+  /** Major currency units (API converts from stored minor units). */
   credit_amount: string | number | null;
   deposit_percent: string | number | null;
+  /** Major currency units (API converts from stored minor units). */
   max_credit_amount: string | number | null;
   deposit_application_mode?: DepositApplicationMode | null;
   claim_expires_at?: string | null;
+  /** Major currency units (API converts from stored minor units). */
   min_real_balance?: string | number | null;
+  /** Major currency units (API converts from stored minor units). */
   min_deposit_amount?: string | number | null;
   min_position_duration_seconds?: string | number | null;
   conversion_window_days?: number | null;
   activity_per_credit_unit?: string | number | null;
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
+  currency?: string | null;
+  currency_precision?: number | null;
   server_groups_count?: number;
   excluded_instruments_count?: number;
   introducing_brokers_count?: number;
   assignments_count?: number;
   excluded_instruments?: BonusExcludedInstrument[];
   introducing_brokers?: BonusOfferIntroducingBroker[];
+  server_groups?: BonusOfferServerGroup[];
   created_at?: string;
   updated_at?: string;
 };
@@ -84,6 +103,9 @@ export type CreateBonusOfferInput = {
   activity_per_credit_unit?: string | number;
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
+  server_group_ids: string[];
+  /** Only for deposit_triggered. Empty = default deposit offer (no IB link). */
+  introducing_broker_external_user_ids?: string[];
 };
 
 export type UpdateBonusOfferInput = {
@@ -91,6 +113,8 @@ export type UpdateBonusOfferInput = {
   name?: string;
   platform_id?: string;
   is_active?: boolean;
+  /** Required by API when `is_active` is false. */
+  invalidate_assignments?: boolean;
   credit_amount?: number | null;
   deposit_percent?: number | null;
   max_credit_amount?: number | null;
@@ -105,15 +129,23 @@ export type UpdateBonusOfferInput = {
   burn_on_negative_balance?: boolean;
 };
 
+export type DeleteBonusOfferInput = {
+  invalidate_assignments: boolean;
+};
+
 export type SyncBonusExcludedInstrumentsInput = {
   instruments: {
     server_group_id: string;
-    symbol: string;
+    symbol_id: string;
   }[];
 };
 
 export type SyncBonusOfferIntroducingBrokersInput = {
   external_user_ids: string[];
+};
+
+export type SyncBonusOfferServerGroupsInput = {
+  server_group_ids: string[];
 };
 
 export type ListEligibleIntroducingBrokersFilters = {

@@ -71,6 +71,9 @@ export function BonusExcludedInstrumentsView({
 
   const [entityName, setEntityName] = useState<string | null>(null);
   const [platformId, setPlatformId] = useState<string | null>(null);
+  const [linkedServerGroupIds, setLinkedServerGroupIds] = useState<
+    string[] | null
+  >(null);
   const [loadingEntity, setLoadingEntity] = useState(true);
   const [entityError, setEntityError] = useState<string | null>(null);
 
@@ -156,6 +159,7 @@ export function BonusExcludedInstrumentsView({
     if (!entityId) {
       setEntityName(null);
       setPlatformId(null);
+      setLinkedServerGroupIds(null);
       setEntityError(
         mode === "template"
           ? "Template ID is required."
@@ -173,15 +177,22 @@ export function BonusExcludedInstrumentsView({
         const response = await getBonusOfferTemplate(entityId);
         setEntityName(response.data.name);
         setPlatformId(response.data.platform_id);
+        setLinkedServerGroupIds(null);
       } else {
         const response = await getBonusOffer(entityId);
         setEntityName(response.data.name);
         setPlatformId(response.data.platform_id);
+        setLinkedServerGroupIds(
+          (response.data.server_groups ?? []).map(
+            (entry) => entry.server_group_id,
+          ),
+        );
       }
     } catch (loadError) {
       setEntityError(formatBrokerApiError(loadError));
       setEntityName(null);
       setPlatformId(null);
+      setLinkedServerGroupIds(null);
     } finally {
       setLoadingEntity(false);
     }
@@ -264,36 +275,41 @@ export function BonusExcludedInstrumentsView({
     }
   }, []);
 
-  const loadServerGroups = useCallback(async (tradingServerId: string) => {
-    if (!tradingServerId) {
-      setServerGroups([]);
-      setSelectedServerGroupId("");
-      return;
-    }
+  const loadServerGroups = useCallback(
+    async (tradingServerId: string, allowedGroupIds: string[] | null) => {
+      if (!tradingServerId) {
+        setServerGroups([]);
+        setSelectedServerGroupId("");
+        return;
+      }
 
-    setCatalogError(null);
+      setCatalogError(null);
 
-    try {
-      const response = await listServerGroupsForAdmin(tradingServerId, {
-        per_page: 100,
-      });
-      const groups = [...response.data].sort((left, right) =>
-        left.name.localeCompare(right.name),
-      );
-      setServerGroups(groups);
-      setSelectedServerGroupId((current) => {
-        if (current && groups.some((group) => group.id === current)) {
-          return current;
-        }
+      try {
+        const response = await listServerGroupsForAdmin(tradingServerId, {
+          per_page: 100,
+        });
+        const allowedSet =
+          allowedGroupIds == null ? null : new Set(allowedGroupIds);
+        const groups = [...response.data]
+          .filter((group) => allowedSet == null || allowedSet.has(group.id))
+          .sort((left, right) => left.name.localeCompare(right.name));
+        setServerGroups(groups);
+        setSelectedServerGroupId((current) => {
+          if (current && groups.some((group) => group.id === current)) {
+            return current;
+          }
 
-        return groups[0]?.id ?? "";
-      });
-    } catch (loadError) {
-      setCatalogError(formatBrokerApiError(loadError));
-      setServerGroups([]);
-      setSelectedServerGroupId("");
-    }
-  }, []);
+          return groups[0]?.id ?? "";
+        });
+      } catch (loadError) {
+        setCatalogError(formatBrokerApiError(loadError));
+        setServerGroups([]);
+        setSelectedServerGroupId("");
+      }
+    },
+    [],
+  );
 
   const loadCatalogSymbols = useCallback(
     async (tradingServerId: string, serverGroupId: string) => {
@@ -355,12 +371,26 @@ export function BonusExcludedInstrumentsView({
       return;
     }
 
+    // Offer mode waits until linked server groups are known so the catalog
+    // can be restricted to groups attached to the offer.
+    if (mode === "offer" && linkedServerGroupIds == null) {
+      return;
+    }
+
     void loadTradingServers(platformId);
-  }, [loadTradingServers, platformId]);
+  }, [linkedServerGroupIds, loadTradingServers, mode, platformId]);
 
   useEffect(() => {
-    void loadServerGroups(selectedTradingServerId);
-  }, [loadServerGroups, selectedTradingServerId]);
+    void loadServerGroups(
+      selectedTradingServerId,
+      mode === "offer" ? linkedServerGroupIds : null,
+    );
+  }, [
+    linkedServerGroupIds,
+    loadServerGroups,
+    mode,
+    selectedTradingServerId,
+  ]);
 
   useEffect(() => {
     void loadCatalogSymbols(selectedTradingServerId, selectedServerGroupId);
@@ -467,8 +497,12 @@ export function BonusExcludedInstrumentsView({
           <p className="font-medium">{entityName}</p>
           <p className="mt-2 text-sm text-muted-foreground">
             Browse symbols by server group on the left and add them to the
-            exclusion list on the right. Excluded symbols will not count toward
-            bonus conversion activity.
+            exclusion list on the right. Exclusions are stored by symbol ID;
+            conversion activity skips positions whose ticker matches the
+            frozen symbol alpha
+            {mode === "offer"
+              ? ". Only server groups linked to this offer can be used."
+              : "."}
           </p>
         </section>
       ) : null}
@@ -511,14 +545,19 @@ export function BonusExcludedInstrumentsView({
             <div className="border-b p-3">
               <p className="text-sm font-medium">Server groups</p>
               <p className="text-xs text-muted-foreground">
-                Select a group to browse its symbols.
+                Select a group to browse its symbols
+                {mode === "offer"
+                  ? " (only groups linked to this offer)."
+                  : "."}
               </p>
             </div>
 
             <div className="max-h-44 overflow-y-auto border-b p-2">
               {serverGroups.length === 0 ? (
                 <p className="px-2 py-3 text-sm text-muted-foreground">
-                  No server groups available.
+                  {mode === "offer"
+                    ? "No linked server groups for this trading server. Link server groups to the offer first."
+                    : "No server groups available."}
                 </p>
               ) : (
                 <div className="space-y-1">
@@ -668,9 +707,9 @@ export function BonusExcludedInstrumentsView({
                   ? assignedDrafts.map((draft) => (
                       <TableRow key={draft.key}>
                         <TableCell>
-                          <p className="font-medium">{draft.symbol}</p>
+                          <p className="font-medium">{draft.symbol_name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {draft.symbol_alpha}
+                            {draft.symbol_alpha || draft.symbol_id.slice(0, 8)}
                           </p>
                         </TableCell>
                         <TableCell className="text-sm">
@@ -681,7 +720,7 @@ export function BonusExcludedInstrumentsView({
                           <ActionTooltipButton
                             variant="ghost"
                             size="icon-sm"
-                            tooltip={`Remove ${draft.symbol}`}
+                            tooltip={`Remove ${draft.symbol_name}`}
                             onClick={() => handleRemoveInstrument(draft.key)}
                           >
                             <Trash2Icon />

@@ -42,6 +42,7 @@ import {
   clientBonusAssignmentStatusLabel,
   clientBonusAssignmentStatusVariant,
   formatBonusDateTime,
+  formatBonusMajorAmount,
   formatBonusMinorAmount,
   formatOfferRewardSummary,
   formatOfferTypeLabel,
@@ -374,7 +375,10 @@ export function ClientBonusesView() {
                               : "—"}
                           </TableCell>
                           <TableCell className="tabular-nums">
-                            {formatBonusMinorAmount(assignment.credited_amount)}
+                            {formatBonusMajorAmount(
+                              assignment.credited_amount,
+                              assignment.currency_precision ?? 2,
+                            )}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -389,7 +393,7 @@ export function ClientBonusesView() {
                           </TableCell>
                           <TableCell className="tabular-nums">
                             {progress
-                              ? `${progress.percent.toFixed(0)}%`
+                              ? `${progress.percent.toFixed(1)}%`
                               : "—"}
                           </TableCell>
                           <TableCell>

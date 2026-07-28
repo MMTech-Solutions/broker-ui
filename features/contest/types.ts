@@ -11,6 +11,7 @@ export type ContestServerGroup = {
   id: string;
   name: string;
   currency: string;
+  currency_precision?: number;
 };
 
 export type Contest = {
@@ -137,6 +138,7 @@ export type ContestFormCatalogServerGroup = {
   tradingServerId: string;
   tradingServerLabel: string;
   currency?: string;
+  currency_precision?: number;
 };
 
 export type ContestListFilters = {
@@ -223,7 +225,8 @@ export type UpdateContestConditionAssignmentInput = {
 };
 
 export type UpdateContestGlobalSettingsInput = {
-  banner_image_url?: string | null;
+  banner?: File | null;
+  remove_banner?: boolean;
   help_html?: string | null;
   start_reminder_days?: number | null;
   closing_alert_days?: number | null;

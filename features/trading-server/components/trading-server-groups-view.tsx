@@ -36,6 +36,7 @@ import {
 import { ServerGroupEditSheet } from "@/features/trading-server/components/server-group-edit-sheet";
 import { ServerGroupLeveragesSyncDialog } from "@/features/trading-server/components/server-group-leverages-sync-dialog";
 import {
+  formatConfigurationWarning,
   formatCurrencyLabel,
 } from "@/features/trading-server/format";
 import type {
@@ -89,6 +90,9 @@ export function TradingServerGroupsView({
     null,
   );
   const [serverGroups, setServerGroups] = useState<ServerGroup[]>([]);
+  const [configurationWarnings, setConfigurationWarnings] = useState<string[]>(
+    [],
+  );
   const [pagination, setPagination] = useState<BrokerPaginationMeta | null>(
     null,
   );
@@ -154,10 +158,14 @@ export function TradingServerGroupsView({
         setPlatform(platformResult.data);
         setTradingServer(serverResult.data);
         setServerGroups(serverGroupsResponse.data);
+        setConfigurationWarnings(
+          serverGroupsResponse.meta.configuration_warnings ?? [],
+        );
         setPagination(serverGroupsResponse.meta.pagination ?? null);
       } catch (loadError) {
         setError(formatBrokerApiError(loadError));
         setServerGroups([]);
+        setConfigurationWarnings([]);
         setPagination(null);
       } finally {
         if (!options?.silent) {
@@ -276,6 +284,19 @@ export function TradingServerGroupsView({
         <ApiErrorAlert title="Could not load server groups" message={error} />
       ) : null}
 
+      {!loading && configurationWarnings.length > 0 ? (
+        <Alert variant="warning">
+          <AlertTitle>Configuration warnings</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc space-y-1 pl-4">
+              {configurationWarnings.map((warning) => (
+                <li key={warning}>{formatConfigurationWarning(warning)}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="rounded-xl border">
         <Table>
           <TableHeader>
@@ -340,6 +361,10 @@ export function TradingServerGroupsView({
                         </Badge>
                         {serverGroup.is_default ? (
                           <Badge variant="outline">Default</Badge>
+                        ) : null}
+                        {(serverGroup.configuration_warnings?.length ?? 0) >
+                        0 ? (
+                          <Badge variant="destructive">Warnings</Badge>
                         ) : null}
                       </div>
                     </TableCell>

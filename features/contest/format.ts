@@ -22,11 +22,18 @@ export function formatContestDateRange(
   return `${formatContestDateTime(startsAt)} → ${formatContestDateTime(endsAt)}`;
 }
 
+const DEFAULT_CURRENCY_PRECISION = 2;
+
 export function formatMinorUnits(
   value: number,
   currency?: string | null,
+  precision = DEFAULT_CURRENCY_PRECISION,
 ): string {
-  const formatted = new Intl.NumberFormat(undefined).format(value);
+  const divisor = 10 ** precision;
+  const formatted = new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: precision,
+  }).format(value / divisor);
 
   return currency ? `${formatted} ${currency}` : formatted;
 }

@@ -16,6 +16,7 @@ import {
   MedalIcon,
   PercentIcon,
   ScaleIcon,
+  Settings2Icon,
   ShieldIcon,
   TrophyIcon,
   UsersIcon,
@@ -108,7 +109,7 @@ const bonusNavigation = [
     icon: LayoutTemplateIcon,
   },
   {
-    title: "Bonus assignment logs",
+    title: "Bonus logs",
     href: "/bonus-assignment-logs",
     icon: HistoryIcon,
   },
@@ -151,6 +152,11 @@ const contestsNavigation = [
 ] as const;
 
 const systemNavigation = [
+  {
+    title: "Configuration",
+    href: "/configuration",
+    icon: Settings2Icon,
+  },
   {
     title: "Scheduling",
     href: "/scheduled-commands",

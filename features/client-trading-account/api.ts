@@ -157,3 +157,29 @@ export async function loadClientAccountCatalog(): Promise<ClientAccountCatalog> 
     platformById,
   };
 }
+
+/**
+ * Lightweight map of server_group_id → trading-server environment.
+ * Used by insurance eligibility without loading leverages/initial amounts.
+ */
+export async function loadClientServerGroupEnvironments(): Promise<
+  Map<string, number>
+> {
+  const tradingServersResponse = await listTradingServers({
+    per_page: 100,
+  });
+
+  const groupsByServer = await Promise.all(
+    tradingServersResponse.data.map(async (server) => {
+      const groupsResponse = await listServerGroups(server.id, {
+        per_page: 100,
+      });
+
+      return groupsResponse.data.map(
+        (group) => [group.id, server.environment] as const,
+      );
+    }),
+  );
+
+  return new Map(groupsByServer.flat());
+}

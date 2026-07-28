@@ -26,6 +26,15 @@ export type TradingAccountListFilters = {
   per_page?: number;
 };
 
+export type UpdateTradingAccountInput = {
+  is_active?: boolean;
+  is_trading_enabled?: boolean;
+  comments?: string | null;
+  custom_name?: string | null;
+  /** When restricting access, close all open positions on the platform. Defaults to false. */
+  close_open_positions?: boolean;
+};
+
 export type TradingAccountFilterFormState = {
   external_user_id: string;
   external_trader_id: string;

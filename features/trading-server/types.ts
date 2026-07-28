@@ -99,6 +99,7 @@ export type UpdateServerGroupInput = {
   is_withdrawal_enabled?: boolean;
   use_countries_restrictions?: boolean;
   restricted_countries?: RestrictedCountry[];
+  currency_precision?: number;
   default_amount?: number;
   default_amount_type?: BalanceAdjustmentType;
   account_limits?: number;

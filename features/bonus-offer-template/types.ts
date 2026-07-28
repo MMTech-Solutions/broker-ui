@@ -2,7 +2,11 @@ export type BonusOfferTemplateExcludedInstrument = {
   id: string;
   bonus_offer_template_id: string;
   server_group_id: string;
-  symbol: string;
+  symbol_id: string;
+  /** Present when symbol relation is loaded. */
+  alpha?: string | null;
+  /** Present when symbol relation is loaded. */
+  name?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -60,6 +64,6 @@ export type UpdateBonusOfferTemplateInput = {
 export type SyncBonusOfferTemplateExcludedInstrumentsInput = {
   instruments: {
     server_group_id: string;
-    symbol: string;
+    symbol_id: string;
   }[];
 };

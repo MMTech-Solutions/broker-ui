@@ -26,6 +26,7 @@ import type {
   ContestBanListFilters,
 } from "@/features/contest/types";
 import { listServerGroupsForAdmin, listTradingServersForAdmin } from "@/features/trading-server/api";
+import { getServerGroupCurrency } from "@/features/trading-server/format";
 import type { ServerGroup } from "@/features/trading-server/types";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
@@ -47,12 +48,16 @@ function toSearchParams(
   ) as Record<string, string | number | boolean>;
 }
 
-function resolveServerGroupCurrency(currency: ServerGroup["currency"]): string | undefined {
-  if (typeof currency === "string") {
-    return currency;
-  }
+function resolveServerGroupCurrency(currency: ServerGroup["currency"]): {
+  code?: string;
+  precision: number;
+} {
+  const resolved = getServerGroupCurrency(currency);
 
-  return currency?.code ?? currency?.iso_code;
+  return {
+    code: currency == null ? undefined : resolved.code,
+    precision: resolved.precision,
+  };
 }
 
 function buildServerGroupLabel(
@@ -61,8 +66,8 @@ function buildServerGroupLabel(
 ): string {
   const currency = resolveServerGroupCurrency(serverGroup.currency);
 
-  return currency
-    ? `${serverGroup.name} (${tradingServerLabel}, ${currency})`
+  return currency.code
+    ? `${serverGroup.name} (${tradingServerLabel}, ${currency.code})`
     : `${serverGroup.name} (${tradingServerLabel})`;
 }
 
@@ -335,9 +340,41 @@ export async function getContestGlobalSettings(): Promise<
 export async function updateContestGlobalSettings(
   input: UpdateContestGlobalSettingsInput,
 ): Promise<BrokerSuccessResponse<ContestGlobalSettings>> {
+  const formData = new FormData();
+
+  if (input.banner instanceof File) {
+    formData.append("banner", input.banner);
+  }
+
+  if (input.remove_banner) {
+    formData.append("remove_banner", "1");
+  }
+
+  if (input.help_html !== undefined) {
+    formData.append("help_html", input.help_html ?? "");
+  }
+
+  if (input.start_reminder_days !== undefined) {
+    formData.append(
+      "start_reminder_days",
+      input.start_reminder_days == null
+        ? ""
+        : String(input.start_reminder_days),
+    );
+  }
+
+  if (input.closing_alert_days !== undefined) {
+    formData.append(
+      "closing_alert_days",
+      input.closing_alert_days == null
+        ? ""
+        : String(input.closing_alert_days),
+    );
+  }
+
   return browserBrokerRequest<ContestGlobalSettings>(
     `${CONTESTS_PATH}/global-settings`,
-    { method: "PATCH", body: input },
+    { method: "PATCH", body: formData },
   );
 }
 
@@ -372,14 +409,22 @@ export async function loadContestFormCatalog(): Promise<{
 
   const serverGroups = serverGroupResponses.flatMap(
     ({ tradingServer, serverGroups: groups }) =>
-      groups.map((serverGroup) => ({
-        id: serverGroup.id,
-        name: serverGroup.name,
-        tradingServerId: tradingServer.id,
-        tradingServerLabel: tradingServer.connection_signature,
-        currency: resolveServerGroupCurrency(serverGroup.currency),
-        label: buildServerGroupLabel(serverGroup, tradingServer.connection_signature),
-      })),
+      groups.map((serverGroup) => {
+        const currency = resolveServerGroupCurrency(serverGroup.currency);
+
+        return {
+          id: serverGroup.id,
+          name: serverGroup.name,
+          tradingServerId: tradingServer.id,
+          tradingServerLabel: tradingServer.connection_signature,
+          currency: currency.code,
+          currency_precision: currency.precision,
+          label: buildServerGroupLabel(
+            serverGroup,
+            tradingServer.connection_signature,
+          ),
+        };
+      }),
   );
 
   cachedFormCatalog = {

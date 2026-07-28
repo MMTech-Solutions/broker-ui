@@ -12,6 +12,7 @@ import {
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ export function InsurancePlansView() {
   const [pagination, setPagination] = useState<BrokerPaginationMeta | null>(
     null,
   );
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [nameFilter, setNameFilter] = useState("");
   const [appliedNameFilter, setAppliedNameFilter] = useState("");
@@ -73,10 +75,12 @@ export function InsurancePlansView() {
 
       setPlans(response.data);
       setPagination(response.meta.pagination ?? null);
+      setWarnings(response.meta.warnings ?? []);
     } catch (loadError) {
       setError(formatBrokerApiError(loadError));
       setPlans([]);
       setPagination(null);
+      setWarnings([]);
     } finally {
       setLoading(false);
     }
@@ -161,6 +165,19 @@ export function InsurancePlansView() {
 
       {error ? (
         <ApiErrorAlert title="Could not load insurance plans" message={error} />
+      ) : null}
+
+      {!loading && warnings.length > 0 ? (
+        <Alert variant="warning">
+          <AlertTitle>Operator warnings</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc space-y-1 pl-4">
+              {warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       <div className="rounded-xl border">

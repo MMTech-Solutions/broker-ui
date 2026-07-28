@@ -86,7 +86,11 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
   const [contest, setContest] = useState<Contest | null>(null);
   const [conditions, setConditions] = useState<ContestCondition[]>([]);
   const [leaderboard, setLeaderboard] = useState<ContestSubscription[]>([]);
+  const [nonRankedLeaderboard, setNonRankedLeaderboard] = useState<
+    ContestSubscription[]
+  >([]);
   const [topLeaderboard, setTopLeaderboard] = useState<ContestSubscription[]>([]);
+  const [showNonRanked, setShowNonRanked] = useState(false);
   const [activeSubscription, setActiveSubscription] =
     useState<ContestSubscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -136,9 +140,13 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
       ]);
 
       setLeaderboard(leaderboardResponse.data);
+      setNonRankedLeaderboard(
+        leaderboardResponse.meta.non_ranked?.data ?? [],
+      );
       setTopLeaderboard(topResponse.data);
     } catch {
       setLeaderboard([]);
+      setNonRankedLeaderboard([]);
       setTopLeaderboard([]);
     } finally {
       setLeaderboardLoading(false);
@@ -204,6 +212,9 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
   const visibleConditions = sortConditions(
     conditions.filter((condition) => condition.is_visible !== false),
   );
+  const displayedLeaderboard = showNonRanked
+    ? nonRankedLeaderboard
+    : leaderboard;
 
   const detailBreadcrumbs: BreadcrumbItem[] = [
     { label: "Inicio", href: "/client" },
@@ -245,6 +256,7 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
               {formatMinorUnits(
                 contest.entry_fee,
                 contest.server_group?.currency,
+                contest.server_group?.currency_precision,
               )}
             </p>
           </div>
@@ -254,6 +266,7 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
               {formatMinorUnits(
                 contest.min_balance_threshold,
                 contest.server_group?.currency,
+                contest.server_group?.currency_precision,
               )}
             </p>
           </div>
@@ -263,6 +276,7 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
               {formatMinorUnits(
                 contest.max_balance_threshold,
                 contest.server_group?.currency,
+                contest.server_group?.currency_precision,
               )}
             </p>
           </div>
@@ -379,14 +393,25 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
               Clasificación del concurso y top participantes.
             </CardDescription>
           </div>
-          <TrophyIcon className="size-5 text-muted-foreground" />
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={showNonRanked ? "secondary" : "outline"}
+              aria-pressed={showNonRanked}
+              onClick={() => setShowNonRanked((current) => !current)}
+            >
+              No clasificados
+            </Button>
+            <TrophyIcon className="size-5 text-muted-foreground" />
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {leaderboardLoading ? (
             <Skeleton className="h-40 w-full" />
           ) : (
             <>
-              {topLeaderboard.length > 0 ? (
+              {!showNonRanked && topLeaderboard.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Top</p>
                   <div className="grid gap-2 sm:grid-cols-3">
@@ -421,19 +446,23 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {leaderboard.length === 0 ? (
+                    {displayedLeaderboard.length === 0 ? (
                       <TableRow>
                         <TableCell
                           colSpan={4}
                           className="py-8 text-center text-sm text-muted-foreground"
                         >
-                          Aún no hay participantes en el ranking.
+                          {showNonRanked
+                            ? "No hay participantes no clasificados."
+                            : "Aún no hay participantes en el ranking."}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      leaderboard.map((entry) => (
+                      displayedLeaderboard.map((entry) => (
                         <TableRow key={entry.id}>
-                          <TableCell>{entry.rank ?? "—"}</TableCell>
+                          <TableCell>
+                            {showNonRanked ? "—" : (entry.rank ?? "—")}
+                          </TableCell>
                           <TableCell>
                             {entry.account?.external_trader_id ?? entry.account_id}
                           </TableCell>

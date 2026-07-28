@@ -42,6 +42,26 @@ type BonusOfferAdminAssignDialogProps = {
   onSuccess: () => void;
 };
 
+function formatMajorAmount(
+  value: string | number | null | undefined,
+  precision = 2,
+): string {
+  if (value == null || value === "") {
+    return "—";
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return String(value);
+  }
+
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: precision,
+    maximumFractionDigits: precision,
+  }).format(parsed);
+}
+
 function formatMinorAmount(value: string | number | null | undefined): string {
   if (value == null || value === "") {
     return "—";
@@ -64,6 +84,8 @@ function formatAccountBalance(value: number): string {
 }
 
 function formatRewardSummary(offer: BonusOffer): string {
+  const precision = offer.currency_precision ?? 2;
+
   if (offer.type === "deposit_triggered") {
     const percent =
       offer.deposit_percent != null
@@ -71,7 +93,7 @@ function formatRewardSummary(offer: BonusOffer): string {
         : "—";
     const max =
       offer.max_credit_amount != null
-        ? formatMinorAmount(offer.max_credit_amount)
+        ? formatMajorAmount(offer.max_credit_amount, precision)
         : null;
 
     return max != null
@@ -80,7 +102,7 @@ function formatRewardSummary(offer: BonusOffer): string {
   }
 
   return offer.credit_amount != null
-    ? formatMinorAmount(offer.credit_amount)
+    ? formatMajorAmount(offer.credit_amount, precision)
     : "—";
 }
 

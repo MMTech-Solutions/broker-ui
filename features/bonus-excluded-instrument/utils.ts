@@ -5,23 +5,27 @@ import type { ServerGroup, TradingSymbol } from "@/features/trading-server/types
 
 export function excludedInstrumentKey(
   serverGroupId: string,
-  symbol: string,
+  symbolId: string,
 ): string {
-  return `${serverGroupId}:${symbol.trim().toUpperCase()}`;
+  return `${serverGroupId}:${symbolId}`;
 }
 
 export function excludedInstrumentFromApi(
   instrument: BonusExcludedInstrument | BonusOfferTemplateExcludedInstrument,
   serverGroupName = "",
 ): ExcludedInstrumentDraft {
-  const symbol = instrument.symbol.trim().toUpperCase();
+  const symbolName =
+    instrument.name?.trim() ||
+    instrument.alpha?.trim() ||
+    instrument.symbol_id;
 
   return {
-    key: excludedInstrumentKey(instrument.server_group_id, symbol),
+    key: excludedInstrumentKey(instrument.server_group_id, instrument.symbol_id),
     server_group_id: instrument.server_group_id,
     server_group_name: serverGroupName,
-    symbol,
-    symbol_alpha: symbol,
+    symbol_id: instrument.symbol_id,
+    symbol_name: symbolName,
+    symbol_alpha: instrument.alpha?.trim() || "",
   };
 }
 
@@ -29,13 +33,12 @@ export function excludedInstrumentFromTradingSymbol(
   symbol: TradingSymbol,
   serverGroup: ServerGroup,
 ): ExcludedInstrumentDraft {
-  const normalizedSymbol = symbol.name.trim().toUpperCase();
-
   return {
-    key: excludedInstrumentKey(serverGroup.id, normalizedSymbol),
+    key: excludedInstrumentKey(serverGroup.id, symbol.id),
     server_group_id: serverGroup.id,
     server_group_name: serverGroup.name,
-    symbol: normalizedSymbol,
+    symbol_id: symbol.id,
+    symbol_name: symbol.name,
     symbol_alpha: symbol.alpha,
   };
 }
@@ -45,11 +48,11 @@ export function draftsSignature(drafts: ExcludedInstrumentDraft[]): string {
     [...drafts]
       .map((draft) => ({
         server_group_id: draft.server_group_id,
-        symbol: draft.symbol,
+        symbol_id: draft.symbol_id,
       }))
       .sort((left, right) =>
-        `${left.server_group_id}:${left.symbol}`.localeCompare(
-          `${right.server_group_id}:${right.symbol}`,
+        `${left.server_group_id}:${left.symbol_id}`.localeCompare(
+          `${right.server_group_id}:${right.symbol_id}`,
         ),
       ),
   );
@@ -57,10 +60,10 @@ export function draftsSignature(drafts: ExcludedInstrumentDraft[]): string {
 
 export function draftToSyncInput(draft: ExcludedInstrumentDraft): {
   server_group_id: string;
-  symbol: string;
+  symbol_id: string;
 } {
   return {
     server_group_id: draft.server_group_id,
-    symbol: draft.symbol,
+    symbol_id: draft.symbol_id,
   };
 }
