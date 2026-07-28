@@ -32,7 +32,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listScheduledCommands } from "@/features/scheduling/api";
+import {
+  ACTIVE_RUN_BLOCK_MESSAGE,
+  hasActiveScheduledCommandRun,
+} from "@/features/scheduling/active-run";
+import {
+  getScheduledCommand,
+  listScheduledCommands,
+} from "@/features/scheduling/api";
 import { ScheduledCommandDetailDialog } from "@/features/scheduling/components/scheduled-command-detail-dialog";
 import { ScheduledCommandFormDialog } from "@/features/scheduling/components/scheduled-command-form-dialog";
 import { ScheduledCommandRunDialog } from "@/features/scheduling/components/scheduled-command-run-dialog";
@@ -115,6 +122,23 @@ export function ScheduledCommandsView() {
   const [formOpen, setFormOpen] = useState(false);
   const [runOpen, setRunOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [activeRunByCommandId, setActiveRunByCommandId] = useState<
+    Record<string, boolean>
+  >({});
+  const [runCheckCommandId, setRunCheckCommandId] = useState<string | null>(
+    null,
+  );
+  const [runGateError, setRunGateError] = useState<string | null>(null);
+
+  const markActiveRun = useCallback((commandId: string, hasActive: boolean) => {
+    setActiveRunByCommandId((current) => {
+      if (current[commandId] === hasActive) {
+        return current;
+      }
+
+      return { ...current, [commandId]: hasActive };
+    });
+  }, []);
 
   const loadCommands = useCallback(
     async (requestedPage: number) => {
@@ -151,6 +175,47 @@ export function ScheduledCommandsView() {
     void loadCommands(page);
   }, [loadCommands, page]);
 
+  useEffect(() => {
+    const activeIds = Object.entries(activeRunByCommandId)
+      .filter(([, hasActive]) => hasActive)
+      .map(([commandId]) => commandId);
+
+    if (activeIds.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const poll = async () => {
+      await Promise.all(
+        activeIds.map(async (commandId) => {
+          try {
+            const response = await getScheduledCommand(commandId);
+            if (cancelled) {
+              return;
+            }
+
+            markActiveRun(
+              commandId,
+              hasActiveScheduledCommandRun(response.data.recent_runs),
+            );
+          } catch {
+            // Keep the previous active flag; next poll retries.
+          }
+        }),
+      );
+    };
+
+    const intervalId = window.setInterval(() => {
+      void poll();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeRunByCommandId, markActiveRun]);
+
   function applyFilters() {
     setPage(1);
     setSignatureFilter(signatureInput.trim());
@@ -169,9 +234,32 @@ export function ScheduledCommandsView() {
     setFormOpen(true);
   }
 
-  function openRunDialog(command: ScheduledCommand) {
-    setSelectedCommand(command);
-    setRunOpen(true);
+  async function openRunDialog(command: ScheduledCommand) {
+    if (activeRunByCommandId[command.id]) {
+      setRunGateError(ACTIVE_RUN_BLOCK_MESSAGE);
+      return;
+    }
+
+    setRunGateError(null);
+    setRunCheckCommandId(command.id);
+
+    try {
+      const response = await getScheduledCommand(command.id);
+      const hasActive = hasActiveScheduledCommandRun(response.data.recent_runs);
+      markActiveRun(command.id, hasActive);
+
+      if (hasActive) {
+        setRunGateError(ACTIVE_RUN_BLOCK_MESSAGE);
+        return;
+      }
+
+      setSelectedCommand(command);
+      setRunOpen(true);
+    } catch (checkError) {
+      setRunGateError(formatBrokerApiError(checkError));
+    } finally {
+      setRunCheckCommandId(null);
+    }
   }
 
   function openDetailDialog(command: ScheduledCommand) {
@@ -184,6 +272,10 @@ export function ScheduledCommandsView() {
   }
 
   function handleRunSuccess() {
+    if (selectedCommand) {
+      markActiveRun(selectedCommand.id, true);
+    }
+
     void loadCommands(page);
     setDetailOpen(true);
   }
@@ -276,6 +368,10 @@ export function ScheduledCommandsView() {
           title="Could not load scheduled commands"
           message={error}
         />
+      ) : null}
+
+      {runGateError ? (
+        <ApiErrorAlert title="Cannot run command" message={runGateError} />
       ) : null}
 
       <div className="rounded-xl border">
@@ -396,8 +492,18 @@ export function ScheduledCommandsView() {
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"
-                          tooltip={`Run ${command.signature}`}
-                          onClick={() => openRunDialog(command)}
+                          disabled={
+                            activeRunByCommandId[command.id] === true ||
+                            runCheckCommandId === command.id
+                          }
+                          tooltip={
+                            activeRunByCommandId[command.id]
+                              ? ACTIVE_RUN_BLOCK_MESSAGE
+                              : runCheckCommandId === command.id
+                                ? `Checking active runs for ${command.signature}…`
+                                : `Run ${command.signature}`
+                          }
+                          onClick={() => void openRunDialog(command)}
                         >
                           <PlayIcon />
                         </ActionTooltipButton>
@@ -467,6 +573,8 @@ export function ScheduledCommandsView() {
         scheduledCommand={selectedCommand}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        onRequestRun={(command) => void openRunDialog(command)}
+        onActiveRunChange={markActiveRun}
       />
     </div>
   );

@@ -18,7 +18,8 @@ export function buildBrokerApiUrl(path: string, search = ""): string {
 }
 
 type BuildBrokerGatewayHeadersOptions = {
-  surface?: RbacSurface;
+  /** `null` = public surface (no userinfo). Omit for legacy default. */
+  surface?: RbacSurface | null;
 };
 
 export function buildBrokerGatewayHeaders(
@@ -30,6 +31,11 @@ export function buildBrokerGatewayHeaders(
     [brokerConfig.internalHeader]: brokerConfig.internalSecret,
     ...extraHeaders,
   };
+
+  // Public paths pass `surface: null` — do not attach userinfo.
+  if (options.surface === null) {
+    return headers;
+  }
 
   const userinfo = resolveRbacUserinfoHeaderValue(options.surface);
 

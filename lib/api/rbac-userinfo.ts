@@ -40,8 +40,13 @@ function resolveRbacUserinfoJson(surface?: RbacSurface): string | undefined {
 }
 
 export function resolveRbacUserinfoHeaderValue(
-  surface?: RbacSurface,
+  surface?: RbacSurface | null,
 ): string | undefined {
+  // Explicit public surface: never attach a user identity.
+  if (surface === null) {
+    return undefined;
+  }
+
   const encoded = process.env.RBAC_USERINFO_BASE64?.trim();
   if (encoded && !surface) {
     return encoded;
