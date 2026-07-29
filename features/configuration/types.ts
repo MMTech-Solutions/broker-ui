@@ -35,3 +35,9 @@ export type BrokerConfig = {
 export type UpdateConfigsBatchInput = {
   configs: Array<{ key: string; value: string | null }>;
 };
+
+export type ListConfigsFilters = {
+  category?: string;
+  page?: number;
+  per_page?: number;
+};

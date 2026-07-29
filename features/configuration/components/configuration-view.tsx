@@ -53,7 +53,7 @@ export function ConfigurationView() {
     setError(null);
 
     try {
-      const response = await listConfigs();
+      const response = await listConfigs({ per_page: 50, page: 1 });
       setConfigs(response.data);
       setFormValues(
         Object.fromEntries(
