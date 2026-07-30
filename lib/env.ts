@@ -2,6 +2,8 @@ export const env = {
   brokerServiceUrl: () =>
     process.env.BROKER_SERVICE_URL ?? "http://localhost:8000",
   brokerApiPrefix: () => process.env.BROKER_API_PREFIX ?? "/api/broker",
+  iamServiceUrl: () =>
+    process.env.IAM_SERVICE_URL ?? "http://localhost:8080",
   rbacGatewayInternalHeader: () =>
     process.env.RBAC_GATEWAY_INTERNAL_HEADER ?? "X-Internal-Gateway",
   rbacGatewayInternalSecret: () =>

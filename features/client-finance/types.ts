@@ -4,15 +4,15 @@ export type FinancePaymentStatus =
   | "failed"
   | "processing";
 
-export type ExternalTransactionType = "deposit" | "withdrawal";
+export type AccountTransactionType = "credit" | "debit";
 
-export type ExternalTransaction = {
+export type AccountTransaction = {
   id: string;
   account_id: string;
   platform_id: string;
   amount: string;
   currency: string;
-  type: ExternalTransactionType;
+  type: AccountTransactionType;
   payment_status: FinancePaymentStatus;
   failure_reason?: string | null;
   external_account_id?: string | null;
@@ -36,7 +36,7 @@ export type InternalTransaction = {
   updated_at?: string | null;
 };
 
-export type ExternalTransactionListFilters = {
+export type AccountTransactionListFilters = {
   account_id?: string;
   platform_id?: string;
   payment_status?: FinancePaymentStatus;
@@ -59,7 +59,7 @@ export type CreateInternalTransferInput = {
   comments?: string | null;
 };
 
-export type CreateExternalDepositInput = {
+export type CreateCreditInput = {
   account_id: string;
   amount: number;
   comments?: string | null;
@@ -76,4 +76,4 @@ export const FINANCE_PAYMENT_STATUSES: {
   { value: "failed", label: "Fallido" },
 ];
 
-export type ClientFinanceTab = "transfers" | "deposits";
+export type ClientFinanceTab = "transfers" | "credits";

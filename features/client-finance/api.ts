@@ -1,8 +1,8 @@
 import type {
-  CreateExternalDepositInput,
+  AccountTransaction,
+  AccountTransactionListFilters,
+  CreateCreditInput,
   CreateInternalTransferInput,
-  ExternalTransaction,
-  ExternalTransactionListFilters,
   InternalTransaction,
   InternalTransferListFilters,
 } from "@/features/client-finance/types";
@@ -19,33 +19,33 @@ function compactFilters<T extends Record<string, unknown>>(filters: T) {
   ) as Record<string, string | number | boolean>;
 }
 
-export async function listExternalDeposits(
-  filters: ExternalTransactionListFilters = {},
-): Promise<BrokerSuccessResponse<ExternalTransaction[]>> {
-  return browserBrokerRequest<ExternalTransaction[]>(
-    `${FINANCE_PATH}/external-deposits`,
+export async function listCredits(
+  filters: AccountTransactionListFilters = {},
+): Promise<BrokerSuccessResponse<AccountTransaction[]>> {
+  return browserBrokerRequest<AccountTransaction[]>(
+    `${FINANCE_PATH}/credits`,
     {
       searchParams: compactFilters(filters),
     },
   );
 }
 
-export async function listExternalWithdrawals(
-  filters: ExternalTransactionListFilters = {},
-): Promise<BrokerSuccessResponse<ExternalTransaction[]>> {
-  return browserBrokerRequest<ExternalTransaction[]>(
-    `${FINANCE_PATH}/external-withdrawals`,
+export async function listDebits(
+  filters: AccountTransactionListFilters = {},
+): Promise<BrokerSuccessResponse<AccountTransaction[]>> {
+  return browserBrokerRequest<AccountTransaction[]>(
+    `${FINANCE_PATH}/debits`,
     {
       searchParams: compactFilters(filters),
     },
   );
 }
 
-export async function createExternalDeposit(
-  input: CreateExternalDepositInput,
-): Promise<BrokerSuccessResponse<ExternalTransaction>> {
-  return browserBrokerRequest<ExternalTransaction>(
-    `${FINANCE_PATH}/external-deposits`,
+export async function createCredit(
+  input: CreateCreditInput,
+): Promise<BrokerSuccessResponse<AccountTransaction>> {
+  return browserBrokerRequest<AccountTransaction>(
+    `${FINANCE_PATH}/credits`,
     {
       method: "POST",
       body: input,

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createExternalWithdrawal } from "@/features/client-trading-account/api";
+import { createDebit } from "@/features/client-trading-account/api";
 import {
   formatAccountMoney,
   parseMajorAmountToMinorUnits,
@@ -22,21 +22,20 @@ import {
 import type { EnrichedClientTradingAccount } from "@/features/client-trading-account/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
-type ClientTradingAccountWithdrawDialogProps = {
+type ClientTradingAccountDebitDialogProps = {
   account: EnrichedClientTradingAccount | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 };
 
-export function ClientTradingAccountWithdrawDialog({
+export function ClientTradingAccountDebitDialog({
   account,
   open,
   onOpenChange,
   onSuccess,
-}: ClientTradingAccountWithdrawDialogProps) {
+}: ClientTradingAccountDebitDialogProps) {
   const [amount, setAmount] = useState("");
-  const [code, setCode] = useState("");
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +46,6 @@ export function ClientTradingAccountWithdrawDialog({
     }
 
     setAmount("");
-    setCode("");
     setComments("");
     setError(null);
   }, [open]);
@@ -64,7 +62,7 @@ export function ClientTradingAccountWithdrawDialog({
       !Number.isFinite(account.currencyPrecision)
     ) {
       setError(
-        "La precisión de moneda del grupo de servidor no está configurada. No se puede retirar hasta que un administrador la configure.",
+        "La precisión de moneda del grupo de servidor no está configurada. No se puede debitar hasta que un administrador la configure.",
       );
       return;
     }
@@ -79,19 +77,13 @@ export function ClientTradingAccountWithdrawDialog({
       return;
     }
 
-    if (!/^\d{6}$/.test(code.trim())) {
-      setError("El código de verificación debe tener 6 dígitos.");
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
 
     try {
-      await createExternalWithdrawal({
+      await createDebit({
         account_id: account.id,
         amount: minorAmount,
-        code: code.trim(),
         comments: comments.trim() || null,
       });
       onOpenChange(false);
@@ -107,19 +99,19 @@ export function ClientTradingAccountWithdrawDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Retirar fondos</DialogTitle>
+          <DialogTitle>Debitar cuenta</DialogTitle>
           <DialogDescription>
-            Retira saldo de la cuenta{" "}
+            Debita saldo de la cuenta{" "}
             <span className="font-medium text-foreground">
               {account?.external_trader_id ?? "—"}
-            </span>
-            . Requiere código 2FA y servicios de finanzas habilitados.
+            </span>{" "}
+            y acredita la main wallet.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error ? (
-            <ApiErrorAlert title="No se pudo retirar" message={error} />
+            <ApiErrorAlert title="No se pudo debitar" message={error} />
           ) : null}
 
           <div className="rounded-lg border p-3 text-sm">
@@ -132,9 +124,9 @@ export function ClientTradingAccountWithdrawDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="withdraw-amount">Monto</Label>
+            <Label htmlFor="debit-amount">Monto</Label>
             <Input
-              id="withdraw-amount"
+              id="debit-amount"
               type="number"
               min={0}
               step="0.01"
@@ -147,24 +139,9 @@ export function ClientTradingAccountWithdrawDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="withdraw-code">Código 2FA (6 dígitos)</Label>
+            <Label htmlFor="debit-comments">Comentarios (opcional)</Label>
             <Input
-              id="withdraw-code"
-              inputMode="numeric"
-              pattern="\d{6}"
-              maxLength={6}
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              placeholder="123456"
-              disabled={submitting}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="withdraw-comments">Comentarios (opcional)</Label>
-            <Input
-              id="withdraw-comments"
+              id="debit-comments"
               value={comments}
               onChange={(event) => setComments(event.target.value)}
               disabled={submitting}
@@ -181,7 +158,7 @@ export function ClientTradingAccountWithdrawDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Procesando..." : "Retirar"}
+              {submitting ? "Procesando..." : "Debitar"}
             </Button>
           </DialogFooter>
         </form>
@@ -189,3 +166,7 @@ export function ClientTradingAccountWithdrawDialog({
     </Dialog>
   );
 }
+
+/** @deprecated Prefer ClientTradingAccountDebitDialog */
+export const ClientTradingAccountWithdrawDialog =
+  ClientTradingAccountDebitDialog;
