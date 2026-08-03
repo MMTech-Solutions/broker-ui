@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FilterXIcon,
   LockIcon,
@@ -33,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { listPlatforms } from "@/features/platform/api";
 import { listTradingAccounts } from "@/features/trading-account/api";
 import {
   TradingAccountAccessDialog,
@@ -57,9 +58,12 @@ const tradingAccountsBreadcrumbs: BreadcrumbItem[] = [
   { label: "Trading accounts", current: true },
 ];
 
+const TABLE_COLUMN_COUNT = 11;
+
 type ServerGroupOption = {
   id: string;
   label: string;
+  platformLabel: string;
 };
 
 const moneyFormatter = new Intl.NumberFormat(undefined, {
@@ -134,16 +138,30 @@ export function TradingAccountsView() {
     setServerGroupsLoading(true);
 
     try {
-      const serversResponse = await listTradingServersForAdmin({ per_page: 100 });
+      const [serversResponse, platformsResponse] = await Promise.all([
+        listTradingServersForAdmin({ per_page: 100 }),
+        listPlatforms({ per_page: 100 }),
+      ]);
+
+      const platformLabelById = new Map(
+        platformsResponse.data.map((platform) => [
+          platform.id,
+          platform.custom_name ?? platform.name,
+        ]),
+      );
+
       const groupsByServer = await Promise.all(
         serversResponse.data.map(async (server) => {
           const groupsResponse = await listServerGroupsForAdmin(server.id, {
             per_page: 100,
           });
+          const platformLabel =
+            platformLabelById.get(server.platform_id) ?? "—";
 
           return groupsResponse.data.map((group) => ({
             id: group.id,
             label: group.name,
+            platformLabel,
           }));
         }),
       );
@@ -218,6 +236,11 @@ export function TradingAccountsView() {
     setAccessAction(action);
     setAccessDialogOpen(true);
   }
+
+  const serverGroupById = useMemo(
+    () => new Map(serverGroupOptions.map((option) => [option.id, option])),
+    [serverGroupOptions],
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
@@ -347,9 +370,11 @@ export function TradingAccountsView() {
               <TableHead>Trader ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>External user</TableHead>
+              <TableHead>Platform</TableHead>
               <TableHead>Server group</TableHead>
               <TableHead className="text-right">Balance</TableHead>
               <TableHead className="text-right">Equity</TableHead>
+              <TableHead className="text-right">Credit</TableHead>
               <TableHead>Trading</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[120px] text-right">Actions</TableHead>
@@ -359,7 +384,7 @@ export function TradingAccountsView() {
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={9}>
+                    <TableCell colSpan={TABLE_COLUMN_COUNT}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -369,7 +394,7 @@ export function TradingAccountsView() {
             {!loading && accounts.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={TABLE_COLUMN_COUNT}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No trading accounts found.
@@ -378,7 +403,11 @@ export function TradingAccountsView() {
             ) : null}
 
             {!loading
-              ? accounts.map((account) => (
+              ? accounts.map((account) => {
+                  const serverGroupMeta =
+                    serverGroupById.get(account.server_group_id) ?? null;
+
+                  return (
                   <TableRow key={account.id}>
                     <TableCell className="font-medium">
                       {account.external_trader_id}
@@ -390,15 +419,23 @@ export function TradingAccountsView() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {abbreviateUuid(account.server_group_id)}
-                      </span>
+                      {serverGroupMeta?.platformLabel ?? "—"}
+                    </TableCell>
+                    <TableCell>
+                      {serverGroupMeta?.label ?? (
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {abbreviateUuid(account.server_group_id)}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatMoney(account.current_balance)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatMoney(account.current_equity)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatMoney(account.current_credit)}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -470,7 +507,8 @@ export function TradingAccountsView() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               : null}
           </TableBody>
         </Table>

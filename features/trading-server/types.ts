@@ -102,6 +102,7 @@ export type UpdateServerGroupInput = {
   is_withdrawal_enabled?: boolean;
   use_countries_restrictions?: boolean;
   restricted_countries?: RestrictedCountry[];
+  currency?: string;
   currency_precision?: number;
   book_type?: BookType | null;
   default_amount?: number;

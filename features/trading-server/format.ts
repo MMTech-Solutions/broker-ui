@@ -21,6 +21,8 @@ const CONFIGURATION_WARNING_LABELS: Record<string, string> = {
   countries_restrictions_empty:
     "Country restrictions are enabled but no countries are listed.",
   no_leverages_assigned: "No leverages are assigned to this group.",
+  currency_missing:
+    "Currency code is not configured. Set it before activating this group.",
   currency_precision_missing:
     "Currency precision is not configured. Set it before activating this group.",
 };
@@ -152,6 +154,8 @@ export type ServerGroupEditFormState = {
   is_withdrawal_enabled: boolean;
   use_countries_restrictions: boolean;
   restricted_countries: RestrictedCountry[];
+  currency_code: string;
+  currency_code_editable: boolean;
   currency_precision: string;
   book_type: BookType | "";
   default_amount: string;
@@ -166,6 +170,7 @@ export function buildServerGroupEditFormState(
   serverGroup: ServerGroup,
 ): ServerGroupEditFormState {
   const currency = getServerGroupCurrency(serverGroup.currency);
+  const currencyCodeMissing = currency.code === "";
   const precisionMissing =
     (serverGroup.configuration_warnings ?? []).includes(
       "currency_precision_missing",
@@ -182,6 +187,8 @@ export function buildServerGroupEditFormState(
     is_withdrawal_enabled: serverGroup.is_withdrawal_enabled ?? true,
     use_countries_restrictions: serverGroup.use_countries_restrictions ?? false,
     restricted_countries: serverGroup.restricted_countries ?? [],
+    currency_code: currency.code,
+    currency_code_editable: currencyCodeMissing,
     currency_precision: precisionMissing ? "" : String(precision),
     book_type: serverGroup.book_type ?? "",
     default_amount:
@@ -217,6 +224,7 @@ export function buildUpdateServerGroupInput(
     .map((value) => value.trim())
     .filter(Boolean);
 
+  const currencyCode = form.currency_code.trim().toUpperCase();
   const currencyPrecision = parseOptionalMinorUnits(form.currency_precision);
 
   return {
@@ -229,6 +237,9 @@ export function buildUpdateServerGroupInput(
     use_countries_restrictions: form.use_countries_restrictions,
     restricted_countries: restrictedCountries,
     book_type: form.book_type === "" ? null : form.book_type,
+    ...(form.currency_code_editable && currencyCode !== ""
+      ? { currency: currencyCode }
+      : {}),
     ...(currencyPrecision !== undefined
       ? { currency_precision: currencyPrecision }
       : {}),

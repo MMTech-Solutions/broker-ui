@@ -65,10 +65,13 @@ export function ServerGroupEditSheet({
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
 
-  const currencyLabel = useMemo(
-    () => formatCurrencyLabel(serverGroup?.currency),
-    [serverGroup?.currency],
-  );
+  const displayCurrencyLabel = useMemo(() => {
+    if (form?.currency_code.trim()) {
+      return form.currency_code.trim().toUpperCase();
+    }
+
+    return formatCurrencyLabel(serverGroup?.currency);
+  }, [form?.currency_code, serverGroup?.currency]);
 
   useEffect(() => {
     if (!open || !serverGroup) {
@@ -85,7 +88,22 @@ export function ServerGroupEditSheet({
       return;
     }
 
+    const currencyCode = form.currency_code.trim().toUpperCase();
     const precision = parseOptionalMinorUnits(form.currency_precision);
+
+    if (
+      form.currency_code_editable &&
+      currencyCode !== "" &&
+      !/^[A-Z]{3}$/.test(currencyCode)
+    ) {
+      setError("Currency must be a 3-letter ISO code (e.g. USD).");
+      return;
+    }
+
+    if (form.is_active && currencyCode === "") {
+      setError("Currency code is required before activating this server group.");
+      return;
+    }
 
     if (form.is_active && precision === undefined) {
       setError(
@@ -148,8 +166,8 @@ export function ServerGroupEditSheet({
           <SheetTitle>{serverGroup?.name ?? "Server group"}</SheetTitle>
           <SheetDescription>
             Edit commercial settings for this server group. Synced fields such as
-            name, meta name, and currency code are read-only. Currency precision
-            must be set by an admin before activating the group.
+            name and meta name stay read-only. If currency was not synced, set
+            the ISO code and precision before activating the group.
           </SheetDescription>
         </SheetHeader>
 
@@ -188,9 +206,37 @@ export function ServerGroupEditSheet({
                 <Label htmlFor="server-group-currency">Currency</Label>
                 <Input
                   id="server-group-currency"
-                  value={currencyLabel}
-                  disabled
+                  value={
+                    form.currency_code_editable
+                      ? form.currency_code
+                      : displayCurrencyLabel
+                  }
+                  maxLength={3}
+                  placeholder="USD"
+                  onChange={(event) =>
+                    setForm((current) =>
+                      current?.currency_code_editable
+                        ? {
+                            ...current,
+                            currency_code: event.target.value
+                              .replace(/[^a-zA-Z]/g, "")
+                              .toUpperCase()
+                              .slice(0, 3),
+                            ...(event.target.value.trim() === "" &&
+                            current.is_active
+                              ? { is_active: false }
+                              : {}),
+                          }
+                        : current,
+                    )
+                  }
+                  disabled={submitting || !form.currency_code_editable}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {form.currency_code_editable
+                    ? "3-letter ISO 4217 code. Required to activate the group."
+                    : "Synced from the trading platform."}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -286,10 +332,13 @@ export function ServerGroupEditSheet({
                   ["use_countries_restrictions", "Country restrictions"],
                 ] as const
               ).map(([field, label]) => {
+                const currencyCodeMissing = form.currency_code.trim() === "";
                 const precisionUnset =
                   parseOptionalMinorUnits(form.currency_precision) ===
                   undefined;
-                const disableActive = field === "is_active" && precisionUnset;
+                const disableActive =
+                  field === "is_active" &&
+                  (currencyCodeMissing || precisionUnset);
 
                 return (
                 <div key={field} className="flex items-center gap-2">
@@ -315,7 +364,7 @@ export function ServerGroupEditSheet({
               <p className="text-sm font-medium">Amounts and limits</p>
               <p className="text-xs text-muted-foreground">
                 Monetary fields use minor currency units (e.g. cents for{" "}
-                {currencyLabel}).
+                {displayCurrencyLabel}).
               </p>
 
               <div className="grid gap-4 sm:grid-cols-2">
