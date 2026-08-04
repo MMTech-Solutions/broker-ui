@@ -25,7 +25,7 @@ function compactFilters<T extends Record<string, unknown>>(filters: T) {
 export async function listPublicContests(
   filters: ClientContestListFilters = {},
 ): Promise<BrokerSuccessResponse<Contest[]>> {
-  return browserBrokerRequest<Contest[]>(`${CONTESTS_PATH}/public`, {
+  return browserBrokerRequest<Contest[]>(CONTESTS_PATH, {
     searchParams: compactFilters(filters),
   });
 }
@@ -33,7 +33,7 @@ export async function listPublicContests(
 export async function getPublicContest(
   contestId: string,
 ): Promise<BrokerSuccessResponse<Contest>> {
-  return browserBrokerRequest<Contest>(`${CONTESTS_PATH}/public/${contestId}`);
+  return browserBrokerRequest<Contest>(`${CONTESTS_PATH}/${contestId}`);
 }
 
 export async function listPublicContestConditions(
@@ -41,7 +41,7 @@ export async function listPublicContestConditions(
   filters: { per_page?: number } = {},
 ): Promise<BrokerSuccessResponse<ContestCondition[]>> {
   return browserBrokerRequest<ContestCondition[]>(
-    `${CONTESTS_PATH}/public/${contestId}/conditions`,
+    `${CONTESTS_PATH}/${contestId}/conditions`,
     {
       searchParams: compactFilters({
         ...filters,
