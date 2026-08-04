@@ -81,12 +81,12 @@ export function financePaymentStatusVariant(
   }
 }
 
-export function externalTransactionTypeLabel(value: string): string {
+export function accountTransactionTypeLabel(value: string): string {
   switch (value) {
-    case "deposit":
-      return "Depósito";
-    case "withdrawal":
-      return "Retiro";
+    case "credit":
+      return "Crédito";
+    case "debit":
+      return "Débito";
     default:
       return value;
   }

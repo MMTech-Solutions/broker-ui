@@ -12,6 +12,27 @@ import type {
 
 const RISK_METRICS_PATH = "v1/accounts";
 const SHARES_PATH = "v1/risk-metrics/shares";
+const PUBLIC_SHARES_PATH = "v1/public/risk-metrics/shares";
+
+export async function getPublicRiskMetricsSummary(
+  shareUuid: string,
+  params: GetRiskMetricsSummaryParams = {},
+): Promise<BrokerSuccessResponse<RiskMetricsSummary>> {
+  return browserBrokerRequest<RiskMetricsSummary>(
+    `${PUBLIC_SHARES_PATH}/${shareUuid}/summary`,
+    { searchParams: params as Record<string, string | number | boolean> },
+  );
+}
+
+export async function getPublicRiskMetricsHistory(
+  shareUuid: string,
+  params: GetRiskMetricsHistoryParams,
+): Promise<BrokerSuccessResponse<RiskMetricsHistory>> {
+  return browserBrokerRequest<RiskMetricsHistory>(
+    `${PUBLIC_SHARES_PATH}/${shareUuid}/history`,
+    { searchParams: params as Record<string, string | number | boolean> },
+  );
+}
 
 export async function getAccountRiskMetricsSummary(
   accountId: string,

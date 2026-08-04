@@ -20,21 +20,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createExternalDeposit } from "@/features/client-finance/api";
+import { createCredit } from "@/features/client-finance/api";
 import { formatAccountMoney } from "@/features/client-trading-account/format";
 import { parseMajorAmountToMinorUnits } from "@/features/initial-amount/format";
 import type { TradingAccount } from "@/features/trading-account/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
-type ClientSimulatedDepositPanelProps = {
+type ClientSimulatedCreditPanelProps = {
   accounts: TradingAccount[];
-  onDeposited: () => void;
+  currencyPrecisionByAccountId: Map<string, number | null>;
+  onCredited: () => void;
 };
 
-export function ClientSimulatedDepositPanel({
+export function ClientSimulatedCreditPanel({
   accounts,
-  onDeposited,
-}: ClientSimulatedDepositPanelProps) {
+  currencyPrecisionByAccountId,
+  onCredited,
+}: ClientSimulatedCreditPanelProps) {
   const [accountId, setAccountId] = useState("");
   const [amount, setAmount] = useState("");
   const [comments, setComments] = useState("");
@@ -50,11 +52,20 @@ export function ClientSimulatedDepositPanel({
     setSuccess(null);
 
     if (!accountId) {
-      setError("Selecciona la cuenta donde se acreditará el depósito.");
+      setError("Selecciona la cuenta donde se acreditará el monto.");
       return;
     }
 
-    const minorAmount = parseMajorAmountToMinorUnits(amount);
+    const precision = currencyPrecisionByAccountId.get(accountId);
+
+    if (precision == null || !Number.isFinite(precision)) {
+      setError(
+        "La precisión de moneda del grupo de servidor no está configurada. No se puede acreditar hasta que un administrador la configure.",
+      );
+      return;
+    }
+
+    const minorAmount = parseMajorAmountToMinorUnits(amount, precision);
 
     if (minorAmount === undefined || minorAmount <= 0) {
       setError("Ingresa un monto válido mayor que cero.");
@@ -65,7 +76,7 @@ export function ClientSimulatedDepositPanel({
     setError(null);
 
     try {
-      await createExternalDeposit({
+      await createCredit({
         account_id: accountId,
         amount: minorAmount,
         comments: comments.trim() || null,
@@ -73,8 +84,8 @@ export function ClientSimulatedDepositPanel({
 
       setAmount("");
       setComments("");
-      setSuccess("Depósito simulado registrado correctamente.");
-      onDeposited();
+      setSuccess("Crédito simulado registrado correctamente.");
+      onCredited();
     } catch (submitError) {
       setError(formatBrokerApiError(submitError));
     } finally {
@@ -85,9 +96,9 @@ export function ClientSimulatedDepositPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Simular depósito externo</CardTitle>
+        <CardTitle>Simular crédito</CardTitle>
         <CardDescription>
-          Registra un depósito consumiendo el endpoint real de finanzas. Útil
+          Registra un crédito consumiendo el endpoint real de finanzas. Útil
           en entornos de desarrollo con la billetera stub del broker.
         </CardDescription>
       </CardHeader>
@@ -95,7 +106,7 @@ export function ClientSimulatedDepositPanel({
         <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
           {error ? (
             <div className="md:col-span-2">
-              <ApiErrorAlert title="No se pudo depositar" message={error} />
+              <ApiErrorAlert title="No se pudo acreditar" message={error} />
             </div>
           ) : null}
 
@@ -104,7 +115,7 @@ export function ClientSimulatedDepositPanel({
           ) : null}
 
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="deposit-account">Cuenta de trading</Label>
+            <Label htmlFor="credit-account">Cuenta de trading</Label>
             <Select
               value={accountId}
               onValueChange={(value) => {
@@ -114,7 +125,7 @@ export function ClientSimulatedDepositPanel({
               }}
               disabled={submitting}
             >
-              <SelectTrigger id="deposit-account">
+              <SelectTrigger id="credit-account">
                 <SelectValue placeholder="Selecciona una cuenta">
                   {selectedAccount
                     ? `${selectedAccount.external_trader_id} — ${formatAccountMoney(selectedAccount.current_balance)}`
@@ -133,9 +144,9 @@ export function ClientSimulatedDepositPanel({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="simulated-deposit-amount">Monto</Label>
+            <Label htmlFor="simulated-credit-amount">Monto</Label>
             <Input
-              id="simulated-deposit-amount"
+              id="simulated-credit-amount"
               type="number"
               min={0}
               step="0.01"
@@ -148,11 +159,11 @@ export function ClientSimulatedDepositPanel({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="simulated-deposit-comments">
+            <Label htmlFor="simulated-credit-comments">
               Comentarios (opcional)
             </Label>
             <Input
-              id="simulated-deposit-comments"
+              id="simulated-credit-comments"
               value={comments}
               onChange={(event) => setComments(event.target.value)}
               disabled={submitting}
@@ -164,7 +175,7 @@ export function ClientSimulatedDepositPanel({
               type="submit"
               disabled={submitting || activeAccounts.length === 0}
             >
-              {submitting ? "Procesando..." : "Registrar depósito"}
+              {submitting ? "Procesando..." : "Registrar crédito"}
             </Button>
           </div>
         </form>
@@ -172,3 +183,6 @@ export function ClientSimulatedDepositPanel({
     </Card>
   );
 }
+
+/** @deprecated Prefer ClientSimulatedCreditPanel */
+export const ClientSimulatedDepositPanel = ClientSimulatedCreditPanel;

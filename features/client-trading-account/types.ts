@@ -30,17 +30,32 @@ export type CreateClientTradingAccountInput = {
   amount_id?: string;
 };
 
-export type CreateExternalDepositInput = {
+export type CreateCreditInput = {
   account_id: string;
   amount: number;
   comments?: string | null;
 };
 
-export type CreateExternalWithdrawalInput = {
+export type CreateDebitInput = {
   account_id: string;
   amount: number;
-  code: string;
   comments?: string | null;
+};
+
+export type UpdateTradingAccountCredentialsInput = {
+  password?: string;
+  investor_password?: string;
+  challenge_id: string;
+  code: string;
+};
+
+export type TwoFactorChallengeMethod = "email" | "google_authenticator";
+
+export type TwoFactorChallenge = {
+  challenge_id: string;
+  method: TwoFactorChallengeMethod;
+  context: "trading_credentials";
+  expires_in_minutes: number;
 };
 
 export type ClientAccountCatalog = {
@@ -63,4 +78,6 @@ export type EnrichedClientTradingAccount = TradingAccount & {
   tradingServerId: string | null;
   platformId: string | null;
   environment: number | null;
+  currencyCode: string | null;
+  currencyPrecision: number | null;
 };

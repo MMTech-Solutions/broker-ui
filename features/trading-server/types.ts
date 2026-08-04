@@ -54,9 +54,11 @@ export type TradingServerListFilters = {
 
 export type BalanceAdjustmentType = "BALANCE" | "CREDIT";
 
+export type BookType = "a_book" | "b_book";
+
 export type ServerGroupCurrency = {
   code: string;
-  precision: number;
+  precision: number | null;
   iso_code?: string;
 };
 
@@ -76,8 +78,9 @@ export type ServerGroup = {
   account_limits?: number;
   default_amount?: string | null;
   default_amount_type?: BalanceAdjustmentType | null;
-  currency?: string | ServerGroupCurrency | { code?: string; iso_code?: string; precision?: number };
+  currency?: string | ServerGroupCurrency | { code?: string; iso_code?: string; precision?: number | null };
   currency_denomination_factor?: number;
+  book_type?: BookType | null;
   is_private?: boolean;
   is_default?: boolean;
   is_active: boolean;
@@ -99,7 +102,9 @@ export type UpdateServerGroupInput = {
   is_withdrawal_enabled?: boolean;
   use_countries_restrictions?: boolean;
   restricted_countries?: RestrictedCountry[];
+  currency?: string;
   currency_precision?: number;
+  book_type?: BookType | null;
   default_amount?: number;
   default_amount_type?: BalanceAdjustmentType;
   account_limits?: number;

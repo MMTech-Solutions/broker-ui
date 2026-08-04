@@ -386,7 +386,7 @@ export function BonusOfferTemplateFormDialog({
                   <div className="space-y-2">
                     <BonusOfferFieldLabel
                       htmlFor="bonus-offer-template-min-deposit"
-                      help={BONUS_OFFER_FIELD_HELP.min_deposit_amount}
+                      help={BONUS_OFFER_FIELD_HELP.template_min_deposit_amount}
                     >
                       Min deposit amount
                     </BonusOfferFieldLabel>

@@ -16,14 +16,16 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getClientBonusAssignment } from "@/features/client-bonus/api";
 import {
+  assignmentOfferName,
+  assignmentOfferType,
   clientBonusAssignmentStatusLabel,
   clientBonusAssignmentStatusVariant,
   formatBonusDateTime,
   formatBonusMajorAmount,
   formatOfferRewardSummary,
   formatOfferTypeLabel,
+  getAssignmentTermsSummary,
   getConversionProgress,
-  getOfferTermsSummary,
 } from "@/features/client-bonus/format";
 import type { BonusAssignment } from "@/features/client-bonus/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
@@ -82,7 +84,8 @@ export function ClientBonusAssignmentDetailDialog({
 
   const progress = assignment ? getConversionProgress(assignment) : null;
   const offer = assignment?.bonus_offer;
-  const terms = offer ? getOfferTermsSummary(offer) : [];
+  const offerType = assignment ? assignmentOfferType(assignment) : null;
+  const terms = assignment ? getAssignmentTermsSummary(assignment) : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -116,15 +119,15 @@ export function ClientBonusAssignmentDetailDialog({
                 <Badge variant={clientBonusAssignmentStatusVariant(assignment.status)}>
                   {clientBonusAssignmentStatusLabel(assignment.status)}
                 </Badge>
-                {offer ? (
-                  <Badge variant="outline">{formatOfferTypeLabel(offer.type)}</Badge>
+                {offerType ? (
+                  <Badge variant="outline">{formatOfferTypeLabel(offerType)}</Badge>
                 ) : null}
               </div>
 
               <dl className="grid gap-3 text-sm">
                 <div>
                   <dt className="text-muted-foreground">Oferta</dt>
-                  <dd className="font-medium">{offer?.name ?? "—"}</dd>
+                  <dd className="font-medium">{assignmentOfferName(assignment)}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Cuenta</dt>

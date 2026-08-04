@@ -94,6 +94,61 @@ export function depositBonusIntentStatusVariant(
   }
 }
 
+export function formatProgressPercent(
+  progressRatio: number | null | undefined,
+): string {
+  if (progressRatio == null || !Number.isFinite(Number(progressRatio))) {
+    return "—";
+  }
+
+  return `${(Math.min(1, Math.max(0, Number(progressRatio))) * 100).toFixed(1)}%`;
+}
+
+export function formatActivityProgress(
+  accumulated: string | number | null | undefined,
+  required: string | number | null | undefined,
+): string {
+  if (required == null || required === "") {
+    return formatMoneyValue(accumulated ?? null);
+  }
+
+  return `${formatMoneyValue(accumulated ?? 0)} / ${formatMoneyValue(required)}`;
+}
+
+export function bonusAssignmentOfferLabel(assignment: {
+  offer_name?: string | null;
+  bonus_offer?: { name?: string } | null;
+  bonus_offer_id: string;
+}): string {
+  const snapshotName = assignment.offer_name?.trim();
+  if (snapshotName) {
+    return snapshotName;
+  }
+
+  if (assignment.bonus_offer?.name) {
+    return assignment.bonus_offer.name;
+  }
+
+  return truncateId(assignment.bonus_offer_id);
+}
+
+export function formatExcludedInstrumentsSummary(
+  instruments:
+    | Array<{ alpha?: string; symbol?: string }>
+    | null
+    | undefined,
+): string {
+  if (!instruments?.length) {
+    return "—";
+  }
+
+  const labels = instruments
+    .map((instrument) => instrument.alpha ?? instrument.symbol)
+    .filter((value): value is string => Boolean(value?.trim()));
+
+  return labels.length > 0 ? labels.join(", ") : `${instruments.length} instrument(s)`;
+}
+
 export function truncateId(value: string): string {
   return value.length > 12 ? `${value.slice(0, 8)}…` : value;
 }

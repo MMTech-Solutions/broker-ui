@@ -55,7 +55,7 @@ function toServerGroupOption(
       group.currency,
       server.connection_signature,
     ),
-    precision: currencyResolved ? currency.precision : -1,
+    precision: currencyResolved ? (currency.precision as number) : -1,
   };
 }
 

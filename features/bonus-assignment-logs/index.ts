@@ -4,16 +4,21 @@ export {
   listDepositBonusIntents,
 } from "@/features/bonus-assignment-logs/api";
 export {
+  bonusAssignmentOfferLabel,
   bonusAssignmentStatusLabel,
   bonusAssignmentStatusVariant,
   depositBonusIntentStatusLabel,
   depositBonusIntentStatusVariant,
+  formatActivityProgress,
   formatDateTimeValue,
+  formatExcludedInstrumentsSummary,
   formatMoneyValue,
+  formatProgressPercent,
   truncateId,
 } from "@/features/bonus-assignment-logs/format";
 export type {
   BonusAssignment,
+  BonusAssignmentExcludedInstrument,
   BonusAssignmentListFilters,
   BonusAssignmentStatus,
   BonusLogsTab,

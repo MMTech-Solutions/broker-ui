@@ -1,3 +1,7 @@
+/**
+ * Admin broker configs (`v1/admin/configs`).
+ * Requires IAM permission `broker.configs.manage` (enforced by API; UI does not gate nav).
+ */
 export const MASKED_SECRET_VALUE = "********";
 
 export type ConfigSchemaOption = {
@@ -9,6 +13,7 @@ export type ConfigSchema = {
   type: "string" | "text" | "integer" | "number" | "bool" | "select" | "file";
   required: boolean;
   label: string;
+  description?: string;
   placeholder?: string;
   secret?: boolean;
   options?: ConfigSchemaOption[];
@@ -29,4 +34,10 @@ export type BrokerConfig = {
 
 export type UpdateConfigsBatchInput = {
   configs: Array<{ key: string; value: string | null }>;
+};
+
+export type ListConfigsFilters = {
+  category?: string;
+  page?: number;
+  per_page?: number;
 };

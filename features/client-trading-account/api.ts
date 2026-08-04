@@ -2,8 +2,10 @@ import type {
   ClientAccountCatalog,
   ClientServerGroup,
   CreateClientTradingAccountInput,
-  CreateExternalDepositInput,
-  CreateExternalWithdrawalInput,
+  CreateCreditInput,
+  CreateDebitInput,
+  TwoFactorChallenge,
+  UpdateTradingAccountCredentialsInput,
 } from "@/features/client-trading-account/types";
 import { listInitialAmounts } from "@/features/initial-amount/api";
 import { listLeverages } from "@/features/leverage/api";
@@ -18,6 +20,7 @@ import {
 } from "@/features/trading-server/api";
 import type { TradingServer } from "@/features/trading-server/types";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
+import { browserIamRequest } from "@/lib/api/iam-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
 const ACCOUNTS_PATH = "v1/accounts";
@@ -40,22 +43,47 @@ export async function createClientTradingAccount(
   });
 }
 
-export async function createExternalDeposit(
-  input: CreateExternalDepositInput,
+export async function createCredit(
+  input: CreateCreditInput,
 ): Promise<BrokerSuccessResponse<unknown>> {
-  return browserBrokerRequest(`${FINANCE_PATH}/external-deposits`, {
+  return browserBrokerRequest(`${FINANCE_PATH}/credits`, {
     method: "POST",
     body: input,
   });
 }
 
-export async function createExternalWithdrawal(
-  input: CreateExternalWithdrawalInput,
+export async function createDebit(
+  input: CreateDebitInput,
 ): Promise<BrokerSuccessResponse<unknown>> {
-  return browserBrokerRequest(`${FINANCE_PATH}/external-withdrawals`, {
+  return browserBrokerRequest(`${FINANCE_PATH}/debits`, {
     method: "POST",
     body: input,
   });
+}
+
+export async function startTradingCredentialsChallenge(): Promise<
+  BrokerSuccessResponse<TwoFactorChallenge>
+> {
+  return browserIamRequest<TwoFactorChallenge>(
+    "v1/auth/user/2fa/challenge/start",
+    {
+      method: "POST",
+      body: { context: "trading_credentials" },
+    },
+  );
+}
+
+export async function updateClientTradingAccountCredentials(
+  accountUuid: string,
+  input: UpdateTradingAccountCredentialsInput,
+): Promise<BrokerSuccessResponse<TradingAccount>> {
+  return browserBrokerRequest<TradingAccount>(
+    `${ACCOUNTS_PATH}/${accountUuid}/credentials`,
+    {
+      method: "PATCH",
+      body: input,
+    },
+  );
 }
 
 function formatPlatformLabel(platform: string | number | undefined): string {
@@ -84,7 +112,6 @@ function buildPlatformsFromTradingServers(
     id,
     name,
     custom_name: null,
-    volume_factor: 0,
     is_active: true,
   }));
 }

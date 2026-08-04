@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createExternalDeposit } from "@/features/client-trading-account/api";
+import { createCredit } from "@/features/client-trading-account/api";
 import {
   formatAccountMoney,
   parseMajorAmountToMinorUnits,
@@ -22,19 +22,19 @@ import {
 import type { EnrichedClientTradingAccount } from "@/features/client-trading-account/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
-type ClientTradingAccountDepositDialogProps = {
+type ClientTradingAccountCreditDialogProps = {
   account: EnrichedClientTradingAccount | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 };
 
-export function ClientTradingAccountDepositDialog({
+export function ClientTradingAccountCreditDialog({
   account,
   open,
   onOpenChange,
   onSuccess,
-}: ClientTradingAccountDepositDialogProps) {
+}: ClientTradingAccountCreditDialogProps) {
   const [amount, setAmount] = useState("");
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -57,7 +57,20 @@ export function ClientTradingAccountDepositDialog({
       return;
     }
 
-    const minorAmount = parseMajorAmountToMinorUnits(amount);
+    if (
+      account.currencyPrecision == null ||
+      !Number.isFinite(account.currencyPrecision)
+    ) {
+      setError(
+        "La precisión de moneda del grupo de servidor no está configurada. No se puede acreditar hasta que un administrador la configure.",
+      );
+      return;
+    }
+
+    const minorAmount = parseMajorAmountToMinorUnits(
+      amount,
+      account.currencyPrecision,
+    );
 
     if (minorAmount === undefined || minorAmount <= 0) {
       setError("Ingresa un monto válido mayor que cero.");
@@ -68,7 +81,7 @@ export function ClientTradingAccountDepositDialog({
     setError(null);
 
     try {
-      await createExternalDeposit({
+      await createCredit({
         account_id: account.id,
         amount: minorAmount,
         comments: comments.trim() || null,
@@ -86,19 +99,19 @@ export function ClientTradingAccountDepositDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Depositar fondos</DialogTitle>
+          <DialogTitle>Acreditar cuenta</DialogTitle>
           <DialogDescription>
-            Acredita saldo en la cuenta{" "}
+            Debita la main wallet y acredita saldo en la cuenta{" "}
             <span className="font-medium text-foreground">
               {account?.external_trader_id ?? "—"}
             </span>
-            . Requiere permisos y servicios de finanzas habilitados.
+            .
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error ? (
-            <ApiErrorAlert title="No se pudo depositar" message={error} />
+            <ApiErrorAlert title="No se pudo acreditar" message={error} />
           ) : null}
 
           <div className="rounded-lg border p-3 text-sm">
@@ -111,9 +124,9 @@ export function ClientTradingAccountDepositDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="deposit-amount">Monto</Label>
+            <Label htmlFor="credit-amount">Monto</Label>
             <Input
-              id="deposit-amount"
+              id="credit-amount"
               type="number"
               min={0}
               step="0.01"
@@ -126,9 +139,9 @@ export function ClientTradingAccountDepositDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="deposit-comments">Comentarios (opcional)</Label>
+            <Label htmlFor="credit-comments">Comentarios (opcional)</Label>
             <Input
-              id="deposit-comments"
+              id="credit-comments"
               value={comments}
               onChange={(event) => setComments(event.target.value)}
               disabled={submitting}
@@ -145,7 +158,7 @@ export function ClientTradingAccountDepositDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Procesando..." : "Depositar"}
+              {submitting ? "Procesando..." : "Acreditar"}
             </Button>
           </DialogFooter>
         </form>
@@ -153,3 +166,7 @@ export function ClientTradingAccountDepositDialog({
     </Dialog>
   );
 }
+
+/** @deprecated Prefer ClientTradingAccountCreditDialog */
+export const ClientTradingAccountDepositDialog =
+  ClientTradingAccountCreditDialog;

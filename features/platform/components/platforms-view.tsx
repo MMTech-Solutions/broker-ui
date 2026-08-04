@@ -120,7 +120,6 @@ export function PlatformsView() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Custom name</TableHead>
-              <TableHead>Volume factor</TableHead>
               <TableHead>Trading servers</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[156px] text-right">Actions</TableHead>
@@ -130,7 +129,7 @@ export function PlatformsView() {
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={5}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -140,7 +139,7 @@ export function PlatformsView() {
             {!loading && platforms.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={5}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No platforms found.
@@ -164,7 +163,6 @@ export function PlatformsView() {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell>{platform.volume_factor}</TableCell>
                     <TableCell>
                       <Link
                         href={`/platforms/${platform.id}/trading-servers`}

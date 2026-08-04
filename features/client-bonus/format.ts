@@ -193,6 +193,77 @@ export function getOfferTermsSummary(offer: BonusOffer): string[] {
   return terms;
 }
 
+function hasAssignmentSnapshotTerms(assignment: BonusAssignment): boolean {
+  return (
+    assignment.conversion_window_days != null ||
+    assignment.activity_per_credit_unit != null ||
+    assignment.burn_on_withdrawal != null ||
+    assignment.burn_on_negative_balance != null ||
+    assignment.min_position_duration_seconds != null ||
+    (assignment.excluded_instruments?.length ?? 0) > 0
+  );
+}
+
+/** Prefer frozen assignment snapshot; fall back to live bonus_offer when snapshot fields are absent. */
+export function getAssignmentTermsSummary(assignment: BonusAssignment): string[] {
+  if (!hasAssignmentSnapshotTerms(assignment)) {
+    return assignment.bonus_offer
+      ? getOfferTermsSummary(assignment.bonus_offer)
+      : [];
+  }
+
+  const terms: string[] = [];
+
+  if (assignment.conversion_window_days != null) {
+    terms.push(
+      `Plazo de conversión: ${assignment.conversion_window_days} días desde la activación.`,
+    );
+  }
+
+  if (assignment.activity_per_credit_unit != null) {
+    terms.push(
+      `Actividad: ${assignment.activity_per_credit_unit} unidades de crédito (major) por cada unidad de volumen cerrado.`,
+    );
+  }
+
+  if (
+    assignment.min_position_duration_seconds != null &&
+    Number(assignment.min_position_duration_seconds) > 0
+  ) {
+    terms.push(
+      `Duración mínima de posición: ${assignment.min_position_duration_seconds} segundos.`,
+    );
+  }
+
+  if (assignment.burn_on_withdrawal) {
+    terms.push("El bono se pierde si retiras fondos de la cuenta.");
+  }
+
+  if (assignment.burn_on_negative_balance) {
+    terms.push("El bono se pierde si el balance de la cuenta es negativo.");
+  }
+
+  const excludedLabels = (assignment.excluded_instruments ?? [])
+    .map((instrument) => instrument.alpha ?? instrument.symbol)
+    .filter((value): value is string => Boolean(value?.trim()));
+
+  if (excludedLabels.length > 0) {
+    terms.push(`Instrumentos excluidos: ${excludedLabels.join(", ")}.`);
+  }
+
+  return terms;
+}
+
+export function assignmentOfferName(assignment: BonusAssignment): string {
+  return assignment.offer_name?.trim() || assignment.bonus_offer?.name || "—";
+}
+
+export function assignmentOfferType(
+  assignment: BonusAssignment,
+): BonusOffer["type"] | null {
+  return assignment.offer_type ?? assignment.bonus_offer?.type ?? null;
+}
+
 export function formatUnmetRequirementSummary(
   requirement: {
     code: string;

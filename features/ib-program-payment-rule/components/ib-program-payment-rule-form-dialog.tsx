@@ -58,6 +58,8 @@ type FormState = {
   cpa_progression_volume_threshold: string;
   cpa_min_external_deposit_amount: string;
   cpa_reward_amount: string;
+  currency: string;
+  currency_precision: string;
 };
 
 const emptyForm: FormState = {
@@ -67,6 +69,8 @@ const emptyForm: FormState = {
   cpa_progression_volume_threshold: "",
   cpa_min_external_deposit_amount: "",
   cpa_reward_amount: "",
+  currency: "USD",
+  currency_precision: "2",
 };
 
 function ruleTypeLabel(ruleType: IbProgramPaymentRuleType): string {
@@ -109,6 +113,8 @@ export function IbProgramPaymentRuleFormDialog({
         cpa_progression_volume_threshold: "",
         cpa_min_external_deposit_amount: "",
         cpa_reward_amount: "",
+        currency: "USD",
+        currency_precision: "2",
       };
 
       if (ruleType === "pnl" && "ib_payment_template_id" in rule) {
@@ -121,6 +127,8 @@ export function IbProgramPaymentRuleFormDialog({
         base.cpa_min_external_deposit_amount =
           rule.cpa_min_external_deposit_amount;
         base.cpa_reward_amount = rule.cpa_reward_amount;
+        base.currency = rule.currency ?? "USD";
+        base.currency_precision = String(rule.currency_precision ?? 2);
       }
 
       setForm(base);
@@ -159,6 +167,11 @@ export function IbProgramPaymentRuleFormDialog({
           const threshold = Number(form.cpa_progression_volume_threshold);
           const minDeposit = Number(form.cpa_min_external_deposit_amount);
           const rewardAmount = Number(form.cpa_reward_amount);
+          const currency = form.currency.trim().toUpperCase();
+          const currencyPrecision = Number.parseInt(
+            form.currency_precision,
+            10,
+          );
 
           if (
             !form.cpa_progression_volume_threshold ||
@@ -172,12 +185,28 @@ export function IbProgramPaymentRuleFormDialog({
             return;
           }
 
+          if (!/^[A-Z]{3}$/.test(currency)) {
+            setError("Currency must be a 3-letter ISO 4217 code.");
+            return;
+          }
+
+          if (
+            Number.isNaN(currencyPrecision) ||
+            currencyPrecision < 0 ||
+            currencyPrecision > 8
+          ) {
+            setError("Currency precision must be an integer from 0 to 8.");
+            return;
+          }
+
           await createIbProgramCpaRule(ibProgramId, {
             description,
             is_active: form.is_active,
             cpa_progression_volume_threshold: threshold,
             cpa_min_external_deposit_amount: minDeposit,
             cpa_reward_amount: rewardAmount,
+            currency,
+            currency_precision: currencyPrecision,
           });
         }
       } else if (rule) {
@@ -201,6 +230,8 @@ export function IbProgramPaymentRuleFormDialog({
             cpa_progression_volume_threshold?: number;
             cpa_min_external_deposit_amount?: number;
             cpa_reward_amount?: number;
+            currency?: string;
+            currency_precision?: number;
           } = {
             description,
             is_active: form.is_active,
@@ -209,6 +240,11 @@ export function IbProgramPaymentRuleFormDialog({
           const threshold = Number(form.cpa_progression_volume_threshold);
           const minDeposit = Number(form.cpa_min_external_deposit_amount);
           const rewardAmount = Number(form.cpa_reward_amount);
+          const currency = form.currency.trim().toUpperCase();
+          const currencyPrecision = Number.parseInt(
+            form.currency_precision,
+            10,
+          );
 
           if (!Number.isNaN(threshold)) {
             payload.cpa_progression_volume_threshold = threshold;
@@ -218,6 +254,16 @@ export function IbProgramPaymentRuleFormDialog({
           }
           if (!Number.isNaN(rewardAmount)) {
             payload.cpa_reward_amount = rewardAmount;
+          }
+          if (/^[A-Z]{3}$/.test(currency)) {
+            payload.currency = currency;
+          }
+          if (
+            !Number.isNaN(currencyPrecision) &&
+            currencyPrecision >= 0 &&
+            currencyPrecision <= 8
+          ) {
+            payload.currency_precision = currencyPrecision;
           }
 
           await updateIbProgramCpaRule(ibProgramId, rule.id, payload);
@@ -285,7 +331,14 @@ export function IbProgramPaymentRuleFormDialog({
           ) : null}
 
           {ruleType === "cpa" ? (
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                CPA progress is cumulative from referral capture (
+                <span className="font-medium">captured_at</span>), not reset by
+                the program settlement period. Deposit and reward amounts use
+                the currency and precision below.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="cpa-threshold">Volume threshold</Label>
                 <Input
@@ -339,6 +392,44 @@ export function IbProgramPaymentRuleFormDialog({
                   disabled={submitting}
                   required={mode === "create"}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cpa-currency">Currency</Label>
+                <Input
+                  id="cpa-currency"
+                  maxLength={3}
+                  value={form.currency}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      currency: event.target.value.toUpperCase(),
+                    }))
+                  }
+                  disabled={submitting}
+                  required={mode === "create"}
+                  placeholder="USD"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cpa-currency-precision">
+                  Currency precision
+                </Label>
+                <Input
+                  id="cpa-currency-precision"
+                  type="number"
+                  min={0}
+                  max={8}
+                  value={form.currency_precision}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      currency_precision: event.target.value,
+                    }))
+                  }
+                  disabled={submitting}
+                  required={mode === "create"}
+                />
+              </div>
               </div>
             </div>
           ) : null}

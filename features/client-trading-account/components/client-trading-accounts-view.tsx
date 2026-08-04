@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDownIcon, ArrowUpIcon, LineChartIcon, PlusIcon, ShieldCheckIcon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  KeyRoundIcon,
+  LineChartIcon,
+  PlusIcon,
+  ShieldCheckIcon,
+} from "lucide-react";
 
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
@@ -31,8 +38,9 @@ import {
   listClientTradingAccounts,
 } from "@/features/client-trading-account/api";
 import { ClientTradingAccountCreateDialog } from "@/features/client-trading-account/components/client-trading-account-create-dialog";
-import { ClientTradingAccountDepositDialog } from "@/features/client-trading-account/components/client-trading-account-deposit-dialog";
-import { ClientTradingAccountWithdrawDialog } from "@/features/client-trading-account/components/client-trading-account-withdraw-dialog";
+import { ClientTradingAccountCredentialsDialog } from "@/features/client-trading-account/components/client-trading-account-credentials-dialog";
+import { ClientTradingAccountCreditDialog } from "@/features/client-trading-account/components/client-trading-account-deposit-dialog";
+import { ClientTradingAccountDebitDialog } from "@/features/client-trading-account/components/client-trading-account-withdraw-dialog";
 import {
   formatAccountMoney,
   formatEnvironmentLabel,
@@ -47,6 +55,10 @@ import { ClientInsuranceContractDialog } from "@/features/client-insurance/compo
 import { ClientInsuranceEligibleAccountsDialog } from "@/features/client-insurance/components/client-insurance-eligible-accounts-dialog";
 import { loadInsuranceEligibleAccountIds } from "@/features/client-insurance/api";
 import type { ClientInsuranceEligibleAccount } from "@/features/client-insurance/types";
+import {
+  getServerGroupCurrency,
+  hasResolvedServerGroupCurrency,
+} from "@/features/trading-server/format";
 import { TRADING_SERVER_ENVIRONMENT } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
@@ -71,6 +83,8 @@ function enrichAccounts(
       tradingServerId: null,
       platformId: null,
       environment: null,
+      currencyCode: null,
+      currencyPrecision: null,
     }));
   }
 
@@ -83,6 +97,10 @@ function enrichAccounts(
     const platform = tradingServer
       ? catalog.platformById.get(tradingServer.platform_id)
       : null;
+    const currency = getServerGroupCurrency(serverGroup?.currency);
+    const currencyResolved = hasResolvedServerGroupCurrency(
+      serverGroup?.currency,
+    );
 
     return {
       ...account,
@@ -96,6 +114,8 @@ function enrichAccounts(
       tradingServerId: serverGroup?.trading_server_id ?? null,
       platformId: tradingServer?.platform_id ?? null,
       environment: serverGroup?.environment ?? tradingServer?.environment ?? null,
+      currencyCode: currencyResolved ? currency.code : null,
+      currencyPrecision: currencyResolved ? currency.precision : null,
     };
   });
 }
@@ -118,8 +138,9 @@ export function ClientTradingAccountsView() {
   });
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [creditOpen, setCreditOpen] = useState(false);
+  const [debitOpen, setDebitOpen] = useState(false);
+  const [credentialsOpen, setCredentialsOpen] = useState(false);
   const [insuranceEligibleOpen, setInsuranceEligibleOpen] = useState(false);
   const [insuranceContractOpen, setInsuranceContractOpen] = useState(false);
   const [accountToInsure, setAccountToInsure] =
@@ -295,14 +316,19 @@ export function ClientTradingAccountsView() {
     void loadData(page);
   }
 
-  function openDeposit(account: EnrichedClientTradingAccount) {
+  function openCredit(account: EnrichedClientTradingAccount) {
     setSelectedAccount(account);
-    setDepositOpen(true);
+    setCreditOpen(true);
   }
 
-  function openWithdraw(account: EnrichedClientTradingAccount) {
+  function openDebit(account: EnrichedClientTradingAccount) {
     setSelectedAccount(account);
-    setWithdrawOpen(true);
+    setDebitOpen(true);
+  }
+
+  function openCredentials(account: EnrichedClientTradingAccount) {
+    setSelectedAccount(account);
+    setCredentialsOpen(true);
   }
 
   function openInsuranceContract(account: EnrichedClientTradingAccount) {
@@ -444,7 +470,7 @@ export function ClientTradingAccountsView() {
               <TableHead>Apalancamiento</TableHead>
               <TableHead className="text-right">Saldo</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead className="w-[168px] text-right">Acciones</TableHead>
+              <TableHead className="w-[200px] text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -524,18 +550,26 @@ export function ClientTradingAccountsView() {
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"
-                          tooltip="Depositar"
-                          onClick={() => openDeposit(account)}
+                          tooltip="Acreditar"
+                          onClick={() => openCredit(account)}
                         >
                           <ArrowDownIcon />
                         </ActionTooltipButton>
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"
-                          tooltip="Retirar"
-                          onClick={() => openWithdraw(account)}
+                          tooltip="Debitar"
+                          onClick={() => openDebit(account)}
                         >
                           <ArrowUpIcon />
+                        </ActionTooltipButton>
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          tooltip="Credenciales"
+                          onClick={() => openCredentials(account)}
+                        >
+                          <KeyRoundIcon />
                         </ActionTooltipButton>
                       </div>
                     </TableCell>
@@ -584,17 +618,24 @@ export function ClientTradingAccountsView() {
         onSuccess={handleMutationSuccess}
       />
 
-      <ClientTradingAccountDepositDialog
+      <ClientTradingAccountCreditDialog
         account={selectedAccount}
-        open={depositOpen}
-        onOpenChange={setDepositOpen}
+        open={creditOpen}
+        onOpenChange={setCreditOpen}
         onSuccess={handleMutationSuccess}
       />
 
-      <ClientTradingAccountWithdrawDialog
+      <ClientTradingAccountDebitDialog
         account={selectedAccount}
-        open={withdrawOpen}
-        onOpenChange={setWithdrawOpen}
+        open={debitOpen}
+        onOpenChange={setDebitOpen}
+        onSuccess={handleMutationSuccess}
+      />
+
+      <ClientTradingAccountCredentialsDialog
+        account={selectedAccount}
+        open={credentialsOpen}
+        onOpenChange={setCredentialsOpen}
         onSuccess={handleMutationSuccess}
       />
 

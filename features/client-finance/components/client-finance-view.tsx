@@ -25,14 +25,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  listExternalDeposits,
-  listExternalWithdrawals,
+  listCredits,
+  listDebits,
   listInternalTransfers,
 } from "@/features/client-finance/api";
 import { ClientInternalTransferPanel } from "@/features/client-finance/components/client-internal-transfer-panel";
-import { ClientSimulatedDepositPanel } from "@/features/client-finance/components/client-simulated-deposit-panel";
+import { ClientSimulatedCreditPanel } from "@/features/client-finance/components/client-simulated-deposit-panel";
 import {
-  externalTransactionTypeLabel,
+  accountTransactionTypeLabel,
   financePaymentStatusLabel,
   financePaymentStatusVariant,
   formatAccountLabel,
@@ -44,15 +44,20 @@ import {
 import {
   FINANCE_PAYMENT_STATUSES,
   type ClientFinanceTab,
-  type ExternalTransaction,
+  type AccountTransaction,
   type FinancePaymentStatus,
   type InternalTransaction,
 } from "@/features/client-finance/types";
-import { listClientTradingAccounts } from "@/features/client-trading-account/api";
+import { listClientTradingAccounts, loadClientAccountCatalog } from "@/features/client-trading-account/api";
+import type { ClientAccountCatalog } from "@/features/client-trading-account/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
 import type { TradingAccount } from "@/features/trading-account/types";
+import {
+  getServerGroupCurrency,
+  hasResolvedServerGroupCurrency,
+} from "@/features/trading-server/format";
 import { cn } from "@/lib/utils";
 
 const clientFinanceBreadcrumbs: BreadcrumbItem[] = [
@@ -62,34 +67,33 @@ const clientFinanceBreadcrumbs: BreadcrumbItem[] = [
 
 const financeTabs: { value: ClientFinanceTab; label: string }[] = [
   { value: "transfers", label: "Transferencias" },
-  { value: "deposits", label: "Depósitos simulados" },
+  { value: "credits", label: "Créditos / débitos" },
 ];
 
 export function ClientFinanceView() {
   const [activeTab, setActiveTab] = useState<ClientFinanceTab>("transfers");
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+  const [catalog, setCatalog] = useState<ClientAccountCatalog | null>(null);
   const [accountsLoading, setAccountsLoading] = useState(true);
 
   const [internalTransfers, setInternalTransfers] = useState<
     InternalTransaction[]
   >([]);
-  const [externalDeposits, setExternalDeposits] = useState<ExternalTransaction[]>(
+  const [credits, setCredits] = useState<AccountTransaction[]>(
     [],
   );
-  const [externalWithdrawals, setExternalWithdrawals] = useState<
-    ExternalTransaction[]
-  >([]);
+  const [debits, setDebits] = useState<AccountTransaction[]>([]);
 
   const [internalPagination, setInternalPagination] =
     useState<BrokerPaginationMeta | null>(null);
-  const [depositsPagination, setDepositsPagination] =
+  const [creditsPagination, setCreditsPagination] =
     useState<BrokerPaginationMeta | null>(null);
-  const [withdrawalsPagination, setWithdrawalsPagination] =
+  const [debitsPagination, setDebitsPagination] =
     useState<BrokerPaginationMeta | null>(null);
 
   const [internalPage, setInternalPage] = useState(1);
-  const [depositsPage, setDepositsPage] = useState(1);
-  const [withdrawalsPage, setWithdrawalsPage] = useState(1);
+  const [creditsPage, setCreditsPage] = useState(1);
+  const [debitsPage, setDebitsPage] = useState(1);
 
   const [internalStatusFilter, setInternalStatusFilter] = useState<
     FinancePaymentStatus | "all"
@@ -126,14 +130,35 @@ export function ClientFinanceView() {
     );
   }, [externalStatusFilter]);
 
+  const currencyPrecisionByAccountId = useMemo(() => {
+    const map = new Map<string, number | null>();
+
+    for (const account of accounts) {
+      const group = catalog?.serverGroupById.get(account.server_group_id);
+      if (!group || !hasResolvedServerGroupCurrency(group.currency)) {
+        map.set(account.id, null);
+        continue;
+      }
+
+      map.set(account.id, getServerGroupCurrency(group.currency).precision);
+    }
+
+    return map;
+  }, [accounts, catalog]);
+
   const loadAccounts = useCallback(async () => {
     setAccountsLoading(true);
 
     try {
-      const response = await listClientTradingAccounts({ per_page: 100 });
-      setAccounts(response.data);
+      const [accountsResponse, catalogResponse] = await Promise.all([
+        listClientTradingAccounts({ per_page: 100 }),
+        loadClientAccountCatalog(),
+      ]);
+      setAccounts(accountsResponse.data);
+      setCatalog(catalogResponse);
     } catch {
       setAccounts([]);
+      setCatalog(null);
     } finally {
       setAccountsLoading(false);
     }
@@ -165,20 +190,20 @@ export function ClientFinanceView() {
     [internalStatusFilter],
   );
 
-  const loadExternalTransactions = useCallback(
+  const loadAccountTransactions = useCallback(
     async (depositsRequestedPage: number, withdrawalsRequestedPage: number) => {
       setExternalLoading(true);
       setError(null);
 
       try {
         const [depositsResponse, withdrawalsResponse] = await Promise.all([
-          listExternalDeposits({
+          listCredits({
             page: depositsRequestedPage,
             per_page: 15,
             payment_status:
               externalStatusFilter === "all" ? undefined : externalStatusFilter,
           }),
-          listExternalWithdrawals({
+          listDebits({
             page: withdrawalsRequestedPage,
             per_page: 15,
             payment_status:
@@ -186,16 +211,16 @@ export function ClientFinanceView() {
           }),
         ]);
 
-        setExternalDeposits(depositsResponse.data);
-        setDepositsPagination(depositsResponse.meta.pagination ?? null);
-        setExternalWithdrawals(withdrawalsResponse.data);
-        setWithdrawalsPagination(withdrawalsResponse.meta.pagination ?? null);
+        setCredits(depositsResponse.data);
+        setCreditsPagination(depositsResponse.meta.pagination ?? null);
+        setDebits(withdrawalsResponse.data);
+        setDebitsPagination(withdrawalsResponse.meta.pagination ?? null);
       } catch (loadError) {
         setError(formatBrokerApiError(loadError));
-        setExternalDeposits([]);
-        setExternalWithdrawals([]);
-        setDepositsPagination(null);
-        setWithdrawalsPagination(null);
+        setCredits([]);
+        setDebits([]);
+        setCreditsPagination(null);
+        setDebitsPagination(null);
       } finally {
         setExternalLoading(false);
       }
@@ -214,14 +239,14 @@ export function ClientFinanceView() {
   }, [activeTab, internalPage, loadInternalTransfers]);
 
   useEffect(() => {
-    if (activeTab === "deposits") {
-      void loadExternalTransactions(depositsPage, withdrawalsPage);
+    if (activeTab === "credits") {
+      void loadAccountTransactions(creditsPage, debitsPage);
     }
   }, [
     activeTab,
-    depositsPage,
-    withdrawalsPage,
-    loadExternalTransactions,
+    creditsPage,
+    debitsPage,
+    loadAccountTransactions,
   ]);
 
   useEffect(() => {
@@ -229,8 +254,8 @@ export function ClientFinanceView() {
   }, [internalStatusFilter]);
 
   useEffect(() => {
-    setDepositsPage(1);
-    setWithdrawalsPage(1);
+    setCreditsPage(1);
+    setDebitsPage(1);
   }, [externalStatusFilter]);
 
   function handleTransferSuccess() {
@@ -238,9 +263,9 @@ export function ClientFinanceView() {
     void loadInternalTransfers(internalPage);
   }
 
-  function handleDepositSuccess() {
+  function handleCreditSuccess() {
     void loadAccounts();
-    void loadExternalTransactions(depositsPage, withdrawalsPage);
+    void loadAccountTransactions(creditsPage, debitsPage);
   }
 
   return (
@@ -274,6 +299,7 @@ export function ClientFinanceView() {
           ) : (
             <ClientInternalTransferPanel
               accounts={accounts}
+              currencyPrecisionByAccountId={currencyPrecisionByAccountId}
               onTransferred={handleTransferSuccess}
             />
           )}
@@ -404,14 +430,15 @@ export function ClientFinanceView() {
         </div>
       ) : null}
 
-      {activeTab === "deposits" ? (
+      {activeTab === "credits" ? (
         <div className="space-y-4">
           {accountsLoading ? (
             <Skeleton className="h-48 w-full" />
           ) : (
-            <ClientSimulatedDepositPanel
+            <ClientSimulatedCreditPanel
               accounts={accounts}
-              onDeposited={handleDepositSuccess}
+              currencyPrecisionByAccountId={currencyPrecisionByAccountId}
+              onCredited={handleCreditSuccess}
             />
           )}
 
@@ -448,7 +475,7 @@ export function ClientFinanceView() {
               size="sm"
               disabled={externalLoading}
               onClick={() =>
-                void loadExternalTransactions(depositsPage, withdrawalsPage)
+                void loadAccountTransactions(creditsPage, debitsPage)
               }
             >
               <RefreshCwIcon />
@@ -456,39 +483,39 @@ export function ClientFinanceView() {
             </Button>
           </div>
 
-          <ExternalTransactionsSection
-            title="Depósitos externos"
-            description="Movimientos registrados vía el endpoint de depósitos externos."
-            transactions={externalDeposits}
+          <AccountTransactionsSection
+            title="Créditos"
+            description="Movimientos registrados vía el endpoint de créditos."
+            transactions={credits}
             loading={externalLoading}
             accountLabels={accountLabels}
-            emptyMessage="No hay depósitos externos registrados."
+            emptyMessage="No hay créditos registrados."
           />
 
-          {depositsPagination && depositsPagination.last_page > 1 ? (
+          {creditsPagination && creditsPagination.last_page > 1 ? (
             <PaginationBar
-              pagination={depositsPagination}
-              page={depositsPage}
+              pagination={creditsPagination}
+              page={creditsPage}
               loading={externalLoading}
-              onPageChange={setDepositsPage}
+              onPageChange={setCreditsPage}
             />
           ) : null}
 
-          <ExternalTransactionsSection
-            title="Retiros externos"
-            description="Movimientos registrados vía el endpoint de retiros externos."
-            transactions={externalWithdrawals}
+          <AccountTransactionsSection
+            title="Débitos"
+            description="Movimientos registrados vía el endpoint de débitos."
+            transactions={debits}
             loading={externalLoading}
             accountLabels={accountLabels}
-            emptyMessage="No hay retiros externos registrados."
+            emptyMessage="No hay débitos registrados."
           />
 
-          {withdrawalsPagination && withdrawalsPagination.last_page > 1 ? (
+          {debitsPagination && debitsPagination.last_page > 1 ? (
             <PaginationBar
-              pagination={withdrawalsPagination}
-              page={withdrawalsPage}
+              pagination={debitsPagination}
+              page={debitsPage}
               loading={externalLoading}
-              onPageChange={setWithdrawalsPage}
+              onPageChange={setDebitsPage}
             />
           ) : null}
         </div>
@@ -540,23 +567,23 @@ function PaginationBar({
   );
 }
 
-type ExternalTransactionsSectionProps = {
+type AccountTransactionsSectionProps = {
   title: string;
   description: string;
-  transactions: ExternalTransaction[];
+  transactions: AccountTransaction[];
   loading: boolean;
   accountLabels: Map<string, string>;
   emptyMessage: string;
 };
 
-function ExternalTransactionsSection({
+function AccountTransactionsSection({
   title,
   description,
   transactions,
   loading,
   accountLabels,
   emptyMessage,
-}: ExternalTransactionsSectionProps) {
+}: AccountTransactionsSectionProps) {
   return (
     <div className="space-y-3">
       <div>
@@ -617,7 +644,7 @@ function ExternalTransactionsSection({
                       )}
                     </TableCell>
                     <TableCell>
-                      {externalTransactionTypeLabel(transaction.type)}
+                      {accountTransactionTypeLabel(transaction.type)}
                     </TableCell>
                     <TableCell>
                       <Badge

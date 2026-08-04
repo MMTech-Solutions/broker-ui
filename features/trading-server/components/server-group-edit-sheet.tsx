@@ -30,9 +30,14 @@ import {
   buildUpdateServerGroupInput,
   formatConfigurationWarning,
   formatCurrencyLabel,
+  parseOptionalMinorUnits,
   type ServerGroupEditFormState,
 } from "@/features/trading-server/format";
-import type { RestrictedCountry, ServerGroup } from "@/features/trading-server/types";
+import type {
+  BookType,
+  RestrictedCountry,
+  ServerGroup,
+} from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
 type ServerGroupEditSheetProps = {
@@ -60,10 +65,13 @@ export function ServerGroupEditSheet({
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
 
-  const currencyLabel = useMemo(
-    () => formatCurrencyLabel(serverGroup?.currency),
-    [serverGroup?.currency],
-  );
+  const displayCurrencyLabel = useMemo(() => {
+    if (form?.currency_code.trim()) {
+      return form.currency_code.trim().toUpperCase();
+    }
+
+    return formatCurrencyLabel(serverGroup?.currency);
+  }, [form?.currency_code, serverGroup?.currency]);
 
   useEffect(() => {
     if (!open || !serverGroup) {
@@ -77,6 +85,30 @@ export function ServerGroupEditSheet({
 
   async function handleSubmit() {
     if (!serverGroup || !form) {
+      return;
+    }
+
+    const currencyCode = form.currency_code.trim().toUpperCase();
+    const precision = parseOptionalMinorUnits(form.currency_precision);
+
+    if (
+      form.currency_code_editable &&
+      currencyCode !== "" &&
+      !/^[A-Z]{3}$/.test(currencyCode)
+    ) {
+      setError("Currency must be a 3-letter ISO code (e.g. USD).");
+      return;
+    }
+
+    if (form.is_active && currencyCode === "") {
+      setError("Currency code is required before activating this server group.");
+      return;
+    }
+
+    if (form.is_active && precision === undefined) {
+      setError(
+        "Currency precision is required before activating this server group.",
+      );
       return;
     }
 
@@ -134,8 +166,8 @@ export function ServerGroupEditSheet({
           <SheetTitle>{serverGroup?.name ?? "Server group"}</SheetTitle>
           <SheetDescription>
             Edit commercial settings for this server group. Synced fields such as
-            name, meta name, and currency code are read-only. Currency precision
-            must be set by an admin before activating the group.
+            name and meta name stay read-only. If currency was not synced, set
+            the ISO code and precision before activating the group.
           </SheetDescription>
         </SheetHeader>
 
@@ -174,9 +206,37 @@ export function ServerGroupEditSheet({
                 <Label htmlFor="server-group-currency">Currency</Label>
                 <Input
                   id="server-group-currency"
-                  value={currencyLabel}
-                  disabled
+                  value={
+                    form.currency_code_editable
+                      ? form.currency_code
+                      : displayCurrencyLabel
+                  }
+                  maxLength={3}
+                  placeholder="USD"
+                  onChange={(event) =>
+                    setForm((current) =>
+                      current?.currency_code_editable
+                        ? {
+                            ...current,
+                            currency_code: event.target.value
+                              .replace(/[^a-zA-Z]/g, "")
+                              .toUpperCase()
+                              .slice(0, 3),
+                            ...(event.target.value.trim() === "" &&
+                            current.is_active
+                              ? { is_active: false }
+                              : {}),
+                          }
+                        : current,
+                    )
+                  }
+                  disabled={submitting || !form.currency_code_editable}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {form.currency_code_editable
+                    ? "3-letter ISO 4217 code. Required to activate the group."
+                    : "Synced from the trading platform."}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -196,6 +256,10 @@ export function ServerGroupEditSheet({
                         ? {
                             ...current,
                             currency_precision: event.target.value,
+                            ...(event.target.value.trim() === "" &&
+                            current.is_active
+                              ? { is_active: false }
+                              : {}),
                           }
                         : current,
                     )
@@ -206,6 +270,39 @@ export function ServerGroupEditSheet({
                   Decimal places (0–8). Required to activate the group.
                 </p>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="server-group-book-type">Book type</Label>
+              <Select
+                value={form.book_type || "__none__"}
+                onValueChange={(value) =>
+                  setForm((current) =>
+                    current
+                      ? {
+                          ...current,
+                          book_type:
+                            value === "__none__" || value == null
+                              ? ""
+                              : (value as BookType),
+                        }
+                      : current,
+                  )
+                }
+                disabled={submitting}
+              >
+                <SelectTrigger id="server-group-book-type">
+                  <SelectValue placeholder="Not set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Not set</SelectItem>
+                  <SelectItem value="a_book">A-book</SelectItem>
+                  <SelectItem value="b_book">B-book</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Local broker setting (not synced from the trading platform).
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -234,7 +331,16 @@ export function ServerGroupEditSheet({
                   ["is_withdrawal_enabled", "Withdrawals enabled"],
                   ["use_countries_restrictions", "Country restrictions"],
                 ] as const
-              ).map(([field, label]) => (
+              ).map(([field, label]) => {
+                const currencyCodeMissing = form.currency_code.trim() === "";
+                const precisionUnset =
+                  parseOptionalMinorUnits(form.currency_precision) ===
+                  undefined;
+                const disableActive =
+                  field === "is_active" &&
+                  (currencyCodeMissing || precisionUnset);
+
+                return (
                 <div key={field} className="flex items-center gap-2">
                   <Checkbox
                     id={`server-group-${field}`}
@@ -246,18 +352,19 @@ export function ServerGroupEditSheet({
                           : current,
                       )
                     }
-                    disabled={submitting}
+                    disabled={submitting || disableActive}
                   />
                   <Label htmlFor={`server-group-${field}`}>{label}</Label>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="space-y-3 rounded-lg border p-4">
               <p className="text-sm font-medium">Amounts and limits</p>
               <p className="text-xs text-muted-foreground">
                 Monetary fields use minor currency units (e.g. cents for{" "}
-                {currencyLabel}).
+                {displayCurrencyLabel}).
               </p>
 
               <div className="grid gap-4 sm:grid-cols-2">

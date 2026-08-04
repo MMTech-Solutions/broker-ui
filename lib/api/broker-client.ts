@@ -26,11 +26,12 @@ export async function brokerRequest<T>(
 ): Promise<BrokerSuccessResponse<T>> {
   const method = options.method ?? "GET";
   const surface = resolveRbacSurfaceFromApiPath(path);
-  const auth = await resolveBrokerAuthCredentials(
-    rbacSurfaceToAuthArea(surface),
-  );
+  const auth =
+    surface === null
+      ? null
+      : await resolveBrokerAuthCredentials(rbacSurfaceToAuthArea(surface));
 
-  if (!auth) {
+  if (surface !== null && !auth) {
     throw BrokerApiError.fromResponse(
       401,
       { success: false, meta: { message: "Unauthenticated." } },
@@ -41,7 +42,9 @@ export async function brokerRequest<T>(
   const headers = new Headers(
     buildBrokerGatewayHeaders(
       {},
-      { accessToken: auth.accessToken, userinfo: auth.userinfo },
+      auth
+        ? { accessToken: auth.accessToken, userinfo: auth.userinfo }
+        : {},
     ),
   );
   const incomingHeaders = new Headers(options.headers);
@@ -99,11 +102,12 @@ export async function proxyBrokerRequest(
   const incomingUrl = new URL(request.url);
   const targetPath = pathSegments.join("/");
   const surface = resolveRbacSurfaceFromApiPath(targetPath);
-  const auth = await resolveBrokerAuthCredentials(
-    rbacSurfaceToAuthArea(surface),
-  );
+  const auth =
+    surface === null
+      ? null
+      : await resolveBrokerAuthCredentials(rbacSurfaceToAuthArea(surface));
 
-  if (!auth) {
+  if (surface !== null && !auth) {
     return Response.json(
       { success: false, meta: { message: "Unauthenticated." } },
       { status: 401 },
@@ -113,7 +117,9 @@ export async function proxyBrokerRequest(
   const headers = new Headers(
     buildBrokerGatewayHeaders(
       {},
-      { accessToken: auth.accessToken, userinfo: auth.userinfo },
+      auth
+        ? { accessToken: auth.accessToken, userinfo: auth.userinfo }
+        : {},
     ),
   );
 

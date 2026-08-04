@@ -53,7 +53,7 @@ export function ConfigurationView() {
     setError(null);
 
     try {
-      const response = await listConfigs();
+      const response = await listConfigs({ per_page: 50, page: 1 });
       setConfigs(response.data);
       setFormValues(
         Object.fromEntries(
@@ -206,6 +206,7 @@ function ConfigField({
   onChange: (value: string) => void;
 }) {
   const label = config.schema.label || config.key;
+  const description = config.schema.description;
   const help = config.schema.help;
   const placeholder = config.is_secret
     ? "Leave blank to keep current secret"
@@ -215,7 +216,10 @@ function ConfigField({
     <div className="grid max-w-2xl gap-2">
       <div className="space-y-1">
         <Label htmlFor={config.key}>{label}</Label>
-        <p className="text-xs text-muted-foreground">{config.key}</p>
+        {description ? (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        ) : null}
+        <p className="text-xs text-muted-foreground/80">{config.key}</p>
       </div>
 
       {config.schema.type === "bool" ? (

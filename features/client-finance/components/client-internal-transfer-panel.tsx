@@ -28,11 +28,13 @@ import { formatBrokerApiError } from "@/lib/api/errors";
 
 type ClientInternalTransferPanelProps = {
   accounts: TradingAccount[];
+  currencyPrecisionByAccountId: Map<string, number | null>;
   onTransferred: () => void;
 };
 
 export function ClientInternalTransferPanel({
   accounts,
+  currencyPrecisionByAccountId,
   onTransferred,
 }: ClientInternalTransferPanelProps) {
   const [fromAccountId, setFromAccountId] = useState("");
@@ -64,7 +66,16 @@ export function ClientInternalTransferPanel({
       return;
     }
 
-    const minorAmount = parseMajorAmountToMinorUnits(amount);
+    const precision = currencyPrecisionByAccountId.get(fromAccountId);
+
+    if (precision == null || !Number.isFinite(precision)) {
+      setError(
+        "La precisión de moneda del grupo de servidor de origen no está configurada. No se puede transferir hasta que un administrador la configure.",
+      );
+      return;
+    }
+
+    const minorAmount = parseMajorAmountToMinorUnits(amount, precision);
 
     if (minorAmount === undefined || minorAmount <= 0) {
       setError("Ingresa un monto válido mayor que cero.");

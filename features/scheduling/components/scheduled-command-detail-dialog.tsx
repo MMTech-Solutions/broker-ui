@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { PlayIcon } from "lucide-react";
 
+import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  ACTIVE_RUN_BLOCK_MESSAGE,
+  hasActiveScheduledCommandRun,
+} from "@/features/scheduling/active-run";
+import {
   cancelScheduledCommandRun,
   getScheduledCommand,
 } from "@/features/scheduling/api";
@@ -39,6 +45,8 @@ type ScheduledCommandDetailDialogProps = {
   scheduledCommand: ScheduledCommand | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRequestRun?: (command: ScheduledCommand) => void;
+  onActiveRunChange?: (commandId: string, hasActiveRun: boolean) => void;
 };
 
 function formatDateTime(value?: string | null): string {
@@ -75,6 +83,8 @@ export function ScheduledCommandDetailDialog({
   scheduledCommand,
   open,
   onOpenChange,
+  onRequestRun,
+  onActiveRunChange,
 }: ScheduledCommandDetailDialogProps) {
   const [detail, setDetail] = useState<ScheduledCommandDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -97,6 +107,10 @@ export function ScheduledCommandDetailDialog({
       try {
         const response = await getScheduledCommand(scheduledCommand.id);
         setDetail(response.data);
+        onActiveRunChange?.(
+          scheduledCommand.id,
+          hasActiveScheduledCommandRun(response.data.recent_runs),
+        );
       } catch (loadError) {
         setError(formatBrokerApiError(loadError));
         setDetail(null);
@@ -106,7 +120,7 @@ export function ScheduledCommandDetailDialog({
         }
       }
     },
-    [scheduledCommand],
+    [scheduledCommand, onActiveRunChange],
   );
 
   useEffect(() => {
@@ -118,16 +132,12 @@ export function ScheduledCommandDetailDialog({
     void loadDetail();
   }, [open, scheduledCommand, loadDetail]);
 
+  const hasActiveRun = detail
+    ? hasActiveScheduledCommandRun(detail.recent_runs)
+    : false;
+
   useEffect(() => {
-    if (!open || !detail) {
-      return;
-    }
-
-    const hasActiveRun = detail.recent_runs.some(
-      (run) => run.status === "pending" || run.status === "running",
-    );
-
-    if (!hasActiveRun) {
+    if (!open || !detail || !hasActiveRun) {
       return;
     }
 
@@ -138,7 +148,7 @@ export function ScheduledCommandDetailDialog({
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [open, detail, loadDetail]);
+  }, [open, detail, hasActiveRun, loadDetail]);
 
   async function handleCancel(run: ScheduledCommandRun) {
     if (!scheduledCommand) {
@@ -185,6 +195,12 @@ export function ScheduledCommandDetailDialog({
               title="Could not cancel run"
               message={cancelError}
             />
+          ) : null}
+
+          {hasActiveRun ? (
+            <p className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+              {ACTIVE_RUN_BLOCK_MESSAGE}
+            </p>
           ) : null}
 
           {loading ? (
@@ -277,6 +293,21 @@ export function ScheduledCommandDetailDialog({
           >
             Refresh
           </Button>
+          {onRequestRun && scheduledCommand ? (
+            <ActionTooltipButton
+              type="button"
+              disabled={loading || hasActiveRun}
+              tooltip={
+                hasActiveRun
+                  ? ACTIVE_RUN_BLOCK_MESSAGE
+                  : `Run ${scheduledCommand.signature}`
+              }
+              onClick={() => onRequestRun(scheduledCommand)}
+            >
+              <PlayIcon className="size-4" />
+              Run
+            </ActionTooltipButton>
+          ) : null}
           <Button type="button" onClick={() => onOpenChange(false)}>
             Close
           </Button>

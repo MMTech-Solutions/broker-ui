@@ -1,7 +1,15 @@
-import type { BonusAssignment } from "@/features/bonus-assignment-logs/types";
-import type { BonusOffer } from "@/features/bonus-offer/types";
+import type {
+  BonusAssignment,
+  BonusAssignmentExcludedInstrument,
+} from "@/features/bonus-assignment-logs/types";
+import type { BonusOffer, BonusOfferType } from "@/features/bonus-offer/types";
 
-export type { BonusAssignment, BonusOffer };
+export type {
+  BonusAssignment,
+  BonusAssignmentExcludedInstrument,
+  BonusOffer,
+  BonusOfferType,
+};
 
 export type BonusAssignmentStatus = BonusAssignment["status"];
 

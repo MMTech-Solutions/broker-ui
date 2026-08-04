@@ -272,6 +272,7 @@ function buildCreatePayload(
 function buildUpdatePayload(
   form: FormState,
   precision: number | null,
+  options: { initialIsActive: boolean },
 ): UpdateBonusOfferInput {
   const toStoredAmount = (value: string): number | null | undefined => {
     if (!value.trim()) {
@@ -285,18 +286,26 @@ function buildUpdatePayload(
     return toMinorUnits(value, precision);
   };
 
+  const deactivating = options.initialIsActive && !form.is_active;
+
   const payload: UpdateBonusOfferInput = {
     type: form.type,
     name: form.name.trim(),
     platform_id: form.platform_id,
-    is_active: form.is_active,
     conversion_window_days: Number(form.conversion_window_days),
     activity_per_credit_unit: form.activity_per_credit_unit.trim(),
     burn_on_withdrawal: form.burn_on_withdrawal,
     burn_on_negative_balance: form.burn_on_negative_balance,
   };
 
-  if (!form.is_active) {
+  // Only send is_active when activating, staying active, or deactivating.
+  // Editing an already-inactive offer omits is_active so the API does not
+  // require invalidate_assignments (checkbox is hidden in that case).
+  if (form.is_active || options.initialIsActive) {
+    payload.is_active = form.is_active;
+  }
+
+  if (deactivating) {
     payload.invalidate_assignments = form.invalidate_assignments;
   }
 
@@ -414,7 +423,7 @@ function toServerGroupOption(
       server.connection_signature,
     ),
     currencyCode: currencyResolved ? currency.code : "—",
-    precision: currencyResolved ? currency.precision : -1,
+    precision: currencyResolved ? (currency.precision as number) : -1,
   };
 }
 
@@ -841,7 +850,9 @@ export function BonusOfferFormDialog({
       } else if (bonusOfferId) {
         await updateBonusOffer(
           bonusOfferId,
-          buildUpdatePayload(form, lockedPrecision),
+          buildUpdatePayload(form, lockedPrecision, {
+            initialIsActive,
+          }),
         );
 
         if (showIntroducingBrokers && ibsDirty) {

@@ -35,6 +35,8 @@ export const BONUS_OFFER_FIELD_HELP = {
     "Minimum real (non-bonus) balance in major currency units. Use 0 or empty for no requirement. When greater than 0, the account must meet this threshold to appear as eligible, claim manually, or receive a deposit-triggered bonus (checked against balance after the triggering deposit is credited).",
   min_deposit_amount:
     "Minimum lifetime paid external deposits in major currency units. Use 0 for no requirement. When greater than 0, the account must meet this threshold to appear as eligible, claim manually, or receive a deposit-triggered bonus.",
+  template_min_deposit_amount:
+    "Minimum lifetime paid external deposits in minor currency units (integer). Templates have no server-group precision, so this stays in minors. Use 0 for no requirement. Copied onto offers created from this template.",
   min_position_duration_seconds:
     "Minimum seconds a closed position must remain open to count toward bonus activity. Use 0 for no requirement. Positions with (close time − open time) below this value are ignored.",
   conversion_window_days:
