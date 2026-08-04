@@ -134,7 +134,7 @@ export function ClientFinanceView() {
     const map = new Map<string, number | null>();
 
     for (const account of accounts) {
-      const group = catalog?.serverGroupById.get(account.server_group_id);
+      const group = catalog?.serverGroupById.get(account.server_group.id);
       if (!group || !hasResolvedServerGroupCurrency(group.currency)) {
         map.set(account.id, null);
         continue;

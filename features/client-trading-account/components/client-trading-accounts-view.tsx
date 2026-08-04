@@ -93,20 +93,23 @@ function enrichAccounts(
   if (!catalog) {
     return accounts.map((account) => ({
       ...account,
-      serverGroupLabel: account.server_group_id,
+      serverGroupLabel:
+        account.server_group.meta_name?.trim() ||
+        account.server_group.name ||
+        account.server_group.id,
       platformLabel: "—",
       environmentLabel: "—",
       leverageLabel: formatLeverageLabel(account.leverage),
-      tradingServerId: null,
+      tradingServerId: account.server_group.trading_server_id || null,
       platformId: null,
       environment: null,
-      currencyCode: null,
-      currencyPrecision: null,
+      currencyCode: account.server_group.currency.code,
+      currencyPrecision: account.server_group.currency.precision,
     }));
   }
 
   return accounts.map((account) => {
-    const serverGroup = catalog.serverGroupById.get(account.server_group_id);
+    const serverGroup = catalog.serverGroupById.get(account.server_group.id);
     const leverageFromCatalog = catalog.leverageById.get(account.leverage?.id);
     const tradingServer = serverGroup
       ? catalog.tradingServerById.get(serverGroup.trading_server_id)
@@ -123,7 +126,9 @@ function enrichAccounts(
       ...account,
       serverGroupLabel: serverGroup
         ? serverGroupDisplayName(serverGroup)
-        : account.server_group_id,
+        : account.server_group.meta_name?.trim() ||
+          account.server_group.name ||
+          account.server_group.id,
       platformLabel:
         platform?.custom_name ?? platform?.name ?? String(serverGroup?.platform ?? "—"),
       environmentLabel: formatEnvironmentLabel(
@@ -356,7 +361,7 @@ export function ClientTradingAccountsView() {
       id: account.id,
       external_trader_id: account.external_trader_id,
       current_balance: account.current_balance,
-      server_group_id: account.server_group_id,
+      server_group_id: account.server_group.id,
       plans: [],
     });
     setInsuranceContractOpen(true);
@@ -396,7 +401,7 @@ export function ClientTradingAccountsView() {
             onValueChange={(value) =>
               setFilters((current) => ({
                 ...current,
-                platformId: value,
+                platformId: value ?? "all",
                 tradingServerId: "all",
               }))
             }
@@ -424,7 +429,7 @@ export function ClientTradingAccountsView() {
             onValueChange={(value) =>
               setFilters((current) => ({
                 ...current,
-                tradingServerId: value,
+                tradingServerId: value ?? "all",
               }))
             }
           >
@@ -451,7 +456,7 @@ export function ClientTradingAccountsView() {
             onValueChange={(value) =>
               setFilters((current) => ({
                 ...current,
-                leverageId: value,
+                leverageId: value ?? "all",
               }))
             }
           >

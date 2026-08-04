@@ -160,7 +160,10 @@ export function TradingAccountsView() {
 
           return groupsResponse.data.map((group) => ({
             id: group.id,
-            label: group.name,
+            label:
+              group.meta_name?.trim() ||
+              group.name?.trim() ||
+              group.id,
             platformLabel,
           }));
         }),
@@ -405,7 +408,7 @@ export function TradingAccountsView() {
             {!loading
               ? accounts.map((account) => {
                   const serverGroupMeta =
-                    serverGroupById.get(account.server_group_id) ?? null;
+                    serverGroupById.get(account.server_group.id) ?? null;
 
                   return (
                   <TableRow key={account.id}>
@@ -422,11 +425,13 @@ export function TradingAccountsView() {
                       {serverGroupMeta?.platformLabel ?? "—"}
                     </TableCell>
                     <TableCell>
-                      {serverGroupMeta?.label ?? (
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {abbreviateUuid(account.server_group_id)}
-                        </span>
-                      )}
+                      {serverGroupMeta?.label ??
+                        (account.server_group.meta_name?.trim() ||
+                          account.server_group.name?.trim() || (
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {abbreviateUuid(account.server_group.id)}
+                            </span>
+                          ))}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatMoney(account.current_balance)}

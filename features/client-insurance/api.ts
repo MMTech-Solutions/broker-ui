@@ -160,7 +160,7 @@ async function resolveEnvironmentByAccountId(
   return new Map(
     accounts.map((account) => [
       account.id,
-      environmentByServerGroupId.get(account.server_group_id) ?? null,
+      environmentByServerGroupId.get(account.server_group.id) ?? null,
     ]),
   );
 }
@@ -198,7 +198,7 @@ export async function loadClientInsuranceEligibleAccounts(options?: {
         id: account.id,
         external_trader_id: account.external_trader_id,
         current_balance: account.current_balance,
-        server_group_id: account.server_group_id,
+        server_group_id: account.server_group.id,
         plans,
       } satisfies ClientInsuranceEligibleAccount;
     }),

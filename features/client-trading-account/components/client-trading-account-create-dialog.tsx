@@ -290,7 +290,11 @@ export function ClientTradingAccountCreateDialog({
                   <Label htmlFor="create-account-environment">Entorno</Label>
                   <Select
                     value={environment}
-                    onValueChange={setEnvironment}
+                    onValueChange={(value) => {
+                      if (value != null) {
+                        setEnvironment(value);
+                      }
+                    }}
                     disabled={submitting}
                   >
                     <SelectTrigger id="create-account-environment">
@@ -319,7 +323,7 @@ export function ClientTradingAccountCreateDialog({
                   <Label htmlFor="create-account-platform">Plataforma</Label>
                   <Select
                     value={platformId}
-                    onValueChange={setPlatformId}
+                    onValueChange={(value) => setPlatformId(value ?? "")}
                     disabled={submitting}
                   >
                     <SelectTrigger id="create-account-platform">
@@ -343,7 +347,7 @@ export function ClientTradingAccountCreateDialog({
                   <Label htmlFor="create-account-server">Trading server</Label>
                   <Select
                     value={tradingServerId}
-                    onValueChange={setTradingServerId}
+                    onValueChange={(value) => setTradingServerId(value ?? "")}
                     disabled={submitting || filteredTradingServers.length === 0}
                   >
                     <SelectTrigger id="create-account-server">
@@ -365,7 +369,7 @@ export function ClientTradingAccountCreateDialog({
                   <Label htmlFor="create-account-group">Grupo de servidor</Label>
                   <Select
                     value={serverGroupId}
-                    onValueChange={setServerGroupId}
+                    onValueChange={(value) => setServerGroupId(value ?? "")}
                     disabled={submitting || filteredServerGroups.length === 0}
                   >
                     <SelectTrigger id="create-account-group">
@@ -392,7 +396,7 @@ export function ClientTradingAccountCreateDialog({
                   ) : (
                     <Select
                       value={leverageId}
-                      onValueChange={setLeverageId}
+                      onValueChange={(value) => setLeverageId(value ?? "")}
                       disabled={submitting || groupLeverages.length === 0}
                     >
                       <SelectTrigger id="create-account-leverage">
@@ -420,7 +424,7 @@ export function ClientTradingAccountCreateDialog({
                     </Label>
                     <Select
                       value={amountId}
-                      onValueChange={setAmountId}
+                      onValueChange={(value) => setAmountId(value ?? "")}
                       disabled={
                         submitting || catalog.initialAmounts.length === 0
                       }
