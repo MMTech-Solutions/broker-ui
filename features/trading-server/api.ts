@@ -77,9 +77,10 @@ export async function listServerGroupLeverages(
   tradingServerId: string,
   serverGroupId: string,
   filters: LeverageListFilters = {},
+  audience: TradingServerAudience = "client",
 ): Promise<BrokerSuccessResponse<Leverage[]>> {
   return browserBrokerRequest<Leverage[]>(
-    `${TRADING_SERVERS_ADMIN_PATH}/${tradingServerId}/server-groups/${serverGroupId}/leverages`,
+    `${tradingServersBasePath(audience)}/${tradingServerId}/server-groups/${serverGroupId}/leverages`,
     { searchParams: toSearchParams(filters) },
   );
 }
