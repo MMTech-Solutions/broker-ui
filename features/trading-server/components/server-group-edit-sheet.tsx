@@ -165,9 +165,10 @@ export function ServerGroupEditSheet({
         <SheetHeader>
           <SheetTitle>{serverGroup?.name ?? "Server group"}</SheetTitle>
           <SheetDescription>
-            Edit commercial settings for this server group. Synced fields such as
-            name and meta name stay read-only. If currency was not synced, set
-            the ISO code and precision before activating the group.
+            Edit commercial settings for this server group. The platform name is
+            synced and read-only; meta name is the label shown to clients. If
+            currency was not synced, set the ISO code and precision before
+            activating the group.
           </SheetDescription>
         </SheetHeader>
 
@@ -193,12 +194,35 @@ export function ServerGroupEditSheet({
             ) : null}
 
             <div className="space-y-2">
+              <Label htmlFor="server-group-platform-name">Platform name</Label>
+              <Input
+                id="server-group-platform-name"
+                value={serverGroup?.name ?? ""}
+                disabled
+              />
+              <p className="text-xs text-muted-foreground">
+                Identity from the trading platform (not editable).
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="server-group-meta-name">Meta name</Label>
               <Input
                 id="server-group-meta-name"
-                value={serverGroup?.meta_name ?? ""}
-                disabled
+                value={form.meta_name}
+                onChange={(event) =>
+                  setForm((current) =>
+                    current
+                      ? { ...current, meta_name: event.target.value }
+                      : current,
+                  )
+                }
+                disabled={submitting}
+                placeholder="Label shown to clients"
               />
+              <p className="text-xs text-muted-foreground">
+                Display name for clients. Falls back to the platform name if empty.
+              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

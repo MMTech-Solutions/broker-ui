@@ -25,6 +25,8 @@ const CONFIGURATION_WARNING_LABELS: Record<string, string> = {
     "Currency code is not configured. Set it before activating this group.",
   currency_precision_missing:
     "Currency precision is not configured. Set it before activating this group.",
+  meta_name_missing:
+    "Meta name is not set. Clients will fall back to the platform group name.",
 };
 
 export function formatConfigurationWarning(code: string): string {
@@ -94,6 +96,32 @@ export function formatServerGroupOptionLabel(
     : `${groupName} · ${currencyPart}`;
 }
 
+/**
+ * Client / human label for a server group: meta_name ?? name.
+ * Warns when meta_name is missing so operators notice the fallback.
+ */
+export function serverGroupDisplayName(
+  group: Pick<ServerGroup, "name" | "meta_name"> | {
+    name?: string | null;
+    meta_name?: string | null;
+  },
+): string {
+  const metaName = group.meta_name?.trim() ?? "";
+  if (metaName) {
+    return metaName;
+  }
+
+  const platformName = group.name?.trim() ?? "";
+  if (typeof console !== "undefined") {
+    console.warn(
+      "Server group missing meta_name; falling back to platform name.",
+      group,
+    );
+  }
+
+  return platformName;
+}
+
 export function formatCurrencyLabel(currency: ServerGroup["currency"]): string {
   const code = getServerGroupCurrency(currency).code;
 
@@ -146,6 +174,7 @@ export function parseOptionalMinorUnits(value: string): number | undefined {
 }
 
 export type ServerGroupEditFormState = {
+  meta_name: string;
   description: string;
   is_default: boolean;
   is_private: boolean;
@@ -179,6 +208,7 @@ export function buildServerGroupEditFormState(
   const precision = currency.precision;
 
   return {
+    meta_name: serverGroup.meta_name ?? "",
     description: serverGroup.description ?? "",
     is_default: serverGroup.is_default ?? false,
     is_private: serverGroup.is_private ?? false,
@@ -228,6 +258,7 @@ export function buildUpdateServerGroupInput(
   const currencyPrecision = parseOptionalMinorUnits(form.currency_precision);
 
   return {
+    meta_name: form.meta_name.trim(),
     description: form.description.trim() || null,
     is_default: form.is_default,
     is_private: form.is_private,

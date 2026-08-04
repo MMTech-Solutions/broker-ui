@@ -65,10 +65,12 @@ function buildServerGroupLabel(
   tradingServerLabel: string,
 ): string {
   const currency = resolveServerGroupCurrency(serverGroup.currency);
+  const groupLabel =
+    serverGroup.meta_name?.trim() || serverGroup.name?.trim() || serverGroup.id;
 
   return currency.code
-    ? `${serverGroup.name} (${tradingServerLabel}, ${currency.code})`
-    : `${serverGroup.name} (${tradingServerLabel})`;
+    ? `${groupLabel} (${tradingServerLabel}, ${currency.code})`
+    : `${groupLabel} (${tradingServerLabel})`;
 }
 
 export async function listContests(

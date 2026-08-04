@@ -58,6 +58,7 @@ import type { ClientInsuranceEligibleAccount } from "@/features/client-insurance
 import {
   getServerGroupCurrency,
   hasResolvedServerGroupCurrency,
+  serverGroupDisplayName,
 } from "@/features/trading-server/format";
 import { TRADING_SERVER_ENVIRONMENT } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
@@ -104,7 +105,9 @@ function enrichAccounts(
 
     return {
       ...account,
-      serverGroupLabel: serverGroup?.name ?? account.server_group_id,
+      serverGroupLabel: serverGroup
+        ? serverGroupDisplayName(serverGroup)
+        : account.server_group_id,
       platformLabel:
         platform?.custom_name ?? platform?.name ?? String(serverGroup?.platform ?? "—"),
       environmentLabel: formatEnvironmentLabel(

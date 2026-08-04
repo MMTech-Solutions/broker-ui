@@ -69,7 +69,8 @@ export type RestrictedCountry = {
 
 export type ServerGroup = {
   id: string;
-  name: string;
+  /** Platform identity (admin list/update only; omitted for clients). */
+  name?: string;
   meta_name: string;
   trading_server_id: string;
   description?: string | null;
@@ -95,6 +96,7 @@ export type ServerGroup = {
 
 export type UpdateServerGroupInput = {
   description?: string | null;
+  meta_name?: string;
   is_default?: boolean;
   is_private?: boolean;
   is_active?: boolean;

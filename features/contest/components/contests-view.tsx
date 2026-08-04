@@ -329,7 +329,14 @@ export function ContestsView() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {contest.server_group?.name ?? contest.server_group_id}
+                      {contest.server_group
+                        ? [
+                            contest.server_group.meta_name,
+                            contest.server_group.name,
+                          ]
+                            .filter((value) => value != null && value !== "")
+                            .join(" · ") || contest.server_group_id
+                        : contest.server_group_id}
                     </TableCell>
                     <TableCell className="max-w-[220px] truncate">
                       {formatContestDateRange(

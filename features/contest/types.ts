@@ -9,7 +9,10 @@ export type ContestAwardType = "money" | "benefit";
 
 export type ContestServerGroup = {
   id: string;
+  /** Platform identity (admin). Client only gets display label here. */
   name: string;
+  /** Present for admin only. */
+  meta_name?: string | null;
   currency: string;
   currency_precision?: number;
 };

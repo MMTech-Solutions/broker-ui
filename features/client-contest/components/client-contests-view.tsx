@@ -274,7 +274,9 @@ export function ClientContestsView() {
                           statusLabels[contest.status]}
                       </Badge>
                     </TableCell>
-                    <TableCell>{contest.server_group?.name ?? "—"}</TableCell>
+                    <TableCell>
+                      {contest.server_group?.name ?? "—"}
+                    </TableCell>
                     <TableCell>
                       {formatContestDateRange(
                         contest.starts_at,

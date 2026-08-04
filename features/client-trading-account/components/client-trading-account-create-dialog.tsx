@@ -35,6 +35,7 @@ import type {
 } from "@/features/client-trading-account/types";
 import type { Leverage } from "@/features/leverage/types";
 import { listServerGroupLeverages } from "@/features/trading-server/api";
+import { serverGroupDisplayName } from "@/features/trading-server/format";
 import { TRADING_SERVER_ENVIRONMENT } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
@@ -369,13 +370,15 @@ export function ClientTradingAccountCreateDialog({
                   >
                     <SelectTrigger id="create-account-group">
                       <SelectValue placeholder="Selecciona grupo">
-                        {selectedServerGroup?.name ?? null}
+                        {selectedServerGroup
+                          ? serverGroupDisplayName(selectedServerGroup)
+                          : null}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {filteredServerGroups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
-                          {group.name}
+                          {serverGroupDisplayName(group)}
                         </SelectItem>
                       ))}
                     </SelectContent>
