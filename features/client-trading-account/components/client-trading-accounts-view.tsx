@@ -95,11 +95,11 @@ function enrichAccounts(
       ...account,
       serverGroupLabel:
         account.server_group.name || account.server_group.id,
-      platformLabel: "—",
+      platformLabel: account.platform?.name ?? "—",
       environmentLabel: "—",
       leverageLabel: formatLeverageLabel(account.leverage),
       tradingServerId: account.server_group.trading_server_id || null,
-      platformId: null,
+      platformId: account.platform?.id ?? null,
       environment: null,
       currencyCode: account.server_group.currency.code,
       currencyPrecision: account.server_group.currency.precision,
@@ -126,14 +126,19 @@ function enrichAccounts(
         ? serverGroupDisplayName(serverGroup)
         : account.server_group.name || account.server_group.id,
       platformLabel:
-        platform?.custom_name ?? platform?.name ?? String(serverGroup?.platform ?? "—"),
+        account.platform?.name ??
+        platform?.custom_name ??
+        platform?.name ??
+        (typeof serverGroup?.platform === "object"
+          ? serverGroup.platform.name
+          : String(serverGroup?.platform ?? "—")),
       environmentLabel: formatEnvironmentLabel(
         serverGroup?.environment ?? tradingServer?.environment,
       ),
       leverageLabel:
         leverageFromCatalog?.name ?? formatLeverageLabel(account.leverage),
       tradingServerId: serverGroup?.trading_server_id ?? null,
-      platformId: tradingServer?.platform_id ?? null,
+      platformId: account.platform?.id ?? tradingServer?.platform_id ?? null,
       environment: serverGroup?.environment ?? tradingServer?.environment ?? null,
       currencyCode: currencyResolved ? currency.code : null,
       currencyPrecision: currencyResolved ? currency.precision : null,

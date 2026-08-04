@@ -8,7 +8,6 @@ export type { TradingAccount };
 
 export type ClientServerGroup = ServerGroup & {
   environment?: number;
-  platform?: string | number;
 };
 
 export type ClientTradingAccountListFilters = {

@@ -18,7 +18,10 @@ import {
   listServerGroups,
   listTradingServers,
 } from "@/features/trading-server/api";
-import type { TradingServer } from "@/features/trading-server/types";
+import type {
+  ServerGroup,
+  TradingServer,
+} from "@/features/trading-server/types";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import { browserIamRequest } from "@/lib/api/iam-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
@@ -86,9 +89,15 @@ export async function updateClientTradingAccountCredentials(
   );
 }
 
-function formatPlatformLabel(platform: string | number | undefined): string {
+function formatPlatformLabel(
+  platform: ServerGroup["platform"] | string | number | undefined | null,
+): string {
   if (platform === undefined || platform === null) {
     return "—";
+  }
+
+  if (typeof platform === "object") {
+    return platform.name || "—";
   }
 
   return String(platform);
@@ -98,22 +107,27 @@ function buildPlatformsFromTradingServers(
   tradingServers: TradingServer[],
   serverGroups: ClientServerGroup[],
 ): Platform[] {
-  const labelByPlatformId = new Map<string, string>();
+  const byId = new Map<string, Platform>();
 
   for (const server of tradingServers) {
     const group = serverGroups.find(
       (item) => item.trading_server_id === server.id,
     );
-    const label = formatPlatformLabel(group?.platform ?? server.platform_id);
-    labelByPlatformId.set(server.platform_id, label);
+    const nested = group?.platform;
+    const id = nested?.id ?? server.platform_id;
+    const name = nested?.name ?? formatPlatformLabel(server.platform_id);
+
+    if (!byId.has(id)) {
+      byId.set(id, {
+        id,
+        name,
+        custom_name: nested?.custom_name ?? null,
+        is_active: true,
+      });
+    }
   }
 
-  return [...labelByPlatformId.entries()].map(([id, name]) => ({
-    id,
-    name,
-    custom_name: null,
-    is_active: true,
-  }));
+  return [...byId.values()];
 }
 
 export async function loadClientAccountCatalog(): Promise<ClientAccountCatalog> {
@@ -131,9 +145,6 @@ export async function loadClientAccountCatalog(): Promise<ClientAccountCatalog> 
         (group): ClientServerGroup => ({
           ...group,
           environment: server.environment,
-          platform: formatPlatformLabel(
-            (group as ClientServerGroup).platform ?? server.platform_id,
-          ),
         }),
       );
     }),

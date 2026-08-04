@@ -13,12 +13,21 @@ export type TradingAccountServerGroup = {
   };
 };
 
+/** Nested platform on accounts: client name is display label; admin also has custom_name. */
+export type TradingAccountPlatform = {
+  id: string;
+  name: string;
+  /** Present for admin responses only. */
+  custom_name?: string | null;
+};
+
 export type TradingAccount = {
   id: string;
   custom_name: string | null;
   external_user_id: string;
   external_trader_id: string;
   server_group: TradingAccountServerGroup;
+  platform: TradingAccountPlatform;
   leverage: Pick<Leverage, "id" | "name" | "value">;
   initial_deposit: number;
   current_balance: number;

@@ -422,7 +422,10 @@ export function TradingAccountsView() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      {serverGroupMeta?.platformLabel ?? "—"}
+                      {account.platform?.custom_name ??
+                        account.platform?.name ??
+                        serverGroupMeta?.platformLabel ??
+                        "—"}
                     </TableCell>
                     <TableCell>
                       {serverGroupMeta?.label ??

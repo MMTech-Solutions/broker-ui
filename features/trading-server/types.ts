@@ -92,6 +92,12 @@ export type ServerGroup = {
   has_ib_restrictions?: boolean;
   configuration_warnings?: string[] | null;
   ib_external_user_ids?: string[] | null;
+  /** Nested platform: client has id+name (display); admin also has custom_name. */
+  platform?: {
+    id: string;
+    name: string;
+    custom_name?: string | null;
+  };
 };
 
 export type UpdateServerGroupInput = {
