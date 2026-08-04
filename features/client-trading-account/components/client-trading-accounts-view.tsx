@@ -94,9 +94,7 @@ function enrichAccounts(
     return accounts.map((account) => ({
       ...account,
       serverGroupLabel:
-        account.server_group.meta_name?.trim() ||
-        account.server_group.name ||
-        account.server_group.id,
+        account.server_group.name || account.server_group.id,
       platformLabel: "—",
       environmentLabel: "—",
       leverageLabel: formatLeverageLabel(account.leverage),
@@ -126,9 +124,7 @@ function enrichAccounts(
       ...account,
       serverGroupLabel: serverGroup
         ? serverGroupDisplayName(serverGroup)
-        : account.server_group.meta_name?.trim() ||
-          account.server_group.name ||
-          account.server_group.id,
+        : account.server_group.name || account.server_group.id,
       platformLabel:
         platform?.custom_name ?? platform?.name ?? String(serverGroup?.platform ?? "—"),
       environmentLabel: formatEnvironmentLabel(

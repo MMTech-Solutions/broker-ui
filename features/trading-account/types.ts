@@ -2,8 +2,10 @@ import type { Leverage } from "@/features/leverage/types";
 
 export type TradingAccountServerGroup = {
   id: string;
+  /** Platform name (admin) or display label meta_name ?? name (client). */
   name: string;
-  meta_name: string;
+  /** Present for admin responses only. */
+  meta_name?: string | null;
   trading_server_id: string;
   currency: {
     code: string | null;
