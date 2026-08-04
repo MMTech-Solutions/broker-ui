@@ -1,10 +1,12 @@
+import type { Leverage } from "@/features/leverage/types";
+
 export type TradingAccount = {
   id: string;
   custom_name: string | null;
   external_user_id: string;
   external_trader_id: string;
   server_group_id: string;
-  leverage_id: string;
+  leverage: Pick<Leverage, "id" | "name" | "value">;
   initial_deposit: number;
   current_balance: number;
   current_equity: number;

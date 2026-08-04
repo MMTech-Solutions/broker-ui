@@ -70,6 +70,22 @@ const clientTradingAccountsBreadcrumbs: BreadcrumbItem[] = [
   { label: "Cuentas de trading", current: true },
 ];
 
+function formatLeverageLabel(
+  leverage: TradingAccount["leverage"] | null | undefined,
+): string {
+  if (!leverage) {
+    return "—";
+  }
+
+  if (leverage.name) {
+    return leverage.value
+      ? `${leverage.name} (${leverage.value})`
+      : leverage.name;
+  }
+
+  return leverage.value ? String(leverage.value) : leverage.id;
+}
+
 function enrichAccounts(
   accounts: TradingAccount[],
   catalog: ClientAccountCatalog | null,
@@ -80,7 +96,7 @@ function enrichAccounts(
       serverGroupLabel: account.server_group_id,
       platformLabel: "—",
       environmentLabel: "—",
-      leverageLabel: account.leverage_id,
+      leverageLabel: formatLeverageLabel(account.leverage),
       tradingServerId: null,
       platformId: null,
       environment: null,
@@ -91,7 +107,7 @@ function enrichAccounts(
 
   return accounts.map((account) => {
     const serverGroup = catalog.serverGroupById.get(account.server_group_id);
-    const leverage = catalog.leverageById.get(account.leverage_id);
+    const leverageFromCatalog = catalog.leverageById.get(account.leverage?.id);
     const tradingServer = serverGroup
       ? catalog.tradingServerById.get(serverGroup.trading_server_id)
       : null;
@@ -113,7 +129,8 @@ function enrichAccounts(
       environmentLabel: formatEnvironmentLabel(
         serverGroup?.environment ?? tradingServer?.environment,
       ),
-      leverageLabel: leverage?.name ?? account.leverage_id,
+      leverageLabel:
+        leverageFromCatalog?.name ?? formatLeverageLabel(account.leverage),
       tradingServerId: serverGroup?.trading_server_id ?? null,
       platformId: tradingServer?.platform_id ?? null,
       environment: serverGroup?.environment ?? tradingServer?.environment ?? null,
@@ -252,7 +269,7 @@ export function ClientTradingAccountsView() {
 
       if (
         filters.leverageId !== "all" &&
-        account.leverage_id !== filters.leverageId
+        account.leverage?.id !== filters.leverageId
       ) {
         return false;
       }
