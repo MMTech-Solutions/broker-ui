@@ -2,8 +2,6 @@ import type {
   ClientAccountCatalog,
   ClientServerGroup,
   CreateClientTradingAccountInput,
-  CreateCreditInput,
-  CreateDebitInput,
   TwoFactorChallenge,
   UpdateTradingAccountCredentialsInput,
 } from "@/features/client-trading-account/types";
@@ -27,7 +25,6 @@ import { browserIamRequest } from "@/lib/api/iam-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
 const ACCOUNTS_PATH = "v1/accounts";
-const FINANCE_PATH = "v1/finance";
 
 export async function listClientTradingAccounts(
   filters: TradingAccountListFilters = {},
@@ -41,24 +38,6 @@ export async function createClientTradingAccount(
   input: CreateClientTradingAccountInput,
 ): Promise<BrokerSuccessResponse<TradingAccount>> {
   return browserBrokerRequest<TradingAccount>(ACCOUNTS_PATH, {
-    method: "POST",
-    body: input,
-  });
-}
-
-export async function createCredit(
-  input: CreateCreditInput,
-): Promise<BrokerSuccessResponse<unknown>> {
-  return browserBrokerRequest(`${FINANCE_PATH}/credits`, {
-    method: "POST",
-    body: input,
-  });
-}
-
-export async function createDebit(
-  input: CreateDebitInput,
-): Promise<BrokerSuccessResponse<unknown>> {
-  return browserBrokerRequest(`${FINANCE_PATH}/debits`, {
     method: "POST",
     body: input,
   });

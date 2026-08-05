@@ -6,7 +6,7 @@ export default function ClientTradingAccountsPage() {
     <>
       <SiteHeader
         title="Cuentas de trading"
-        description="Gestiona tus cuentas live y demo, depósitos y retiros."
+        description="Gestiona tus cuentas live y demo."
       />
       <ClientTradingAccountsView />
     </>

@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
   KeyRoundIcon,
   LineChartIcon,
   PlusIcon,
@@ -39,8 +37,6 @@ import {
 } from "@/features/client-trading-account/api";
 import { ClientTradingAccountCreateDialog } from "@/features/client-trading-account/components/client-trading-account-create-dialog";
 import { ClientTradingAccountCredentialsDialog } from "@/features/client-trading-account/components/client-trading-account-credentials-dialog";
-import { ClientTradingAccountCreditDialog } from "@/features/client-trading-account/components/client-trading-account-deposit-dialog";
-import { ClientTradingAccountDebitDialog } from "@/features/client-trading-account/components/client-trading-account-withdraw-dialog";
 import {
   formatAccountMoney,
   formatEnvironmentLabel,
@@ -164,8 +160,6 @@ export function ClientTradingAccountsView() {
   });
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [creditOpen, setCreditOpen] = useState(false);
-  const [debitOpen, setDebitOpen] = useState(false);
   const [credentialsOpen, setCredentialsOpen] = useState(false);
   const [insuranceEligibleOpen, setInsuranceEligibleOpen] = useState(false);
   const [insuranceContractOpen, setInsuranceContractOpen] = useState(false);
@@ -340,16 +334,6 @@ export function ClientTradingAccountsView() {
 
   function handleMutationSuccess() {
     void loadData(page);
-  }
-
-  function openCredit(account: EnrichedClientTradingAccount) {
-    setSelectedAccount(account);
-    setCreditOpen(true);
-  }
-
-  function openDebit(account: EnrichedClientTradingAccount) {
-    setSelectedAccount(account);
-    setDebitOpen(true);
   }
 
   function openCredentials(account: EnrichedClientTradingAccount) {
@@ -576,22 +560,6 @@ export function ClientTradingAccountsView() {
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"
-                          tooltip="Acreditar"
-                          onClick={() => openCredit(account)}
-                        >
-                          <ArrowDownIcon />
-                        </ActionTooltipButton>
-                        <ActionTooltipButton
-                          variant="ghost"
-                          size="icon-sm"
-                          tooltip="Debitar"
-                          onClick={() => openDebit(account)}
-                        >
-                          <ArrowUpIcon />
-                        </ActionTooltipButton>
-                        <ActionTooltipButton
-                          variant="ghost"
-                          size="icon-sm"
                           tooltip="Credenciales"
                           onClick={() => openCredentials(account)}
                         >
@@ -641,20 +609,6 @@ export function ClientTradingAccountsView() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         catalog={catalog}
-        onSuccess={handleMutationSuccess}
-      />
-
-      <ClientTradingAccountCreditDialog
-        account={selectedAccount}
-        open={creditOpen}
-        onOpenChange={setCreditOpen}
-        onSuccess={handleMutationSuccess}
-      />
-
-      <ClientTradingAccountDebitDialog
-        account={selectedAccount}
-        open={debitOpen}
-        onOpenChange={setDebitOpen}
         onSuccess={handleMutationSuccess}
       />
 

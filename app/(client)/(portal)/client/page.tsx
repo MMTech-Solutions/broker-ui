@@ -28,27 +28,12 @@ export default function ClientHomePage() {
             <CardHeader>
               <CardTitle>Cuentas de trading</CardTitle>
               <CardDescription>
-                Crea cuentas live o demo, consulta saldos y gestiona depósitos y
-                retiros.
+                Crea cuentas live o demo y consulta saldos de trading.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button render={<Link href="/client/accounts" />}>
                 Ver cuentas
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Finanzas</CardTitle>
-              <CardDescription>
-                Transfiere saldo entre cuentas, simula depósitos externos y
-                consulta el historial de movimientos.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button render={<Link href="/client/finance" />}>
-                Ver finanzas
               </Button>
             </CardContent>
           </Card>

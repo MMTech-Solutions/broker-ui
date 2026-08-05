@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeftRightIcon, CircleHelpIcon, GiftIcon, HandshakeIcon, HomeIcon, ShieldCheckIcon, TrophyIcon, WalletIcon } from "lucide-react";
+import { CircleHelpIcon, GiftIcon, HandshakeIcon, HomeIcon, ShieldCheckIcon, TrophyIcon, WalletIcon } from "lucide-react";
 
 import {
   Sidebar,
@@ -28,12 +28,6 @@ const clientNavigation = [
     href: "/client/accounts",
     icon: WalletIcon,
     match: (pathname: string) => pathname.startsWith("/client/accounts"),
-  },
-  {
-    title: "Finanzas",
-    href: "/client/finance",
-    icon: ArrowLeftRightIcon,
-    match: (pathname: string) => pathname.startsWith("/client/finance"),
   },
   {
     title: "IB Dashboard",

@@ -29,18 +29,6 @@ export type CreateClientTradingAccountInput = {
   amount_id?: string;
 };
 
-export type CreateCreditInput = {
-  account_id: string;
-  amount: number;
-  comments?: string | null;
-};
-
-export type CreateDebitInput = {
-  account_id: string;
-  amount: number;
-  comments?: string | null;
-};
-
 export type UpdateTradingAccountCredentialsInput = {
   password?: string;
   investor_password?: string;
