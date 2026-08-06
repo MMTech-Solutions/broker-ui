@@ -253,9 +253,11 @@ export function TradingAccountsView() {
   const [serverGroupOptions, setServerGroupOptions] = useState<
     ServerGroupOption[]
   >([]);
-  const [serverGroupsLoading, setServerGroupsLoading] = useState(true);
+  // Start false so SSR and the first client paint match (Base UI Select
+  // serializes disabled={true} differently on the server).
+  const [serverGroupsLoading, setServerGroupsLoading] = useState(false);
   const [platformOptions, setPlatformOptions] = useState<Platform[]>([]);
-  const [platformsLoading, setPlatformsLoading] = useState(true);
+  const [platformsLoading, setPlatformsLoading] = useState(false);
 
   const [accessAccount, setAccessAccount] = useState<TradingAccount | null>(
     null,
