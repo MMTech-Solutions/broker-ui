@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Trash2Icon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Button } from "@/components/ui/button";
@@ -27,10 +28,11 @@ import {
   IB_PROGRAM_SETTLEMENT_PERIODS,
   type IbProgram,
   type IbProgramSettlementPeriod,
-  type UpdateIbProgramInput,
 } from "@/features/ib-program/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
+
+const IMAGE_ACCEPT = "image/jpeg,image/jpg,image/png,image/webp";
 
 type IbProgramFormDialogProps = {
   open: boolean;
@@ -62,8 +64,38 @@ export function IbProgramFormDialog({
   onSuccess,
 }: IbProgramFormDialogProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageObjectUrl, setImageObjectUrl] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!imageFile) {
+      setImageObjectUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(imageFile);
+    setImageObjectUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [imageFile]);
+
+  const imagePreviewUrl = useMemo(() => {
+    if (imageObjectUrl) {
+      return imageObjectUrl;
+    }
+
+    if (removeImage) {
+      return null;
+    }
+
+    return currentImageUrl;
+  }, [imageObjectUrl, currentImageUrl, removeImage]);
 
   useEffect(() => {
     if (!open) {
@@ -71,6 +103,8 @@ export function IbProgramFormDialog({
     }
 
     setError(null);
+    setImageFile(null);
+    setRemoveImage(false);
 
     if (mode === "edit" && ibProgram) {
       setForm({
@@ -79,11 +113,24 @@ export function IbProgramFormDialog({
         settlement_period: ibProgram.settlement_period,
         is_active: ibProgram.is_active,
       });
+      setCurrentImageUrl(ibProgram.image_path ?? null);
       return;
     }
 
     setForm(emptyForm);
+    setCurrentImageUrl(null);
   }, [open, mode, ibProgram]);
+
+  function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setImageFile(file);
+    setRemoveImage(false);
+  }
+
+  function handleRemoveImage() {
+    setImageFile(null);
+    setRemoveImage(true);
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -100,18 +147,19 @@ export function IbProgramFormDialog({
         await createIbProgram({
           name: form.name.trim(),
           description: form.description.trim(),
+          image: imageFile,
           settlement_period: form.settlement_period,
           is_active: form.is_active,
         });
       } else if (ibProgram) {
-        const payload: UpdateIbProgramInput = {
+        await updateIbProgram(ibProgram.id, {
           name: form.name.trim(),
           description: form.description.trim(),
+          image: imageFile,
+          remove_image: removeImage && !imageFile,
           settlement_period: form.settlement_period,
           is_active: form.is_active,
-        };
-
-        await updateIbProgram(ibProgram.id, payload);
+        });
       }
 
       onOpenChange(false);
@@ -185,6 +233,61 @@ export function IbProgramFormDialog({
                   "flex min-h-20 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 dark:bg-input/30",
                 )}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ib-program-image-file">Identity image</Label>
+              <p className="text-xs text-muted-foreground">
+                JPEG, PNG or WebP, max 1MB. Leave empty to keep the current
+                image.
+              </p>
+
+              {imagePreviewUrl ? (
+                <div className="overflow-hidden rounded-lg border bg-muted/30">
+                  <img
+                    src={imagePreviewUrl}
+                    alt="IB program identity preview"
+                    className="max-h-40 w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+                  No image configured
+                </div>
+              )}
+
+              <Input
+                id="ib-program-image-file"
+                type="file"
+                accept={IMAGE_ACCEPT}
+                onChange={handleImageChange}
+                disabled={submitting}
+              />
+
+              {imageFile ? (
+                <p className="text-xs text-muted-foreground">
+                  Selected: {imageFile.name}
+                </p>
+              ) : null}
+
+              {(currentImageUrl || imageFile) && !removeImage ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveImage}
+                  disabled={submitting}
+                >
+                  <Trash2Icon />
+                  Remove image
+                </Button>
+              ) : null}
+
+              {removeImage ? (
+                <p className="text-xs text-muted-foreground">
+                  Image will be removed on save.
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2">

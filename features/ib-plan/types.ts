@@ -29,7 +29,7 @@ export type IbPlanListFilters = {
 export type CreateIbPlanInput = {
   name: string;
   description: string;
-  image_path?: string | null;
+  image?: File | null;
   subscription_type?: IbPlanSubscriptionType;
   is_active?: boolean;
 };
@@ -37,7 +37,8 @@ export type CreateIbPlanInput = {
 export type UpdateIbPlanInput = {
   name?: string;
   description?: string;
-  image_path?: string | null;
+  image?: File | null;
+  remove_image?: boolean;
   subscription_type?: IbPlanSubscriptionType;
   is_active?: boolean;
 };

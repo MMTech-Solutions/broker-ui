@@ -12,6 +12,35 @@ import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
 const IB_PLANS_PATH = "v1/admin/ib-plans";
 
+function appendIbPlanFormData(
+  formData: FormData,
+  input: CreateIbPlanInput | UpdateIbPlanInput,
+): void {
+  if (input.name !== undefined) {
+    formData.append("name", input.name);
+  }
+
+  if (input.description !== undefined) {
+    formData.append("description", input.description);
+  }
+
+  if (input.subscription_type !== undefined) {
+    formData.append("subscription_type", input.subscription_type);
+  }
+
+  if (input.is_active !== undefined) {
+    formData.append("is_active", input.is_active ? "1" : "0");
+  }
+
+  if (input.image instanceof File) {
+    formData.append("image", input.image);
+  }
+
+  if ("remove_image" in input && input.remove_image) {
+    formData.append("remove_image", "1");
+  }
+}
+
 export async function listIbPlans(
   filters: IbPlanListFilters = {},
 ): Promise<BrokerSuccessResponse<IbPlan[]>> {
@@ -23,9 +52,12 @@ export async function listIbPlans(
 export async function createIbPlan(
   input: CreateIbPlanInput,
 ): Promise<BrokerSuccessResponse<IbPlan>> {
+  const formData = new FormData();
+  appendIbPlanFormData(formData, input);
+
   return browserBrokerRequest<IbPlan>(IB_PLANS_PATH, {
     method: "POST",
-    body: input,
+    body: formData,
   });
 }
 
@@ -33,9 +65,12 @@ export async function updateIbPlan(
   ibPlanId: string,
   input: UpdateIbPlanInput,
 ): Promise<BrokerSuccessResponse<IbPlan>> {
+  const formData = new FormData();
+  appendIbPlanFormData(formData, input);
+
   return browserBrokerRequest<IbPlan>(`${IB_PLANS_PATH}/${ibPlanId}`, {
     method: "PATCH",
-    body: input,
+    body: formData,
   });
 }
 

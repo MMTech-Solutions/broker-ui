@@ -28,6 +28,7 @@ export type IbProgramListFilters = {
 export type CreateIbProgramInput = {
   name: string;
   description: string;
+  image?: File | null;
   settlement_period?: IbProgramSettlementPeriod;
   is_active?: boolean;
 };
@@ -35,6 +36,8 @@ export type CreateIbProgramInput = {
 export type UpdateIbProgramInput = {
   name?: string;
   description?: string;
+  image?: File | null;
+  remove_image?: boolean;
   settlement_period?: IbProgramSettlementPeriod;
   is_active?: boolean;
 };

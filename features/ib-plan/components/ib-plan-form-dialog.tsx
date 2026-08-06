@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Trash2Icon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Button } from "@/components/ui/button";
@@ -27,10 +28,11 @@ import {
   IB_PLAN_SUBSCRIPTION_TYPES,
   type IbPlan,
   type IbPlanSubscriptionType,
-  type UpdateIbPlanInput,
 } from "@/features/ib-plan/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
+
+const IMAGE_ACCEPT = "image/jpeg,image/jpg,image/png,image/webp";
 
 type IbPlanFormDialogProps = {
   open: boolean;
@@ -43,7 +45,6 @@ type IbPlanFormDialogProps = {
 type FormState = {
   name: string;
   description: string;
-  image_path: string;
   subscription_type: IbPlanSubscriptionType;
   is_active: boolean;
 };
@@ -51,9 +52,8 @@ type FormState = {
 const emptyForm: FormState = {
   name: "",
   description: "",
-  image_path: "",
   subscription_type: "automatic",
-  is_active: true,
+  is_active: false,
 };
 
 export function IbPlanFormDialog({
@@ -64,8 +64,38 @@ export function IbPlanFormDialog({
   onSuccess,
 }: IbPlanFormDialogProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageObjectUrl, setImageObjectUrl] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!imageFile) {
+      setImageObjectUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(imageFile);
+    setImageObjectUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [imageFile]);
+
+  const imagePreviewUrl = useMemo(() => {
+    if (imageObjectUrl) {
+      return imageObjectUrl;
+    }
+
+    if (removeImage) {
+      return null;
+    }
+
+    return currentImageUrl;
+  }, [imageObjectUrl, currentImageUrl, removeImage]);
 
   useEffect(() => {
     if (!open) {
@@ -73,20 +103,34 @@ export function IbPlanFormDialog({
     }
 
     setError(null);
+    setImageFile(null);
+    setRemoveImage(false);
 
     if (mode === "edit" && ibPlan) {
       setForm({
         name: ibPlan.name,
         description: ibPlan.description,
-        image_path: ibPlan.image_path ?? "",
         subscription_type: ibPlan.subscription_type,
         is_active: ibPlan.is_active,
       });
+      setCurrentImageUrl(ibPlan.image_path ?? null);
       return;
     }
 
     setForm(emptyForm);
+    setCurrentImageUrl(null);
   }, [open, mode, ibPlan]);
+
+  function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setImageFile(file);
+    setRemoveImage(false);
+  }
+
+  function handleRemoveImage() {
+    setImageFile(null);
+    setRemoveImage(true);
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -103,20 +147,19 @@ export function IbPlanFormDialog({
         await createIbPlan({
           name: form.name.trim(),
           description: form.description.trim(),
-          image_path: form.image_path.trim() || null,
+          image: imageFile,
           subscription_type: form.subscription_type,
           is_active: form.is_active,
         });
       } else if (ibPlan) {
-        const payload: UpdateIbPlanInput = {
+        await updateIbPlan(ibPlan.id, {
           name: form.name.trim(),
           description: form.description.trim(),
-          image_path: form.image_path.trim() || null,
+          image: imageFile,
+          remove_image: removeImage && !imageFile,
           subscription_type: form.subscription_type,
           is_active: form.is_active,
-        };
-
-        await updateIbPlan(ibPlan.id, payload);
+        });
       }
 
       onOpenChange(false);
@@ -193,19 +236,58 @@ export function IbPlanFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ib-plan-image-path">Image path</Label>
+              <Label htmlFor="ib-plan-image-file">Identity image</Label>
+              <p className="text-xs text-muted-foreground">
+                JPEG, PNG or WebP, max 1MB. Leave empty to keep the current
+                image.
+              </p>
+
+              {imagePreviewUrl ? (
+                <div className="overflow-hidden rounded-lg border bg-muted/30">
+                  <img
+                    src={imagePreviewUrl}
+                    alt="IB plan identity preview"
+                    className="max-h-40 w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+                  No image configured
+                </div>
+              )}
+
               <Input
-                id="ib-plan-image-path"
-                value={form.image_path}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    image_path: event.target.value,
-                  }))
-                }
-                placeholder="Optional"
+                id="ib-plan-image-file"
+                type="file"
+                accept={IMAGE_ACCEPT}
+                onChange={handleImageChange}
                 disabled={submitting}
               />
+
+              {imageFile ? (
+                <p className="text-xs text-muted-foreground">
+                  Selected: {imageFile.name}
+                </p>
+              ) : null}
+
+              {(currentImageUrl || imageFile) && !removeImage ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveImage}
+                  disabled={submitting}
+                >
+                  <Trash2Icon />
+                  Remove image
+                </Button>
+              ) : null}
+
+              {removeImage ? (
+                <p className="text-xs text-muted-foreground">
+                  Image will be removed on save.
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
