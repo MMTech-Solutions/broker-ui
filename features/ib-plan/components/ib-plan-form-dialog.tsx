@@ -71,6 +71,8 @@ export function IbPlanFormDialog({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const canActivate = mode === "edit" && (ibPlan?.programs_count ?? 0) > 0;
+
   useEffect(() => {
     if (!imageFile) {
       setImageObjectUrl(null);
@@ -149,7 +151,6 @@ export function IbPlanFormDialog({
           description: form.description.trim(),
           image: imageFile,
           subscription_type: form.subscription_type,
-          is_active: form.is_active,
         });
       } else if (ibPlan) {
         await updateIbPlan(ibPlan.id, {
@@ -316,20 +317,35 @@ export function IbPlanFormDialog({
               </Select>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="ib-plan-is-active"
-                checked={form.is_active}
-                onCheckedChange={(checked) =>
-                  setForm((current) => ({
-                    ...current,
-                    is_active: checked === true,
-                  }))
-                }
-                disabled={submitting}
-              />
-              <Label htmlFor="ib-plan-is-active">Active</Label>
-            </div>
+            {mode === "create" ? (
+              <p className="text-xs text-muted-foreground">
+                Plans are created inactive. Attach programs (including a base
+                program at sort order 0), then activate the plan when editing.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="ib-plan-is-active"
+                    checked={form.is_active}
+                    onCheckedChange={(checked) =>
+                      setForm((current) => ({
+                        ...current,
+                        is_active: checked === true,
+                      }))
+                    }
+                    disabled={submitting || (!canActivate && !form.is_active)}
+                  />
+                  <Label htmlFor="ib-plan-is-active">Active</Label>
+                </div>
+                {!canActivate ? (
+                  <p className="text-xs text-muted-foreground">
+                    Attach at least one program (base at sort order 0) before
+                    activating this plan.
+                  </p>
+                ) : null}
+              </div>
+            )}
           </div>
 
           <DialogFooter className="mt-4 shrink-0">

@@ -31,7 +31,6 @@ export type CreateIbPlanInput = {
   description: string;
   image?: File | null;
   subscription_type?: IbPlanSubscriptionType;
-  is_active?: boolean;
 };
 
 export type UpdateIbPlanInput = {
