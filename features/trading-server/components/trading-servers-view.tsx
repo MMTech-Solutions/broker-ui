@@ -10,6 +10,7 @@ import {
   RefreshCwIcon,
   TagsIcon,
   Trash2Icon,
+  AlertTriangleIcon,
 } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
@@ -36,10 +37,17 @@ import {
 import { TradingServerDeleteDialog } from "@/features/trading-server/components/trading-server-delete-dialog";
 import { TradingServerFormDialog } from "@/features/trading-server/components/trading-server-form-dialog";
 import { TradingServerSyncDialog } from "@/features/trading-server/components/trading-server-sync-dialog";
+import { formatConfigurationWarning } from "@/features/trading-server/format";
 import type { TradingServer } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type TradingServersViewProps = {
   platformId: string;
@@ -172,6 +180,18 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
     void loadServers(page);
   }
 
+  const pageConfigurationWarnings = useMemo(() => {
+    const codes = new Set<string>();
+
+    for (const server of tradingServers) {
+      for (const warning of server.configuration_warnings ?? []) {
+        codes.add(warning);
+      }
+    }
+
+    return Array.from(codes);
+  }, [tradingServers]);
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar
@@ -194,6 +214,19 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
 
       {error ? (
         <ApiErrorAlert title="Could not load trading servers" message={error} />
+      ) : null}
+
+      {!loading && pageConfigurationWarnings.length > 0 ? (
+        <Alert variant="warning">
+          <AlertTitle>Configuration warnings</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc space-y-1 pl-4">
+              {pageConfigurationWarnings.map((warning) => (
+                <li key={warning}>{formatConfigurationWarning(warning)}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       <div className="rounded-xl border">
@@ -233,6 +266,7 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
             {!loading
               ? tradingServers.map((server) => {
                   const isInitialized = Boolean(server.initialized_at);
+                  const serverWarnings = server.configuration_warnings ?? [];
 
                   return (
                     <TableRow key={server.id}>
@@ -252,11 +286,41 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
                         {server.connection_id ?? server.connection_signature}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={server.is_active ? "default" : "secondary"}
-                        >
-                          {server.is_active ? "Active" : "Inactive"}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge
+                            variant={
+                              server.is_active ? "default" : "secondary"
+                            }
+                          >
+                            {server.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                          {serverWarnings.length > 0 ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger
+                                  render={
+                                    <Badge
+                                      variant="outline"
+                                      className="gap-1 border-amber-500/40 text-amber-700 dark:text-amber-400"
+                                    >
+                                      <AlertTriangleIcon className="size-3" />
+                                      Warning
+                                    </Badge>
+                                  }
+                                />
+                                <TooltipContent className="max-w-xs">
+                                  <ul className="list-disc space-y-1 pl-4">
+                                    {serverWarnings.map((warning) => (
+                                      <li key={warning}>
+                                        {formatConfigurationWarning(warning)}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">

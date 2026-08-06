@@ -27,6 +27,10 @@ const CONFIGURATION_WARNING_LABELS: Record<string, string> = {
     "Currency precision is not configured. Set it before activating this group.",
   meta_name_missing:
     "Meta name is not set. Clients will fall back to the platform group name.",
+  no_server_groups:
+    "This trading server is active but has no server groups. Sync from the platform or review connectivity.",
+  no_active_server_groups:
+    "This trading server is active but none of its server groups are active.",
 };
 
 export function formatConfigurationWarning(code: string): string {
