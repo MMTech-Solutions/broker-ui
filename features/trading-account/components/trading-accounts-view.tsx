@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import {
   ArrowDownIcon,
   ArrowUpDownIcon,
@@ -9,7 +9,6 @@ import {
   LockIcon,
   PauseCircleIcon,
   PlayCircleIcon,
-  SearchIcon,
   UnlockIcon,
 } from "lucide-react";
 
@@ -356,21 +355,24 @@ export function TradingAccountsView() {
     void loadTradingAccounts(page, appliedFilters);
   }, [appliedFilters, loadTradingAccounts, page]);
 
-  function applyFilters(nextSortBy = sortBy, nextDirection = sortDirection) {
+  function commitFilters(
+    form: TradingAccountFilterFormState,
+    nextSortBy = sortBy,
+    nextDirection = sortDirection,
+  ) {
     setPage(1);
-    setAppliedFilters(
-      formToAppliedFilters(draftFilters, nextSortBy, nextDirection),
-    );
+    setAppliedFilters(formToAppliedFilters(form, nextSortBy, nextDirection));
+  }
+
+  function applyFiltersFromDraft() {
+    commitFilters(draftFilters);
   }
 
   function clearFilters() {
     setDraftFilters(EMPTY_TRADING_ACCOUNT_FILTERS);
     setSortBy("created_at");
     setSortDirection("desc");
-    setPage(1);
-    setAppliedFilters(
-      formToAppliedFilters(EMPTY_TRADING_ACCOUNT_FILTERS, "created_at", "desc"),
-    );
+    commitFilters(EMPTY_TRADING_ACCOUNT_FILTERS, "created_at", "desc");
   }
 
   function toggleSort(column: TradingAccountSortBy) {
@@ -381,10 +383,25 @@ export function TradingAccountsView() {
 
     setSortBy(column);
     setSortDirection(nextDirection);
-    setPage(1);
-    setAppliedFilters(
-      formToAppliedFilters(draftFilters, column, nextDirection),
-    );
+    commitFilters(draftFilters, column, nextDirection);
+  }
+
+  function patchDraft(
+    patch: Partial<TradingAccountFilterFormState>,
+    options?: { apply?: boolean },
+  ) {
+    const next = { ...draftFilters, ...patch };
+    setDraftFilters(next);
+    if (options?.apply) {
+      commitFilters(next);
+    }
+  }
+
+  function onFilterEnter(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      applyFiltersFromDraft();
+    }
   }
 
   function openAccessDialog(
@@ -402,45 +419,30 @@ export function TradingAccountsView() {
   );
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
+    <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-hidden p-4">
       <PageContentToolbar
         breadcrumbs={tradingAccountsBreadcrumbs}
         backHref="/"
         backLabel="Ir atrás"
-      />
-
-      <div className="rounded-xl border p-4">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="text-sm font-medium">Column filters & sort</p>
-            <p className="text-xs text-muted-foreground">
-              Search per column (Enter or Apply). Sort toggles immediately.
-              Balance / equity / credit use exact match.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={() => applyFilters()} disabled={loading}>
-              <SearchIcon data-icon="inline-start" />
-              Apply filters
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={clearFilters}
-              disabled={loading}
-            >
-              <FilterXIcon data-icon="inline-start" />
-              Clear
-            </Button>
-          </div>
-        </div>
-      </div>
+      >
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={clearFilters}
+          disabled={loading}
+          title="Clear column filters and sort"
+        >
+          <FilterXIcon data-icon="inline-start" />
+          Clear filters
+        </Button>
+      </PageContentToolbar>
 
       {error ? (
         <ApiErrorAlert title="Could not load trading accounts" message={error} />
       ) : null}
 
-      <div className="overflow-x-auto rounded-xl border">
+      <div className="min-w-0 max-w-full overflow-x-auto rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -455,19 +457,13 @@ export function TradingAccountsView() {
                 />
                 <Input
                   className="mt-1.5 h-8"
-                  placeholder="Filter…"
+                  placeholder="Filter… (Enter)"
+                  title="Press Enter to apply filter"
                   value={draftFilters.external_trader_id}
                   onChange={(event) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      external_trader_id: event.target.value,
-                    }))
+                    patchDraft({ external_trader_id: event.target.value })
                   }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      applyFilters();
-                    }
-                  }}
+                  onKeyDown={onFilterEnter}
                 />
               </TableHead>
 
@@ -482,19 +478,13 @@ export function TradingAccountsView() {
                 />
                 <Input
                   className="mt-1.5 h-8"
-                  placeholder="Name…"
+                  placeholder="Name… (Enter)"
+                  title="Press Enter to apply filter"
                   value={draftFilters.custom_name}
                   onChange={(event) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      custom_name: event.target.value,
-                    }))
+                    patchDraft({ custom_name: event.target.value })
                   }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      applyFilters();
-                    }
-                  }}
+                  onKeyDown={onFilterEnter}
                 />
               </TableHead>
 
@@ -509,19 +499,13 @@ export function TradingAccountsView() {
                 />
                 <Input
                   className="mt-1.5 h-8 font-mono text-xs"
-                  placeholder="UUID / id…"
+                  placeholder="UUID… (Enter)"
+                  title="Press Enter to apply filter"
                   value={draftFilters.user_id}
                   onChange={(event) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      user_id: event.target.value,
-                    }))
+                    patchDraft({ user_id: event.target.value })
                   }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      applyFilters();
-                    }
-                  }}
+                  onKeyDown={onFilterEnter}
                 />
               </TableHead>
 
@@ -536,19 +520,13 @@ export function TradingAccountsView() {
                 />
                 <Input
                   className="mt-1.5 h-8"
-                  placeholder="Name…"
+                  placeholder="Name… (Enter)"
+                  title="Press Enter to apply filter"
                   value={draftFilters.user_name}
                   onChange={(event) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      user_name: event.target.value,
-                    }))
+                    patchDraft({ user_name: event.target.value })
                   }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      applyFilters();
-                    }
-                  }}
+                  onKeyDown={onFilterEnter}
                 />
               </TableHead>
 
@@ -563,19 +541,13 @@ export function TradingAccountsView() {
                 />
                 <Input
                   className="mt-1.5 h-8"
-                  placeholder="Email…"
+                  placeholder="Email… (Enter)"
+                  title="Press Enter to apply filter"
                   value={draftFilters.user_email}
                   onChange={(event) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      user_email: event.target.value,
-                    }))
+                    patchDraft({ user_email: event.target.value })
                   }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      applyFilters();
-                    }
-                  }}
+                  onKeyDown={onFilterEnter}
                 />
               </TableHead>
 
@@ -584,10 +556,12 @@ export function TradingAccountsView() {
                 <Select
                   value={draftFilters.platform_id || "all"}
                   onValueChange={(value) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      platform_id: value === "all" ? "" : (value ?? ""),
-                    }))
+                    patchDraft(
+                      {
+                        platform_id: value === "all" ? "" : (value ?? ""),
+                      },
+                      { apply: true },
+                    )
                   }
                   disabled={platformsLoading}
                 >
@@ -621,10 +595,12 @@ export function TradingAccountsView() {
                 <Select
                   value={draftFilters.server_group_id || "all"}
                   onValueChange={(value) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      server_group_id: value === "all" ? "" : (value ?? ""),
-                    }))
+                    patchDraft(
+                      {
+                        server_group_id: value === "all" ? "" : (value ?? ""),
+                      },
+                      { apply: true },
+                    )
                   }
                   disabled={serverGroupsLoading}
                 >
@@ -659,19 +635,13 @@ export function TradingAccountsView() {
                 <Input
                   className="mt-1.5 h-8 text-right"
                   inputMode="decimal"
-                  placeholder="Exact…"
+                  placeholder="Exact… (Enter)"
+                  title="Exact match. Press Enter to apply."
                   value={draftFilters.current_balance}
                   onChange={(event) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      current_balance: event.target.value,
-                    }))
+                    patchDraft({ current_balance: event.target.value })
                   }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      applyFilters();
-                    }
-                  }}
+                  onKeyDown={onFilterEnter}
                 />
               </TableHead>
 
@@ -688,19 +658,13 @@ export function TradingAccountsView() {
                 <Input
                   className="mt-1.5 h-8 text-right"
                   inputMode="decimal"
-                  placeholder="Exact…"
+                  placeholder="Exact… (Enter)"
+                  title="Exact match. Press Enter to apply."
                   value={draftFilters.current_equity}
                   onChange={(event) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      current_equity: event.target.value,
-                    }))
+                    patchDraft({ current_equity: event.target.value })
                   }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      applyFilters();
-                    }
-                  }}
+                  onKeyDown={onFilterEnter}
                 />
               </TableHead>
 
@@ -717,19 +681,13 @@ export function TradingAccountsView() {
                 <Input
                   className="mt-1.5 h-8 text-right"
                   inputMode="decimal"
-                  placeholder="Exact…"
+                  placeholder="Exact… (Enter)"
+                  title="Exact match. Press Enter to apply."
                   value={draftFilters.current_credit}
                   onChange={(event) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      current_credit: event.target.value,
-                    }))
+                    patchDraft({ current_credit: event.target.value })
                   }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      applyFilters();
-                    }
-                  }}
+                  onKeyDown={onFilterEnter}
                 />
               </TableHead>
 
@@ -745,11 +703,13 @@ export function TradingAccountsView() {
                 <Select
                   value={draftFilters.is_trading_enabled || "all"}
                   onValueChange={(value) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      is_trading_enabled:
-                        value === "true" || value === "false" ? value : "",
-                    }))
+                    patchDraft(
+                      {
+                        is_trading_enabled:
+                          value === "true" || value === "false" ? value : "",
+                      },
+                      { apply: true },
+                    )
                   }
                 >
                   <SelectTrigger className="mt-1.5 h-8 w-full">
@@ -775,11 +735,13 @@ export function TradingAccountsView() {
                 <Select
                   value={draftFilters.is_active || "all"}
                   onValueChange={(value) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      is_active:
-                        value === "true" || value === "false" ? value : "",
-                    }))
+                    patchDraft(
+                      {
+                        is_active:
+                          value === "true" || value === "false" ? value : "",
+                      },
+                      { apply: true },
+                    )
                   }
                 >
                   <SelectTrigger className="mt-1.5 h-8 w-full">

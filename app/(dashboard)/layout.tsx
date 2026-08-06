@@ -10,7 +10,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="min-h-svh">
+      <SidebarInset className="min-h-svh min-w-0">
         <AppAreaBar />
         {children}
       </SidebarInset>
