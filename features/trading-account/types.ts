@@ -21,10 +21,23 @@ export type TradingAccountPlatform = {
   custom_name?: string | null;
 };
 
+/** Owner payload from broker list (post user-enrichment). */
+export type TradingAccountOwner = {
+  id: string;
+  email: string | null;
+  name: string;
+};
+
 export type TradingAccount = {
   id: string;
   custom_name: string | null;
-  external_user_id: string;
+  /**
+   * Legacy field while production broker still returns external_user_id.
+   * Prefer `user.id` when present.
+   */
+  external_user_id?: string;
+  /** Enriched owner (id, email, name). */
+  user?: TradingAccountOwner;
   external_trader_id: string;
   server_group: TradingAccountServerGroup;
   platform: TradingAccountPlatform;
@@ -41,11 +54,44 @@ export type TradingAccount = {
   comments: string | null;
 };
 
+/** Sort keys accepted by broker GET /admin/accounts (see ListTradingAccountsSort). */
+export type TradingAccountSortBy =
+  | "created_at"
+  | "updated_at"
+  | "external_trader_id"
+  | "custom_name"
+  | "is_active"
+  | "is_trading_enabled"
+  | "current_balance"
+  | "current_equity"
+  | "current_credit"
+  | "margin"
+  | "free_margin"
+  | "pnl"
+  | "initial_deposit"
+  | "server_group_id"
+  | "user.id"
+  | "user.name"
+  | "user.email";
+
+export type TradingAccountSortDirection = "asc" | "desc";
+
 export type TradingAccountListFilters = {
   external_user_id?: string;
   external_trader_id?: string;
+  custom_name?: string;
+  platform_id?: string;
   server_group_id?: string;
   is_active?: boolean;
+  is_trading_enabled?: boolean;
+  current_balance?: number;
+  current_equity?: number;
+  current_credit?: number;
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
+  sort_by?: TradingAccountSortBy;
+  sort_direction?: TradingAccountSortDirection;
   page?: number;
   per_page?: number;
 };
@@ -60,15 +106,51 @@ export type UpdateTradingAccountInput = {
 };
 
 export type TradingAccountFilterFormState = {
-  external_user_id: string;
   external_trader_id: string;
+  custom_name: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  platform_id: string;
   server_group_id: string;
+  current_balance: string;
+  current_equity: string;
+  current_credit: string;
+  is_trading_enabled: "" | "true" | "false";
   is_active: "" | "true" | "false";
 };
 
 export const EMPTY_TRADING_ACCOUNT_FILTERS: TradingAccountFilterFormState = {
-  external_user_id: "",
   external_trader_id: "",
+  custom_name: "",
+  user_id: "",
+  user_name: "",
+  user_email: "",
+  platform_id: "",
   server_group_id: "",
+  current_balance: "",
+  current_equity: "",
+  current_credit: "",
+  is_trading_enabled: "",
   is_active: "",
 };
+
+export function resolveAccountOwner(account: TradingAccount): {
+  id: string;
+  email: string | null;
+  name: string;
+} {
+  if (account.user) {
+    return {
+      id: account.user.id,
+      email: account.user.email,
+      name: account.user.name,
+    };
+  }
+
+  return {
+    id: account.external_user_id ?? "",
+    email: null,
+    name: "",
+  };
+}

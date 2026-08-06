@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
   FilterXIcon,
   LockIcon,
   PauseCircleIcon,
@@ -16,7 +19,6 @@ import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -34,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listPlatforms } from "@/features/platform/api";
+import type { Platform } from "@/features/platform/types";
 import { listTradingAccounts } from "@/features/trading-account/api";
 import {
   TradingAccountAccessDialog,
@@ -41,9 +44,12 @@ import {
 } from "@/features/trading-account/components/trading-account-access-dialog";
 import {
   EMPTY_TRADING_ACCOUNT_FILTERS,
+  resolveAccountOwner,
   type TradingAccount,
   type TradingAccountFilterFormState,
   type TradingAccountListFilters,
+  type TradingAccountSortBy,
+  type TradingAccountSortDirection,
 } from "@/features/trading-account/types";
 import {
   listServerGroupsForAdmin,
@@ -52,13 +58,14 @@ import {
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
+import { cn } from "@/lib/utils";
 
 const tradingAccountsBreadcrumbs: BreadcrumbItem[] = [
   { label: "Dashboard", href: "/" },
   { label: "Trading accounts", current: true },
 ];
 
-const TABLE_COLUMN_COUNT = 11;
+const TABLE_COLUMN_COUNT = 13;
 
 type ServerGroupOption = {
   id: string;
@@ -75,21 +82,55 @@ function formatMoney(value: number): string {
   return moneyFormatter.format(value);
 }
 
+function parseOptionalNumber(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 function formToAppliedFilters(
   form: TradingAccountFilterFormState,
+  sortBy: TradingAccountSortBy,
+  sortDirection: TradingAccountSortDirection,
 ): TradingAccountListFilters {
-  const filters: TradingAccountListFilters = {};
+  const filters: TradingAccountListFilters = {
+    sort_by: sortBy,
+    sort_direction: sortDirection,
+  };
 
-  const externalUserId = form.external_user_id.trim();
   const externalTraderId = form.external_trader_id.trim();
+  const customName = form.custom_name.trim();
+  const userId = form.user_id.trim();
+  const userName = form.user_name.trim();
+  const userEmail = form.user_email.trim();
+  const platformId = form.platform_id.trim();
   const serverGroupId = form.server_group_id.trim();
-
-  if (externalUserId) {
-    filters.external_user_id = externalUserId;
-  }
 
   if (externalTraderId) {
     filters.external_trader_id = externalTraderId;
+  }
+
+  if (customName) {
+    filters.custom_name = customName;
+  }
+
+  if (userId) {
+    filters.user_id = userId;
+  }
+
+  if (userName) {
+    filters.user_name = userName;
+  }
+
+  if (userEmail) {
+    filters.user_email = userEmail;
+  }
+
+  if (platformId && platformId !== "all") {
+    filters.platform_id = platformId;
   }
 
   if (serverGroupId && serverGroupId !== "all") {
@@ -100,11 +141,96 @@ function formToAppliedFilters(
     filters.is_active = form.is_active === "true";
   }
 
+  if (
+    form.is_trading_enabled === "true" ||
+    form.is_trading_enabled === "false"
+  ) {
+    filters.is_trading_enabled = form.is_trading_enabled === "true";
+  }
+
+  const balance = parseOptionalNumber(form.current_balance);
+  if (balance !== undefined) {
+    filters.current_balance = balance;
+  }
+
+  const equity = parseOptionalNumber(form.current_equity);
+  if (equity !== undefined) {
+    filters.current_equity = equity;
+  }
+
+  const credit = parseOptionalNumber(form.current_credit);
+  if (credit !== undefined) {
+    filters.current_credit = credit;
+  }
+
   return filters;
 }
 
 function abbreviateUuid(value: string): string {
+  if (value.length <= 12) {
+    return value;
+  }
+
   return `${value.slice(0, 8)}…`;
+}
+
+type ColumnSortHeadProps = {
+  label: string;
+  sortKey: TradingAccountSortBy;
+  activeSortBy: TradingAccountSortBy;
+  activeDirection: TradingAccountSortDirection;
+  onSort: (sortKey: TradingAccountSortBy) => void;
+  disabled?: boolean;
+  className?: string;
+  align?: "left" | "right";
+};
+
+function ColumnSortHead({
+  label,
+  sortKey,
+  activeSortBy,
+  activeDirection,
+  onSort,
+  disabled,
+  className,
+  align = "left",
+}: ColumnSortHeadProps) {
+  const isActive = activeSortBy === sortKey;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-1",
+        align === "right" && "justify-end",
+        className,
+      )}
+    >
+      <span className="text-xs font-medium">{label}</span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="size-6 shrink-0"
+        disabled={disabled}
+        title={
+          isActive
+            ? `Sorted ${activeDirection === "asc" ? "ascending" : "descending"} — click to toggle`
+            : `Sort by ${label}`
+        }
+        onClick={() => onSort(sortKey)}
+      >
+        {isActive ? (
+          activeDirection === "asc" ? (
+            <ArrowUpIcon className="size-3.5" />
+          ) : (
+            <ArrowDownIcon className="size-3.5" />
+          )
+        ) : (
+          <ArrowUpDownIcon className="size-3.5 text-muted-foreground" />
+        )}
+      </Button>
+    </div>
+  );
 }
 
 export function TradingAccountsView() {
@@ -118,14 +244,19 @@ export function TradingAccountsView() {
 
   const [draftFilters, setDraftFilters] =
     useState<TradingAccountFilterFormState>(EMPTY_TRADING_ACCOUNT_FILTERS);
+  const [sortBy, setSortBy] = useState<TradingAccountSortBy>("created_at");
+  const [sortDirection, setSortDirection] =
+    useState<TradingAccountSortDirection>("desc");
   const [appliedFilters, setAppliedFilters] = useState<TradingAccountListFilters>(
-    {},
+    formToAppliedFilters(EMPTY_TRADING_ACCOUNT_FILTERS, "created_at", "desc"),
   );
 
   const [serverGroupOptions, setServerGroupOptions] = useState<
     ServerGroupOption[]
   >([]);
   const [serverGroupsLoading, setServerGroupsLoading] = useState(true);
+  const [platformOptions, setPlatformOptions] = useState<Platform[]>([]);
+  const [platformsLoading, setPlatformsLoading] = useState(true);
 
   const [accessAccount, setAccessAccount] = useState<TradingAccount | null>(
     null,
@@ -136,12 +267,15 @@ export function TradingAccountsView() {
 
   const loadServerGroupOptions = useCallback(async () => {
     setServerGroupsLoading(true);
+    setPlatformsLoading(true);
 
     try {
       const [serversResponse, platformsResponse] = await Promise.all([
         listTradingServersForAdmin({ per_page: 100 }),
         listPlatforms({ per_page: 100 }),
       ]);
+
+      setPlatformOptions(platformsResponse.data);
 
       const platformLabelById = new Map(
         platformsResponse.data.map((platform) => [
@@ -182,8 +316,10 @@ export function TradingAccountsView() {
       );
     } catch {
       setServerGroupOptions([]);
+      setPlatformOptions([]);
     } finally {
       setServerGroupsLoading(false);
+      setPlatformsLoading(false);
     }
   }, []);
 
@@ -220,15 +356,35 @@ export function TradingAccountsView() {
     void loadTradingAccounts(page, appliedFilters);
   }, [appliedFilters, loadTradingAccounts, page]);
 
-  function applyFilters() {
+  function applyFilters(nextSortBy = sortBy, nextDirection = sortDirection) {
     setPage(1);
-    setAppliedFilters(formToAppliedFilters(draftFilters));
+    setAppliedFilters(
+      formToAppliedFilters(draftFilters, nextSortBy, nextDirection),
+    );
   }
 
   function clearFilters() {
     setDraftFilters(EMPTY_TRADING_ACCOUNT_FILTERS);
+    setSortBy("created_at");
+    setSortDirection("desc");
     setPage(1);
-    setAppliedFilters({});
+    setAppliedFilters(
+      formToAppliedFilters(EMPTY_TRADING_ACCOUNT_FILTERS, "created_at", "desc"),
+    );
+  }
+
+  function toggleSort(column: TradingAccountSortBy) {
+    let nextDirection: TradingAccountSortDirection = "asc";
+    if (sortBy === column) {
+      nextDirection = sortDirection === "asc" ? "desc" : "asc";
+    }
+
+    setSortBy(column);
+    setSortDirection(nextDirection);
+    setPage(1);
+    setAppliedFilters(
+      formToAppliedFilters(draftFilters, column, nextDirection),
+    );
   }
 
   function openAccessDialog(
@@ -254,111 +410,29 @@ export function TradingAccountsView() {
       />
 
       <div className="rounded-xl border p-4">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <p className="text-sm font-medium">Filters</p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="space-y-2">
-            <Label htmlFor="filter-external-trader-id">Trader ID</Label>
-            <Input
-              id="filter-external-trader-id"
-              value={draftFilters.external_trader_id}
-              placeholder="e.g. 1102"
-              onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  external_trader_id: event.target.value,
-                }))
-              }
-            />
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="text-sm font-medium">Column filters & sort</p>
+            <p className="text-xs text-muted-foreground">
+              Search per column (Enter or Apply). Sort toggles immediately.
+              Balance / equity / credit use exact match.
+            </p>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="filter-external-user-id">External user ID</Label>
-            <Input
-              id="filter-external-user-id"
-              value={draftFilters.external_user_id}
-              placeholder="UUID"
-              onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  external_user_id: event.target.value,
-                }))
-              }
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="filter-server-group-id">Server group</Label>
-            <Select
-              value={draftFilters.server_group_id || "all"}
-              onValueChange={(value) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  server_group_id: value === "all" ? "" : (value ?? ""),
-                }))
-              }
-              disabled={serverGroupsLoading}
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={() => applyFilters()} disabled={loading}>
+              <SearchIcon data-icon="inline-start" />
+              Apply filters
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={clearFilters}
+              disabled={loading}
             >
-              <SelectTrigger id="filter-server-group-id" className="w-full">
-                <SelectValue
-                  placeholder={
-                    serverGroupsLoading ? "Loading groups…" : "All groups"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All groups</SelectItem>
-                {serverGroupOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <FilterXIcon data-icon="inline-start" />
+              Clear
+            </Button>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="filter-is-active">Status</Label>
-            <Select
-              value={draftFilters.is_active || "all"}
-              onValueChange={(value) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  is_active:
-                    value === "true" || value === "false"
-                      ? value
-                      : "",
-                }))
-              }
-            >
-              <SelectTrigger id="filter-is-active" className="w-full">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="true">Active</SelectItem>
-                <SelectItem value="false">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="button" onClick={applyFilters} disabled={loading}>
-            <SearchIcon data-icon="inline-start" />
-            Apply filters
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={clearFilters}
-            disabled={loading}
-          >
-            <FilterXIcon data-icon="inline-start" />
-            Clear
-          </Button>
         </div>
       </div>
 
@@ -366,21 +440,362 @@ export function TradingAccountsView() {
         <ApiErrorAlert title="Could not load trading accounts" message={error} />
       ) : null}
 
-      <div className="rounded-xl border">
+      <div className="overflow-x-auto rounded-xl border">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Trader ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>External user</TableHead>
-              <TableHead>Platform</TableHead>
-              <TableHead>Server group</TableHead>
-              <TableHead className="text-right">Balance</TableHead>
-              <TableHead className="text-right">Equity</TableHead>
-              <TableHead className="text-right">Credit</TableHead>
-              <TableHead>Trading</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[120px] text-right">Actions</TableHead>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="min-w-[140px] align-bottom">
+                <ColumnSortHead
+                  label="Trader ID"
+                  sortKey="external_trader_id"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Input
+                  className="mt-1.5 h-8"
+                  placeholder="Filter…"
+                  value={draftFilters.external_trader_id}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      external_trader_id: event.target.value,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      applyFilters();
+                    }
+                  }}
+                />
+              </TableHead>
+
+              <TableHead className="min-w-[120px] align-bottom">
+                <ColumnSortHead
+                  label="Account name"
+                  sortKey="custom_name"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Input
+                  className="mt-1.5 h-8"
+                  placeholder="Name…"
+                  value={draftFilters.custom_name}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      custom_name: event.target.value,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      applyFilters();
+                    }
+                  }}
+                />
+              </TableHead>
+
+              <TableHead className="min-w-[150px] align-bottom">
+                <ColumnSortHead
+                  label="User ID"
+                  sortKey="user.id"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Input
+                  className="mt-1.5 h-8 font-mono text-xs"
+                  placeholder="UUID / id…"
+                  value={draftFilters.user_id}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      user_id: event.target.value,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      applyFilters();
+                    }
+                  }}
+                />
+              </TableHead>
+
+              <TableHead className="min-w-[140px] align-bottom">
+                <ColumnSortHead
+                  label="User name"
+                  sortKey="user.name"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Input
+                  className="mt-1.5 h-8"
+                  placeholder="Name…"
+                  value={draftFilters.user_name}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      user_name: event.target.value,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      applyFilters();
+                    }
+                  }}
+                />
+              </TableHead>
+
+              <TableHead className="min-w-[160px] align-bottom">
+                <ColumnSortHead
+                  label="User email"
+                  sortKey="user.email"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Input
+                  className="mt-1.5 h-8"
+                  placeholder="Email…"
+                  value={draftFilters.user_email}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      user_email: event.target.value,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      applyFilters();
+                    }
+                  }}
+                />
+              </TableHead>
+
+              <TableHead className="min-w-[130px] align-bottom">
+                <span className="text-xs font-medium">Platform</span>
+                <Select
+                  value={draftFilters.platform_id || "all"}
+                  onValueChange={(value) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      platform_id: value === "all" ? "" : (value ?? ""),
+                    }))
+                  }
+                  disabled={platformsLoading}
+                >
+                  <SelectTrigger className="mt-1.5 h-8 w-full">
+                    <SelectValue
+                      placeholder={
+                        platformsLoading ? "Loading…" : "All platforms"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {platformOptions.map((platform) => (
+                      <SelectItem key={platform.id} value={platform.id}>
+                        {platform.custom_name?.trim() || platform.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TableHead>
+
+              <TableHead className="min-w-[140px] align-bottom">
+                <ColumnSortHead
+                  label="Server group"
+                  sortKey="server_group_id"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Select
+                  value={draftFilters.server_group_id || "all"}
+                  onValueChange={(value) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      server_group_id: value === "all" ? "" : (value ?? ""),
+                    }))
+                  }
+                  disabled={serverGroupsLoading}
+                >
+                  <SelectTrigger className="mt-1.5 h-8 w-full">
+                    <SelectValue
+                      placeholder={
+                        serverGroupsLoading ? "Loading…" : "All groups"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {serverGroupOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TableHead>
+
+              <TableHead className="min-w-[100px] align-bottom text-right">
+                <ColumnSortHead
+                  label="Balance"
+                  sortKey="current_balance"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                  align="right"
+                />
+                <Input
+                  className="mt-1.5 h-8 text-right"
+                  inputMode="decimal"
+                  placeholder="Exact…"
+                  value={draftFilters.current_balance}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      current_balance: event.target.value,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      applyFilters();
+                    }
+                  }}
+                />
+              </TableHead>
+
+              <TableHead className="min-w-[100px] align-bottom text-right">
+                <ColumnSortHead
+                  label="Equity"
+                  sortKey="current_equity"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                  align="right"
+                />
+                <Input
+                  className="mt-1.5 h-8 text-right"
+                  inputMode="decimal"
+                  placeholder="Exact…"
+                  value={draftFilters.current_equity}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      current_equity: event.target.value,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      applyFilters();
+                    }
+                  }}
+                />
+              </TableHead>
+
+              <TableHead className="min-w-[100px] align-bottom text-right">
+                <ColumnSortHead
+                  label="Credit"
+                  sortKey="current_credit"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                  align="right"
+                />
+                <Input
+                  className="mt-1.5 h-8 text-right"
+                  inputMode="decimal"
+                  placeholder="Exact…"
+                  value={draftFilters.current_credit}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      current_credit: event.target.value,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      applyFilters();
+                    }
+                  }}
+                />
+              </TableHead>
+
+              <TableHead className="min-w-[120px] align-bottom">
+                <ColumnSortHead
+                  label="Trading"
+                  sortKey="is_trading_enabled"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Select
+                  value={draftFilters.is_trading_enabled || "all"}
+                  onValueChange={(value) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      is_trading_enabled:
+                        value === "true" || value === "false" ? value : "",
+                    }))
+                  }
+                >
+                  <SelectTrigger className="mt-1.5 h-8 w-full">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="true">Enabled</SelectItem>
+                    <SelectItem value="false">Disabled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableHead>
+
+              <TableHead className="min-w-[120px] align-bottom">
+                <ColumnSortHead
+                  label="Status"
+                  sortKey="is_active"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Select
+                  value={draftFilters.is_active || "all"}
+                  onValueChange={(value) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      is_active:
+                        value === "true" || value === "false" ? value : "",
+                    }))
+                  }
+                >
+                  <SelectTrigger className="mt-1.5 h-8 w-full">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="true">Active</SelectItem>
+                    <SelectItem value="false">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableHead>
+
+              <TableHead className="w-[120px] text-right align-bottom">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -409,112 +824,122 @@ export function TradingAccountsView() {
               ? accounts.map((account) => {
                   const serverGroupMeta =
                     serverGroupById.get(account.server_group.id) ?? null;
+                  const owner = resolveAccountOwner(account);
 
                   return (
-                  <TableRow key={account.id}>
-                    <TableCell className="font-medium">
-                      {account.external_trader_id}
-                    </TableCell>
-                    <TableCell>{account.custom_name ?? "—"}</TableCell>
-                    <TableCell>
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {abbreviateUuid(account.external_user_id)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {account.platform?.custom_name ??
-                        account.platform?.name ??
-                        serverGroupMeta?.platformLabel ??
-                        "—"}
-                    </TableCell>
-                    <TableCell>
-                      {serverGroupMeta?.label ??
-                        (account.server_group.meta_name?.trim() ||
-                          account.server_group.name?.trim() || (
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {abbreviateUuid(account.server_group.id)}
-                            </span>
-                          ))}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatMoney(account.current_balance)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatMoney(account.current_equity)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatMoney(account.current_credit)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          account.is_trading_enabled ? "default" : "secondary"
-                        }
-                      >
-                        {account.is_trading_enabled ? "Enabled" : "Disabled"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={account.is_active ? "default" : "secondary"}
-                      >
-                        {account.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        {account.is_trading_enabled ? (
-                          <ActionTooltipButton
-                            variant="ghost"
-                            size="icon-sm"
-                            tooltip="Disable trading"
-                            disabled={!account.is_active}
-                            onClick={() =>
-                              openAccessDialog(account, "disable_trading")
-                            }
-                          >
-                            <PauseCircleIcon />
-                          </ActionTooltipButton>
-                        ) : (
-                          <ActionTooltipButton
-                            variant="ghost"
-                            size="icon-sm"
-                            tooltip="Enable trading"
-                            disabled={!account.is_active}
-                            onClick={() =>
-                              openAccessDialog(account, "enable_trading")
-                            }
-                          >
-                            <PlayCircleIcon />
-                          </ActionTooltipButton>
-                        )}
+                    <TableRow key={account.id}>
+                      <TableCell className="font-medium">
+                        {account.external_trader_id}
+                      </TableCell>
+                      <TableCell>{account.custom_name ?? "—"}</TableCell>
+                      <TableCell>
+                        <span
+                          className="font-mono text-xs text-muted-foreground"
+                          title={owner.id}
+                        >
+                          {owner.id ? abbreviateUuid(owner.id) : "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {owner.name?.trim() ? owner.name : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {owner.email?.trim() ? owner.email : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {account.platform?.custom_name ??
+                          account.platform?.name ??
+                          serverGroupMeta?.platformLabel ??
+                          "—"}
+                      </TableCell>
+                      <TableCell>
+                        {serverGroupMeta?.label ??
+                          (account.server_group.meta_name?.trim() ||
+                            account.server_group.name?.trim() || (
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {abbreviateUuid(account.server_group.id)}
+                              </span>
+                            ))}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatMoney(account.current_balance)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatMoney(account.current_equity)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatMoney(account.current_credit)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            account.is_trading_enabled ? "default" : "secondary"
+                          }
+                        >
+                          {account.is_trading_enabled ? "Enabled" : "Disabled"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={account.is_active ? "default" : "secondary"}
+                        >
+                          {account.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          {account.is_trading_enabled ? (
+                            <ActionTooltipButton
+                              variant="ghost"
+                              size="icon-sm"
+                              tooltip="Disable trading"
+                              disabled={!account.is_active}
+                              onClick={() =>
+                                openAccessDialog(account, "disable_trading")
+                              }
+                            >
+                              <PauseCircleIcon />
+                            </ActionTooltipButton>
+                          ) : (
+                            <ActionTooltipButton
+                              variant="ghost"
+                              size="icon-sm"
+                              tooltip="Enable trading"
+                              disabled={!account.is_active}
+                              onClick={() =>
+                                openAccessDialog(account, "enable_trading")
+                              }
+                            >
+                              <PlayCircleIcon />
+                            </ActionTooltipButton>
+                          )}
 
-                        {account.is_active ? (
-                          <ActionTooltipButton
-                            variant="ghost"
-                            size="icon-sm"
-                            tooltip="Deactivate account"
-                            onClick={() =>
-                              openAccessDialog(account, "deactivate_account")
-                            }
-                          >
-                            <LockIcon />
-                          </ActionTooltipButton>
-                        ) : (
-                          <ActionTooltipButton
-                            variant="ghost"
-                            size="icon-sm"
-                            tooltip="Reactivate account"
-                            onClick={() =>
-                              openAccessDialog(account, "reactivate_account")
-                            }
-                          >
-                            <UnlockIcon />
-                          </ActionTooltipButton>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                          {account.is_active ? (
+                            <ActionTooltipButton
+                              variant="ghost"
+                              size="icon-sm"
+                              tooltip="Deactivate account"
+                              onClick={() =>
+                                openAccessDialog(account, "deactivate_account")
+                              }
+                            >
+                              <LockIcon />
+                            </ActionTooltipButton>
+                          ) : (
+                            <ActionTooltipButton
+                              variant="ghost"
+                              size="icon-sm"
+                              tooltip="Reactivate account"
+                              onClick={() =>
+                                openAccessDialog(account, "reactivate_account")
+                              }
+                            >
+                              <UnlockIcon />
+                            </ActionTooltipButton>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   );
                 })
               : null}
