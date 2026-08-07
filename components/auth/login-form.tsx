@@ -42,7 +42,7 @@ export function LoginForm({ area, title, description }: LoginFormProps) {
   const error = state !== null && "error" in state ? state.error : null;
 
   return (
-    <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 px-8 py-10 shadow-xl backdrop-blur-sm">
+    <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 px-8 py-10 text-card-foreground shadow-xl backdrop-blur-sm">
       <div className="space-y-2 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
           MMT Broker
