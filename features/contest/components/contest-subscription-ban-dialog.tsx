@@ -15,7 +15,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { storeContestBan } from "@/features/contest/api";
-import type { Contest, ContestSubscription } from "@/features/contest/types";
+import {
+  resolveContestSubscriptionOwner,
+  type Contest,
+  type ContestSubscription,
+} from "@/features/contest/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
 
@@ -60,9 +64,11 @@ export function ContestSubscriptionBanDialog({
     setSubmitting(true);
     setError(null);
 
+    const owner = resolveContestSubscriptionOwner(subscription);
+
     try {
       await storeContestBan(contest.id, {
-        external_user_id: subscription.external_user_id,
+        external_user_id: owner.id,
         account_id: subscription.account_id,
         reason: reason.trim(),
       });
@@ -75,6 +81,13 @@ export function ContestSubscriptionBanDialog({
       setSubmitting(false);
     }
   }
+
+  const ownerLabel = subscription
+    ? (() => {
+        const owner = resolveContestSubscriptionOwner(subscription);
+        return owner.name || owner.id;
+      })()
+    : "";
 
   return (
     <AlertDialog
@@ -93,7 +106,7 @@ export function ContestSubscriptionBanDialog({
           <AlertDialogDescription>
             This will ban{" "}
             <span className="font-medium text-foreground">
-              {subscription?.external_user_id}
+              {ownerLabel}
             </span>{" "}
             from{" "}
             <span className="font-medium text-foreground">

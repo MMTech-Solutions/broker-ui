@@ -1,14 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BanIcon, ShieldBanIcon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  BanIcon,
+  FilterXIcon,
+  ShieldBanIcon,
+} from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -38,12 +52,19 @@ import {
 } from "@/features/contest/format";
 import {
   CONTEST_STATUSES,
+  EMPTY_CONTEST_PARTICIPANT_FILTERS,
+  resolveContestSubscriptionOwner,
   type Contest,
+  type ContestParticipantFilterFormState,
+  type ContestParticipantListFilters,
+  type ContestParticipantSortBy,
+  type ContestParticipantSortDirection,
   type ContestSubscription,
 } from "@/features/contest/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
+import { cn } from "@/lib/utils";
 
 const subscriptionsBreadcrumbs: BreadcrumbItem[] = [
   { label: "Dashboard", href: "/" },
@@ -52,10 +73,125 @@ const subscriptionsBreadcrumbs: BreadcrumbItem[] = [
 ];
 
 const ALL_CONTESTS_VALUE = "__none__";
+const TABLE_COLUMN_COUNT = 10;
 
 const statusLabels = Object.fromEntries(
   CONTEST_STATUSES.map((option) => [option.value, option.label]),
 ) as Record<string, string>;
+
+function parseOptionalNumber(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function formToAppliedFilters(
+  form: ContestParticipantFilterFormState,
+  sortBy: ContestParticipantSortBy,
+  sortDirection: ContestParticipantSortDirection,
+): ContestParticipantListFilters {
+  const filters: ContestParticipantListFilters = {
+    sort_by: sortBy,
+    sort_direction: sortDirection,
+  };
+
+  const userId = form.user_id.trim();
+  const userName = form.user_name.trim();
+  const userEmail = form.user_email.trim();
+  const traderId = form.external_trader_id.trim();
+
+  if (userId) {
+    filters.user_id = userId;
+  }
+  if (userName) {
+    filters.user_name = userName;
+  }
+  if (userEmail) {
+    filters.user_email = userEmail;
+  }
+  if (traderId) {
+    filters.external_trader_id = traderId;
+  }
+
+  const performanceIndex = parseOptionalNumber(form.performance_index);
+  if (performanceIndex !== undefined) {
+    filters.performance_index = performanceIndex;
+  }
+
+  const balanceSnapshot = parseOptionalNumber(form.balance_snapshot);
+  if (balanceSnapshot !== undefined) {
+    filters.balance_snapshot = balanceSnapshot;
+  }
+
+  const entryFee = parseOptionalNumber(form.entry_fee_charged);
+  if (entryFee !== undefined) {
+    filters.entry_fee_charged = entryFee;
+  }
+
+  return filters;
+}
+
+function abbreviateUuid(value: string): string {
+  if (value.length <= 12) {
+    return value;
+  }
+
+  return `${value.slice(0, 8)}…`;
+}
+
+type ColumnSortHeadProps = {
+  label: string;
+  sortKey: ContestParticipantSortBy;
+  activeSortBy: ContestParticipantSortBy;
+  activeDirection: ContestParticipantSortDirection;
+  onSort: (sortKey: ContestParticipantSortBy) => void;
+  disabled?: boolean;
+  className?: string;
+};
+
+function ColumnSortHead({
+  label,
+  sortKey,
+  activeSortBy,
+  activeDirection,
+  onSort,
+  disabled,
+  className,
+}: ColumnSortHeadProps) {
+  const isActive = activeSortBy === sortKey;
+
+  return (
+    <div className={cn("flex items-center gap-1", className)}>
+      <span className="text-xs font-medium">{label}</span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="size-6 shrink-0"
+        disabled={disabled}
+        title={
+          isActive
+            ? `Sorted ${activeDirection === "asc" ? "ascending" : "descending"} — click to toggle`
+            : `Sort by ${label}`
+        }
+        onClick={() => onSort(sortKey)}
+      >
+        {isActive ? (
+          activeDirection === "asc" ? (
+            <ArrowUpIcon className="size-3.5" />
+          ) : (
+            <ArrowDownIcon className="size-3.5" />
+          )
+        ) : (
+          <ArrowUpDownIcon className="size-3.5 text-muted-foreground" />
+        )}
+      </Button>
+    </div>
+  );
+}
 
 type ContestSubscriptionsViewProps = {
   initialContestId?: string;
@@ -80,6 +216,21 @@ export function ContestSubscriptionsView({
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [draftFilters, setDraftFilters] =
+    useState<ContestParticipantFilterFormState>(EMPTY_CONTEST_PARTICIPANT_FILTERS);
+  const [sortBy, setSortBy] =
+    useState<ContestParticipantSortBy>("performance_index");
+  const [sortDirection, setSortDirection] =
+    useState<ContestParticipantSortDirection>("desc");
+  const [appliedFilters, setAppliedFilters] =
+    useState<ContestParticipantListFilters>(
+      formToAppliedFilters(
+        EMPTY_CONTEST_PARTICIPANT_FILTERS,
+        "performance_index",
+        "desc",
+      ),
+    );
 
   const [banOpen, setBanOpen] = useState(false);
   const [subscriptionToBan, setSubscriptionToBan] =
@@ -120,7 +271,11 @@ export function ContestSubscriptionsView({
   }, [contests, selectedContestId]);
 
   const loadSubscriptions = useCallback(
-    async (contestId: string, requestedPage: number) => {
+    async (
+      contestId: string,
+      requestedPage: number,
+      filters: ContestParticipantListFilters,
+    ) => {
       if (!contestId) {
         setSubscriptions([]);
         setPagination(null);
@@ -132,6 +287,7 @@ export function ContestSubscriptionsView({
 
       try {
         const response = await listContestParticipants(contestId, {
+          ...filters,
           page: requestedPage,
           per_page: 15,
         });
@@ -150,8 +306,8 @@ export function ContestSubscriptionsView({
   );
 
   useEffect(() => {
-    void loadSubscriptions(selectedContestId, page);
-  }, [loadSubscriptions, selectedContestId, page]);
+    void loadSubscriptions(selectedContestId, page, appliedFilters);
+  }, [loadSubscriptions, selectedContestId, page, appliedFilters]);
 
   const contestOptions = useMemo(() => {
     return [...contests].sort((left, right) =>
@@ -164,6 +320,16 @@ export function ContestSubscriptionsView({
 
     setSelectedContestId(nextContestId);
     setPage(1);
+    setDraftFilters(EMPTY_CONTEST_PARTICIPANT_FILTERS);
+    setSortBy("performance_index");
+    setSortDirection("desc");
+    setAppliedFilters(
+      formToAppliedFilters(
+        EMPTY_CONTEST_PARTICIPANT_FILTERS,
+        "performance_index",
+        "desc",
+      ),
+    );
 
     if (nextContestId) {
       router.replace(`/contest-subscriptions?contestId=${nextContestId}`);
@@ -173,6 +339,48 @@ export function ContestSubscriptionsView({
     router.replace("/contest-subscriptions");
   }
 
+  function commitFilters(
+    form: ContestParticipantFilterFormState,
+    nextSortBy = sortBy,
+    nextDirection = sortDirection,
+  ) {
+    setPage(1);
+    setAppliedFilters(formToAppliedFilters(form, nextSortBy, nextDirection));
+  }
+
+  function applyFiltersFromDraft() {
+    commitFilters(draftFilters);
+  }
+
+  function clearFilters() {
+    setDraftFilters(EMPTY_CONTEST_PARTICIPANT_FILTERS);
+    setSortBy("performance_index");
+    setSortDirection("desc");
+    commitFilters(EMPTY_CONTEST_PARTICIPANT_FILTERS, "performance_index", "desc");
+  }
+
+  function toggleSort(column: ContestParticipantSortBy) {
+    let nextDirection: ContestParticipantSortDirection = "asc";
+    if (sortBy === column) {
+      nextDirection = sortDirection === "asc" ? "desc" : "asc";
+    }
+
+    setSortBy(column);
+    setSortDirection(nextDirection);
+    commitFilters(draftFilters, column, nextDirection);
+  }
+
+  function patchDraft(patch: Partial<ContestParticipantFilterFormState>) {
+    setDraftFilters((current) => ({ ...current, ...patch }));
+  }
+
+  function onFilterEnter(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      applyFiltersFromDraft();
+    }
+  }
+
   function openBanDialog(subscription: ContestSubscription) {
     setSubscriptionToBan(subscription);
     setBanOpen(true);
@@ -180,7 +388,7 @@ export function ContestSubscriptionsView({
 
   function handleMutationSuccess() {
     void loadContests();
-    void loadSubscriptions(selectedContestId, page);
+    void loadSubscriptions(selectedContestId, page, appliedFilters);
   }
 
   return (
@@ -236,6 +444,16 @@ export function ContestSubscriptionsView({
             <span className="text-sm text-muted-foreground">
               {selectedContest.subscriptions_count ?? 0} active subscriptions
             </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              disabled={loading}
+            >
+              <FilterXIcon />
+              Clear filters
+            </Button>
           </div>
         ) : null}
       </div>
@@ -255,13 +473,150 @@ export function ContestSubscriptionsView({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Trader ID</TableHead>
-                <TableHead>Performance</TableHead>
-                <TableHead>Balance snapshot</TableHead>
+                <TableHead>
+                  <ColumnSortHead
+                    label="User ID"
+                    sortKey="user.id"
+                    activeSortBy={sortBy}
+                    activeDirection={sortDirection}
+                    onSort={toggleSort}
+                    disabled={loading}
+                  />
+                  <Input
+                    className="mt-1 h-8"
+                    placeholder="Filter ID"
+                    value={draftFilters.user_id}
+                    onChange={(event) =>
+                      patchDraft({ user_id: event.target.value })
+                    }
+                    onKeyDown={onFilterEnter}
+                    disabled={loading}
+                  />
+                </TableHead>
+                <TableHead>
+                  <ColumnSortHead
+                    label="User name"
+                    sortKey="user.name"
+                    activeSortBy={sortBy}
+                    activeDirection={sortDirection}
+                    onSort={toggleSort}
+                    disabled={loading}
+                  />
+                  <Input
+                    className="mt-1 h-8"
+                    placeholder="Filter name"
+                    value={draftFilters.user_name}
+                    onChange={(event) =>
+                      patchDraft({ user_name: event.target.value })
+                    }
+                    onKeyDown={onFilterEnter}
+                    disabled={loading}
+                  />
+                </TableHead>
+                <TableHead>
+                  <ColumnSortHead
+                    label="User email"
+                    sortKey="user.email"
+                    activeSortBy={sortBy}
+                    activeDirection={sortDirection}
+                    onSort={toggleSort}
+                    disabled={loading}
+                  />
+                  <Input
+                    className="mt-1 h-8"
+                    placeholder="Filter email"
+                    value={draftFilters.user_email}
+                    onChange={(event) =>
+                      patchDraft({ user_email: event.target.value })
+                    }
+                    onKeyDown={onFilterEnter}
+                    disabled={loading}
+                  />
+                </TableHead>
+                <TableHead>
+                  <span className="text-xs font-medium">Trader ID</span>
+                  <Input
+                    className="mt-1 h-8"
+                    placeholder="Filter trader"
+                    value={draftFilters.external_trader_id}
+                    onChange={(event) =>
+                      patchDraft({ external_trader_id: event.target.value })
+                    }
+                    onKeyDown={onFilterEnter}
+                    disabled={loading}
+                  />
+                </TableHead>
+                <TableHead>
+                  <ColumnSortHead
+                    label="Performance"
+                    sortKey="performance_index"
+                    activeSortBy={sortBy}
+                    activeDirection={sortDirection}
+                    onSort={toggleSort}
+                    disabled={loading}
+                  />
+                  <Input
+                    className="mt-1 h-8"
+                    placeholder="Exact"
+                    value={draftFilters.performance_index}
+                    onChange={(event) =>
+                      patchDraft({ performance_index: event.target.value })
+                    }
+                    onKeyDown={onFilterEnter}
+                    disabled={loading}
+                  />
+                </TableHead>
+                <TableHead>
+                  <ColumnSortHead
+                    label="Balance snapshot"
+                    sortKey="balance_snapshot"
+                    activeSortBy={sortBy}
+                    activeDirection={sortDirection}
+                    onSort={toggleSort}
+                    disabled={loading}
+                  />
+                  <Input
+                    className="mt-1 h-8"
+                    placeholder="Exact"
+                    value={draftFilters.balance_snapshot}
+                    onChange={(event) =>
+                      patchDraft({ balance_snapshot: event.target.value })
+                    }
+                    onKeyDown={onFilterEnter}
+                    disabled={loading}
+                  />
+                </TableHead>
                 <TableHead>Current equity</TableHead>
-                <TableHead>Entry fee</TableHead>
-                <TableHead>Subscribed at</TableHead>
+                <TableHead>
+                  <ColumnSortHead
+                    label="Entry fee"
+                    sortKey="entry_fee_charged"
+                    activeSortBy={sortBy}
+                    activeDirection={sortDirection}
+                    onSort={toggleSort}
+                    disabled={loading}
+                  />
+                  <Input
+                    className="mt-1 h-8"
+                    placeholder="Exact"
+                    value={draftFilters.entry_fee_charged}
+                    onChange={(event) =>
+                      patchDraft({ entry_fee_charged: event.target.value })
+                    }
+                    onKeyDown={onFilterEnter}
+                    disabled={loading}
+                  />
+                </TableHead>
+                <TableHead>
+                  <ColumnSortHead
+                    label="Subscribed at"
+                    sortKey="subscribed_at"
+                    activeSortBy={sortBy}
+                    activeDirection={sortDirection}
+                    onSort={toggleSort}
+                    disabled={loading}
+                  />
+                </TableHead>
                 <TableHead className="w-[72px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -269,7 +624,7 @@ export function ContestSubscriptionsView({
               {loading
                 ? Array.from({ length: 5 }).map((_, index) => (
                     <TableRow key={`skeleton-${index}`}>
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={TABLE_COLUMN_COUNT}>
                         <Skeleton className="h-8 w-full" />
                       </TableCell>
                     </TableRow>
@@ -279,7 +634,7 @@ export function ContestSubscriptionsView({
               {!loading && subscriptions.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={TABLE_COLUMN_COUNT}
                     className="h-24 text-center text-muted-foreground"
                   >
                     No active subscriptions for this contest.
@@ -288,47 +643,58 @@ export function ContestSubscriptionsView({
               ) : null}
 
               {!loading
-                ? subscriptions.map((subscription) => (
-                    <TableRow key={subscription.id}>
-                      <TableCell className="font-medium">
-                        {subscription.external_user_id}
-                      </TableCell>
-                      <TableCell>
-                        {subscription.account?.external_trader_id ?? "—"}
-                      </TableCell>
-                      <TableCell>
-                        {formatPerformanceIndex(subscription.performance_index)}
-                      </TableCell>
-                      <TableCell>
-                        {formatDecimalValue(subscription.balance_snapshot)}
-                      </TableCell>
-                      <TableCell>
-                        {formatDecimalValue(
-                          subscription.account?.current_equity,
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {formatMinorUnits(
-                          subscription.entry_fee_charged,
-                          selectedContest?.server_group?.currency,
-                          selectedContest?.server_group?.currency_precision,
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {formatContestDateTime(subscription.subscribed_at)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <ActionTooltipButton
-                          variant="ghost"
-                          size="icon-sm"
-                          tooltip={`Exclude ${subscription.external_user_id}`}
-                          onClick={() => openBanDialog(subscription)}
+                ? subscriptions.map((subscription) => {
+                    const owner = resolveContestSubscriptionOwner(subscription);
+
+                    return (
+                      <TableRow key={subscription.id}>
+                        <TableCell
+                          className="font-medium"
+                          title={owner.id || undefined}
                         >
-                          <BanIcon />
-                        </ActionTooltipButton>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                          {owner.id ? abbreviateUuid(owner.id) : "—"}
+                        </TableCell>
+                        <TableCell>{owner.name || "—"}</TableCell>
+                        <TableCell>{owner.email || "—"}</TableCell>
+                        <TableCell>
+                          {subscription.account?.external_trader_id ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          {formatPerformanceIndex(
+                            subscription.performance_index,
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {formatDecimalValue(subscription.balance_snapshot)}
+                        </TableCell>
+                        <TableCell>
+                          {formatDecimalValue(
+                            subscription.account?.current_equity,
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {formatMinorUnits(
+                            subscription.entry_fee_charged,
+                            selectedContest?.server_group?.currency,
+                            selectedContest?.server_group?.currency_precision,
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {formatContestDateTime(subscription.subscribed_at)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <ActionTooltipButton
+                            variant="ghost"
+                            size="icon-sm"
+                            tooltip={`Exclude ${owner.name || owner.id}`}
+                            onClick={() => openBanDialog(subscription)}
+                          >
+                            <BanIcon />
+                          </ActionTooltipButton>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 : null}
             </TableBody>
           </Table>

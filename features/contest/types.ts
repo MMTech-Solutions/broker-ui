@@ -70,10 +70,17 @@ export type ContestSubscriptionAccount = {
   current_equity: number;
 };
 
+/** Owner payload from broker API (post user-enrichment). */
+export type ContestUserOwner = {
+  id: string;
+  email: string | null;
+  name: string;
+};
+
 export type ContestSubscription = {
   id: string;
   contest_id: string;
-  external_user_id: string;
+  user: ContestUserOwner;
   account_id: string;
   entry_fee_charged: number;
   balance_snapshot: number;
@@ -86,10 +93,53 @@ export type ContestSubscription = {
   updated_at?: string | null;
 };
 
+export type ContestParticipantSortBy =
+  | "performance_index"
+  | "balance_snapshot"
+  | "entry_fee_charged"
+  | "subscribed_at"
+  | "created_at"
+  | "updated_at"
+  | "user.id"
+  | "user.name"
+  | "user.email";
+
+export type ContestParticipantSortDirection = "asc" | "desc";
+
 export type ContestParticipantListFilters = {
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
+  external_trader_id?: string;
+  performance_index?: number;
+  balance_snapshot?: number;
+  entry_fee_charged?: number;
+  sort_by?: ContestParticipantSortBy;
+  sort_direction?: ContestParticipantSortDirection;
   page?: number;
   per_page?: number;
 };
+
+export type ContestParticipantFilterFormState = {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  external_trader_id: string;
+  performance_index: string;
+  balance_snapshot: string;
+  entry_fee_charged: string;
+};
+
+export const EMPTY_CONTEST_PARTICIPANT_FILTERS: ContestParticipantFilterFormState =
+  {
+    user_id: "",
+    user_name: "",
+    user_email: "",
+    external_trader_id: "",
+    performance_index: "",
+    balance_snapshot: "",
+    entry_fee_charged: "",
+  };
 
 export type ContestBanAccount = {
   id: string;
@@ -99,7 +149,7 @@ export type ContestBanAccount = {
 export type ContestBan = {
   id: string;
   contest_id: string;
-  external_user_id: string;
+  user: ContestUserOwner;
   account_id: string;
   reason: string;
   banned_by_user_id: string;
@@ -112,9 +162,46 @@ export type ContestBan = {
   updated_at?: string | null;
 };
 
+export type ContestBanSortBy =
+  | "banned_at"
+  | "created_at"
+  | "updated_at"
+  | "reason"
+  | "user.id"
+  | "user.name"
+  | "user.email";
+
+export type ContestBanSortDirection = "asc" | "desc";
+
 export type ContestBanListFilters = {
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
+  external_trader_id?: string;
+  reason?: string;
+  is_active?: boolean;
+  sort_by?: ContestBanSortBy;
+  sort_direction?: ContestBanSortDirection;
   page?: number;
   per_page?: number;
+};
+
+export type ContestBanFilterFormState = {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  external_trader_id: string;
+  reason: string;
+  is_active: "" | "true" | "false";
+};
+
+export const EMPTY_CONTEST_BAN_FILTERS: ContestBanFilterFormState = {
+  user_id: "",
+  user_name: "",
+  user_email: "",
+  external_trader_id: "",
+  reason: "",
+  is_active: "",
 };
 
 export type CreateContestBanInput = {
@@ -122,6 +209,24 @@ export type CreateContestBanInput = {
   account_id: string;
   reason: string;
 };
+
+export function resolveContestSubscriptionOwner(
+  subscription: ContestSubscription,
+): ContestUserOwner {
+  return {
+    id: subscription.user?.id ?? "",
+    email: subscription.user?.email ?? null,
+    name: subscription.user?.name ?? "",
+  };
+}
+
+export function resolveContestBanOwner(ban: ContestBan): ContestUserOwner {
+  return {
+    id: ban.user?.id ?? "",
+    email: ban.user?.email ?? null,
+    name: ban.user?.name ?? "",
+  };
+}
 
 export type ContestGlobalSettings = {
   banner_image_url: string | null;

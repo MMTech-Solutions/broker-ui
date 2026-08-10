@@ -79,9 +79,16 @@ export type CreateInsurancePlanOptionInput = {
 
 export type UpdateInsurancePlanOptionInput = Partial<CreateInsurancePlanOptionInput>;
 
+/** Owner payload from broker API (post user-enrichment). */
+export type AccountInsuranceOwner = {
+  id: string;
+  email: string | null;
+  name: string;
+};
+
 export type AccountInsurance = {
   id: string;
-  external_user_id: string;
+  user: AccountInsuranceOwner;
   account_id: string;
   insurance_plan_option_id: string;
   initial_balance: string | number;
@@ -116,14 +123,61 @@ export type AccountInsurance = {
   updated_at?: string | null;
 };
 
+export type AccountInsuranceAdminSortBy =
+  | "created_at"
+  | "updated_at"
+  | "status"
+  | "started_at"
+  | "expires_at"
+  | "claimed_at"
+  | "reviewed_at"
+  | "user.id"
+  | "user.name"
+  | "user.email";
+
+export type AccountInsuranceAdminSortDirection = "asc" | "desc";
+
 export type AccountInsuranceAdminListFilters = {
   page?: number;
   per_page?: number;
-  external_user_id?: string;
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
   account_id?: string;
   status?: AccountInsuranceStatus;
   insurance_plan_option_id?: string;
+  sort_by?: AccountInsuranceAdminSortBy;
+  sort_direction?: AccountInsuranceAdminSortDirection;
 };
+
+export type AccountInsuranceAdminFilterFormState = {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  account_id: string;
+  status: "" | AccountInsuranceStatus;
+  insurance_plan_option_id: string;
+};
+
+export const EMPTY_ACCOUNT_INSURANCE_ADMIN_FILTERS: AccountInsuranceAdminFilterFormState =
+  {
+    user_id: "",
+    user_name: "",
+    user_email: "",
+    account_id: "",
+    status: "",
+    insurance_plan_option_id: "",
+  };
+
+export function resolveAccountInsuranceOwner(
+  insurance: AccountInsurance,
+): AccountInsuranceOwner {
+  return {
+    id: insurance.user?.id ?? "",
+    email: insurance.user?.email ?? null,
+    name: insurance.user?.name ?? "",
+  };
+}
 
 export type RejectAccountInsuranceClaimInput = {
   notes?: string | null;
