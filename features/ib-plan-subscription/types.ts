@@ -13,9 +13,16 @@ export type IbPlanProgramPlacement = {
   program?: IbProgram;
 };
 
+/** Owner payload from broker API (post user-enrichment). */
+export type IbPlanSubscriptionOwner = {
+  id: string;
+  email: string | null;
+  name: string;
+};
+
 export type IbPlanSubscription = {
   id: string;
-  external_user_id: string;
+  user: IbPlanSubscriptionOwner;
   ib_plan_id: string;
   personal_rate: string;
   is_master: boolean;
@@ -29,13 +36,58 @@ export type IbPlanSubscription = {
   updated_at?: string;
 };
 
+export type IbPlanSubscriptionSortBy =
+  | "created_at"
+  | "updated_at"
+  | "status"
+  | "is_master"
+  | "personal_rate"
+  | "master_rate"
+  | "master_level"
+  | "user.id"
+  | "user.name"
+  | "user.email";
+
+export type IbPlanSubscriptionSortDirection = "asc" | "desc";
+
 export type IbPlanSubscriptionListFilters = {
   external_user_id?: string;
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
   status?: IbPlanSubscriptionStatus;
   is_master?: boolean;
+  personal_rate?: number;
+  comments?: string;
+  ib_program_id?: string;
+  sort_by?: IbPlanSubscriptionSortBy;
+  sort_direction?: IbPlanSubscriptionSortDirection;
   page?: number;
   per_page?: number;
 };
+
+export type IbPlanSubscriptionFilterFormState = {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  status: "" | IbPlanSubscriptionStatus;
+  ib_program_id: string;
+  personal_rate: string;
+  is_master: "" | "true" | "false";
+  comments: string;
+};
+
+export const EMPTY_IB_PLAN_SUBSCRIPTION_FILTERS: IbPlanSubscriptionFilterFormState =
+  {
+    user_id: "",
+    user_name: "",
+    user_email: "",
+    status: "",
+    ib_program_id: "",
+    personal_rate: "",
+    is_master: "",
+    comments: "",
+  };
 
 export type CreateIbPlanSubscriptionInput = {
   external_user_id?: string;
@@ -81,3 +133,15 @@ export const PLACEMENT_ASSIGNED_BY_LABELS: Record<
   admin: "Admin",
   progression: "Progression",
 };
+
+export function resolveSubscriptionOwner(subscription: IbPlanSubscription): {
+  id: string;
+  email: string | null;
+  name: string;
+} {
+  return {
+    id: subscription.user?.id ?? "",
+    email: subscription.user?.email ?? null,
+    name: subscription.user?.name ?? "",
+  };
+}

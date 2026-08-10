@@ -19,13 +19,23 @@ function adminSubscriptionsPath(
   return subscriptionId ? `${base}/${subscriptionId}` : base;
 }
 
+function toSearchParams(
+  filters: IbPlanSubscriptionListFilters,
+): Record<string, string | number | boolean> {
+  return Object.fromEntries(
+    Object.entries(filters).filter(
+      ([, value]) => value !== undefined && value !== "",
+    ),
+  ) as Record<string, string | number | boolean>;
+}
+
 export async function listIbPlanSubscriptions(
   ibPlanId: string,
   filters: IbPlanSubscriptionListFilters = {},
 ): Promise<BrokerSuccessResponse<IbPlanSubscription[]>> {
   return browserBrokerRequest<IbPlanSubscription[]>(
     adminSubscriptionsPath(ibPlanId),
-    { searchParams: filters },
+    { searchParams: toSearchParams(filters) },
   );
 }
 

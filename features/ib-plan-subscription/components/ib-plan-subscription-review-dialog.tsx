@@ -163,8 +163,11 @@ export function IbPlanSubscriptionReviewDialog({
               <div className="rounded-lg border bg-muted/30 p-3 text-sm">
                 <p>
                   <span className="text-muted-foreground">User:</span>{" "}
-                  <span className="font-mono text-xs">
-                    {subscription.external_user_id}
+                  {subscription.user?.name?.trim()
+                    ? subscription.user.name
+                    : "—"}{" "}
+                  <span className="font-mono text-xs text-muted-foreground">
+                    ({subscription.user?.id ?? "—"})
                   </span>
                 </p>
                 {subscription.comments ? (

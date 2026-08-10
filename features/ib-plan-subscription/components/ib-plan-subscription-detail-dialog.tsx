@@ -60,11 +60,23 @@ export function IbPlanSubscriptionDetailDialog({
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4">
             <dl className="space-y-3">
               <DetailRow
-                label="User ID"
+                label="User"
                 value={
-                  <span className="font-mono text-xs">
-                    {subscription.external_user_id}
-                  </span>
+                  <div className="flex flex-col gap-0.5">
+                    <span>
+                      {subscription.user?.name?.trim()
+                        ? subscription.user.name
+                        : "—"}
+                    </span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {subscription.user?.id ?? "—"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {subscription.user?.email?.trim()
+                        ? subscription.user.email
+                        : "—"}
+                    </span>
+                  </div>
                 }
               />
               <DetailRow
