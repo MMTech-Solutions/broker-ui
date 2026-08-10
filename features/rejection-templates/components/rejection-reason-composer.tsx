@@ -142,7 +142,7 @@ export const RejectionReasonComposer = forwardRef<
           );
         }
 
-        if (saveAsTemplate) {
+        if (saveAsTemplate && selectedTemplateId === NONE_TEMPLATE_VALUE) {
           const title = templateTitle.trim();
 
           if (title === "") {
@@ -182,10 +182,14 @@ export const RejectionReasonComposer = forwardRef<
       category,
       resetLocalState,
       saveAsTemplate,
+      selectedTemplateId,
       templateTitle,
       value,
     ],
   );
+
+  const usingExistingTemplate = selectedTemplateId !== NONE_TEMPLATE_VALUE;
+  const canSaveAsTemplate = !usingExistingTemplate;
 
   function handleTemplateChange(nextId: string | null) {
     const resolvedId = nextId ?? NONE_TEMPLATE_VALUE;
@@ -194,6 +198,9 @@ export const RejectionReasonComposer = forwardRef<
     if (resolvedId === NONE_TEMPLATE_VALUE) {
       return;
     }
+
+    setSaveAsTemplate(false);
+    setTemplateTitle("");
 
     const selected = templates.find((template) => template.id === resolvedId);
     if (selected) {
@@ -264,48 +271,57 @@ export const RejectionReasonComposer = forwardRef<
         ) : null}
       </div>
 
-      <div className="space-y-3 rounded-lg border p-3">
-        <div className="flex items-start gap-2">
-          <Checkbox
-            id={`${idPrefix}-save-template`}
-            checked={saveAsTemplate}
-            onCheckedChange={(checked) => {
-              const next = checked === true;
-              setSaveAsTemplate(next);
-              if (!next) {
-                setTemplateTitle("");
-              }
-            }}
-            disabled={disabled}
-          />
-          <div className="space-y-1">
-            <Label
-              htmlFor={`${idPrefix}-save-template`}
-              className="cursor-pointer font-normal"
-            >
-              Save as new template
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Keep this copy for later. Leave unchecked to use it only this
-              time.
-            </p>
-          </div>
-        </div>
-
-        {saveAsTemplate ? (
-          <div className="space-y-2">
-            <Label htmlFor={`${idPrefix}-template-title`}>Template title</Label>
-            <Input
-              id={`${idPrefix}-template-title`}
-              value={templateTitle}
-              onChange={(event) => setTemplateTitle(event.target.value)}
+      {canSaveAsTemplate ? (
+        <div className="space-y-3 rounded-lg border p-3">
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id={`${idPrefix}-save-template`}
+              checked={saveAsTemplate}
+              onCheckedChange={(checked) => {
+                const next = checked === true;
+                setSaveAsTemplate(next);
+                if (!next) {
+                  setTemplateTitle("");
+                }
+              }}
               disabled={disabled}
-              maxLength={TEMPLATE_TITLE_MAX}
-              placeholder="Short label for this template"
             />
+            <div className="space-y-1">
+              <Label
+                htmlFor={`${idPrefix}-save-template`}
+                className="cursor-pointer font-normal"
+              >
+                Save as new template
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Keep this copy for later. Leave unchecked to use it only this
+                time.
+              </p>
+            </div>
           </div>
-        ) : null}
-      </div>
+
+          {saveAsTemplate ? (
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-template-title`}>
+                Template title
+              </Label>
+              <Input
+                id={`${idPrefix}-template-title`}
+                value={templateTitle}
+                onChange={(event) => setTemplateTitle(event.target.value)}
+                disabled={disabled}
+                maxLength={TEMPLATE_TITLE_MAX}
+                placeholder="Short label for this template"
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Using an existing template. Edit the body for this case only; switch
+          to “None (write your own)” to save a new template.
+        </p>
+      )}
     </div>
   );
 });
