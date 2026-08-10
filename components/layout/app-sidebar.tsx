@@ -14,6 +14,7 @@ import {
   LayersIcon,
   LayoutTemplateIcon,
   MedalIcon,
+  MessageSquareWarningIcon,
   PercentIcon,
   ScaleIcon,
   Settings2Icon,
@@ -166,6 +167,11 @@ const systemNavigation = [
     title: "Scheduling",
     href: "/scheduled-commands",
     icon: CalendarClockIcon,
+  },
+  {
+    title: "Rejection templates",
+    href: "/rejection-templates",
+    icon: MessageSquareWarningIcon,
   },
 ] as const;
 

@@ -9,11 +9,33 @@ const AUTH_ENDPOINT = "/api/broker/broadcasting/auth";
 
 let echoSingleton: EchoClient | null = null;
 
+/**
+ * Gateway/REVERB_SERVER_PATH prefix (e.g. /api/broker/v1/broadcasting).
+ * Pusher builds wss://host{wsPath}/app/{key}. Empty = default /app/{key} (local Reverb).
+ */
+function normalizeReverbWsPath(raw: string | undefined): string | undefined {
+  if (!raw) {
+    return undefined;
+  }
+
+  const path = raw
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\/+$/, "");
+
+  if (!path || path === "/") {
+    return undefined;
+  }
+
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
 const reverbConfig = {
   appKey: process.env.NEXT_PUBLIC_REVERB_APP_KEY?.trim(),
   host: process.env.NEXT_PUBLIC_REVERB_HOST?.trim() || "localhost",
   port: Number(process.env.NEXT_PUBLIC_REVERB_PORT?.trim() || "8080"),
   scheme: process.env.NEXT_PUBLIC_REVERB_SCHEME?.trim() || "http",
+  wsPath: normalizeReverbWsPath(process.env.NEXT_PUBLIC_REVERB_PATH),
 } as const;
 
 export function isRealtimeConfigured(): boolean {
@@ -58,7 +80,7 @@ export function getEchoClient(): EchoClient | null {
   }
 
   const key = reverbConfig.appKey!;
-  const { host, port, scheme } = reverbConfig;
+  const { host, port, scheme, wsPath } = reverbConfig;
   const forceTLS = scheme === "https";
   const PusherClient = resolvePusherConstructor();
 
@@ -71,6 +93,7 @@ export function getEchoClient(): EchoClient | null {
     wsPort: port,
     wssPort: port,
     forceTLS,
+    ...(wsPath ? { wsPath } : {}),
     enabledTransports: ["ws", "wss"],
     disableStats: true,
     authEndpoint: AUTH_ENDPOINT,
