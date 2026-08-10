@@ -108,6 +108,13 @@ export function IbPlanSubscriptionDetailDialog({
                 label="Comments"
                 value={subscription.comments?.trim() || "—"}
               />
+              {subscription.status === "denied" ||
+              subscription.rejection_reason?.trim() ? (
+                <DetailRow
+                  label="Rejection reason"
+                  value={subscription.rejection_reason?.trim() || "—"}
+                />
+              ) : null}
               <DetailRow
                 label="Created"
                 value={formatDateTime(subscription.created_at)}

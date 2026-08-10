@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,10 @@ import {
   updateIbPlanSubscription,
   type IbPlanSubscription,
 } from "@/features/ib-plan-subscription";
+import {
+  RejectionReasonComposer,
+  type RejectionReasonComposerHandle,
+} from "@/features/rejection-templates";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
 type IbPlanSubscriptionReviewDialogProps = {
@@ -45,9 +49,11 @@ export function IbPlanSubscriptionReviewDialog({
   onOpenChange,
   onSuccess,
 }: IbPlanSubscriptionReviewDialogProps) {
+  const composerRef = useRef<RejectionReasonComposerHandle>(null);
   const [programs, setPrograms] = useState<IbPlanProgram[]>([]);
   const [loadingPrograms, setLoadingPrograms] = useState(false);
   const [selectedProgramId, setSelectedProgramId] = useState<string>("none");
+  const [rejectionReason, setRejectionReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,6 +99,8 @@ export function IbPlanSubscriptionReviewDialog({
 
     setError(null);
     setSelectedProgramId("none");
+    setRejectionReason("");
+    composerRef.current?.reset();
   }, [open, mode, subscription]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -113,8 +121,11 @@ export function IbPlanSubscriptionReviewDialog({
             selectedProgramId !== "none" ? selectedProgramId : undefined,
         });
       } else {
+        const { body } = await composerRef.current!.prepareSubmit();
+
         await updateIbPlanSubscription(ibPlanId, subscription.id, {
           status: "denied",
+          reason: body,
         });
       }
 
@@ -217,10 +228,23 @@ export function IbPlanSubscriptionReviewDialog({
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                This action cannot be undone. The user will not be assigned to
-                any program.
-              </p>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  This action cannot be undone. The user will not be assigned to
+                  any program.
+                </p>
+                <RejectionReasonComposer
+                  ref={composerRef}
+                  category="ib_plans"
+                  value={rejectionReason}
+                  onChange={setRejectionReason}
+                  disabled={submitting}
+                  bodyLabel="Rejection reason"
+                  bodyRequired
+                  bodyMaxLength={1000}
+                  open={open}
+                />
+              </div>
             )}
           </div>
 
@@ -236,7 +260,7 @@ export function IbPlanSubscriptionReviewDialog({
             <Button
               type="submit"
               variant={isApprove ? "default" : "destructive"}
-              disabled={submitting || loadingPrograms}
+              disabled={submitting || (isApprove && loadingPrograms)}
             >
               {submitting
                 ? isApprove

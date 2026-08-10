@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import {
@@ -26,8 +26,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { rejectAccountInsuranceClaim } from "@/features/insurance/api";
 import type { AccountInsurance } from "@/features/insurance/types";
+import {
+  RejectionReasonComposer,
+  type RejectionReasonComposerHandle,
+} from "@/features/rejection-templates";
 import { formatBrokerApiError } from "@/lib/api/errors";
-import { cn } from "@/lib/utils";
 
 type AccountInsuranceRejectDialogProps = {
   accountInsurance: AccountInsurance | null;
@@ -42,10 +45,22 @@ export function AccountInsuranceRejectDialog({
   onOpenChange,
   onSuccess,
 }: AccountInsuranceRejectDialogProps) {
+  const composerRef = useRef<RejectionReasonComposerHandle>(null);
   const [notes, setNotes] = useState("");
   const [publishNotification, setPublishNotification] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setNotes("");
+    setPublishNotification(false);
+    setError(null);
+    composerRef.current?.reset();
+  }, [open, accountInsurance]);
 
   async function handleReject() {
     if (!accountInsurance) {
@@ -56,13 +71,13 @@ export function AccountInsuranceRejectDialog({
     setError(null);
 
     try {
+      const { body } = await composerRef.current!.prepareSubmit();
+
       await rejectAccountInsuranceClaim(accountInsurance.id, {
-        notes: notes.trim() || null,
+        notes: body || null,
         publish_notification: publishNotification,
       });
       onOpenChange(false);
-      setNotes("");
-      setPublishNotification(false);
       onSuccess();
     } catch (rejectError) {
       setError(formatBrokerApiError(rejectError));
@@ -104,20 +119,19 @@ export function AccountInsuranceRejectDialog({
             />
           ) : null}
 
-          <div className="space-y-2">
-            <Label htmlFor="reject-notes">Notes</Label>
-            <textarea
-              id="reject-notes"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              disabled={submitting}
-              rows={3}
-              placeholder="Optional rejection reason"
-              className={cn(
-                "w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30",
-              )}
-            />
-          </div>
+          <RejectionReasonComposer
+            ref={composerRef}
+            category="insurance"
+            open={open}
+            value={notes}
+            onChange={setNotes}
+            disabled={submitting}
+            bodyLabel="Notes"
+            bodyRequired={false}
+            bodyMaxLength={2000}
+            bodyPlaceholder="Optional rejection reason"
+            idPrefix="insurance-reject"
+          />
 
           <div className="flex items-center gap-2">
             <Checkbox

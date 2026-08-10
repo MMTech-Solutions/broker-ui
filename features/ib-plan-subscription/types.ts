@@ -30,6 +30,7 @@ export type IbPlanSubscription = {
   master_level: number;
   status: IbPlanSubscriptionStatus;
   comments: string | null;
+  rejection_reason: string | null;
   plan?: IbPlan;
   placement?: IbPlanProgramPlacement | null;
   created_at?: string;
@@ -102,6 +103,7 @@ export type CreateIbPlanSubscriptionInput = {
 export type UpdateIbPlanSubscriptionInput = {
   status: "active" | "denied";
   ib_program_id?: string;
+  reason?: string;
 };
 
 export type UpdateIbPlanSubscriptionParametersInput = {
