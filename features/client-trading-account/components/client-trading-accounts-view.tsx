@@ -105,11 +105,8 @@ function enrichAccounts(
   return accounts.map((account) => {
     const serverGroup = catalog.serverGroupById.get(account.server_group.id);
     const leverageFromCatalog = catalog.leverageById.get(account.leverage?.id);
-    const tradingServer = serverGroup
-      ? catalog.tradingServerById.get(serverGroup.trading_server_id)
-      : null;
-    const platform = tradingServer
-      ? catalog.platformById.get(tradingServer.platform_id)
+    const platformFromGroup = serverGroup?.platform?.id
+      ? catalog.platformById.get(serverGroup.platform.id)
       : null;
     const currency = getServerGroupCurrency(serverGroup?.currency);
     const currencyResolved = hasResolvedServerGroupCurrency(
@@ -123,19 +120,21 @@ function enrichAccounts(
         : account.server_group.name || account.server_group.id,
       platformLabel:
         account.platform?.name ??
-        platform?.custom_name ??
-        platform?.name ??
+        platformFromGroup?.custom_name ??
+        platformFromGroup?.name ??
         (typeof serverGroup?.platform === "object"
           ? serverGroup.platform.name
           : String(serverGroup?.platform ?? "—")),
-      environmentLabel: formatEnvironmentLabel(
-        serverGroup?.environment ?? tradingServer?.environment,
-      ),
+      environmentLabel: formatEnvironmentLabel(serverGroup?.environment),
       leverageLabel:
         leverageFromCatalog?.name ?? formatLeverageLabel(account.leverage),
       tradingServerId: serverGroup?.trading_server_id ?? null,
-      platformId: account.platform?.id ?? tradingServer?.platform_id ?? null,
-      environment: serverGroup?.environment ?? tradingServer?.environment ?? null,
+      platformId:
+        account.platform?.id ??
+        platformFromGroup?.id ??
+        serverGroup?.platform?.id ??
+        null,
+      environment: serverGroup?.environment ?? null,
       currencyCode: currencyResolved ? currency.code : null,
       currencyPrecision: currencyResolved ? currency.precision : null,
     };
@@ -155,7 +154,7 @@ export function ClientTradingAccountsView() {
 
   const [filters, setFilters] = useState<ClientTradingAccountListFilters>({
     platformId: "all",
-    tradingServerId: "all",
+    environment: "all",
     leverageId: "all",
   });
 
@@ -260,11 +259,11 @@ export function ClientTradingAccountsView() {
         return false;
       }
 
-      if (
-        filters.tradingServerId !== "all" &&
-        account.tradingServerId !== filters.tradingServerId
-      ) {
-        return false;
+      if (filters.environment !== "all") {
+        const environmentValue = Number.parseInt(filters.environment, 10);
+        if (account.environment !== environmentValue) {
+          return false;
+        }
       }
 
       if (
@@ -278,20 +277,6 @@ export function ClientTradingAccountsView() {
     });
   }, [enrichedAccounts, filters]);
 
-  const tradingServerOptions = useMemo(() => {
-    if (!catalog) {
-      return [];
-    }
-
-    if (filters.platformId === "all") {
-      return catalog.tradingServers;
-    }
-
-    return catalog.tradingServers.filter(
-      (server) => server.platform_id === filters.platformId,
-    );
-  }, [catalog, filters.platformId]);
-
   const platformFilterLabel = useMemo(() => {
     if (filters.platformId === "all") {
       return "Todas";
@@ -304,21 +289,15 @@ export function ClientTradingAccountsView() {
     return platform?.custom_name ?? platform?.name ?? null;
   }, [catalog, filters.platformId]);
 
-  const tradingServerFilterLabel = useMemo(() => {
-    if (filters.tradingServerId === "all") {
+  const environmentFilterLabel = useMemo(() => {
+    if (filters.environment === "all") {
       return "Todos";
     }
 
-    const server =
-      tradingServerOptions.find(
-        (entry) => entry.id === filters.tradingServerId,
-      ) ??
-      catalog?.tradingServers.find(
-        (entry) => entry.id === filters.tradingServerId,
-      );
+    const environmentValue = Number.parseInt(filters.environment, 10);
 
-    return server?.connection_signature ?? null;
-  }, [catalog, filters.tradingServerId, tradingServerOptions]);
+    return formatEnvironmentLabel(environmentValue);
+  }, [filters.environment]);
 
   const leverageFilterLabel = useMemo(() => {
     if (filters.leverageId === "all") {
@@ -387,7 +366,6 @@ export function ClientTradingAccountsView() {
               setFilters((current) => ({
                 ...current,
                 platformId: value ?? "all",
-                tradingServerId: "all",
               }))
             }
           >
@@ -408,28 +386,29 @@ export function ClientTradingAccountsView() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="filter-trading-server">Trading server</Label>
+          <Label htmlFor="filter-environment">Entorno</Label>
           <Select
-            value={filters.tradingServerId}
+            value={filters.environment}
             onValueChange={(value) =>
               setFilters((current) => ({
                 ...current,
-                tradingServerId: value ?? "all",
+                environment: value ?? "all",
               }))
             }
           >
-            <SelectTrigger id="filter-trading-server">
+            <SelectTrigger id="filter-environment">
               <SelectValue placeholder="Todos">
-                {tradingServerFilterLabel}
+                {environmentFilterLabel}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {tradingServerOptions.map((server) => (
-                <SelectItem key={server.id} value={server.id}>
-                  {server.connection_signature}
-                </SelectItem>
-              ))}
+              <SelectItem value={String(TRADING_SERVER_ENVIRONMENT.DEMO)}>
+                Demo
+              </SelectItem>
+              <SelectItem value={String(TRADING_SERVER_ENVIRONMENT.LIVE)}>
+                Live
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

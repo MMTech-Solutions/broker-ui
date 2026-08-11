@@ -30,12 +30,58 @@ function normalizeReverbWsPath(raw: string | undefined): string | undefined {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
+/**
+ * Pusher hardcodes the `/app/{key}` segment. Allow overriding to e.g. `apps`
+ * via env for gateway experiments (prop-firm uses the standard `app`).
+ */
+function normalizeAppSegment(raw: string | undefined): "app" | "apps" {
+  const segment = raw?.trim().replace(/^["']|["']$/g, "").toLowerCase();
+  return segment === "apps" ? "apps" : "app";
+}
+
+/**
+ * Rewrite WebSocket handshake URLs so `/app/` becomes `/{segment}/` when needed.
+ * Scoped once per page; only touches pusher-style `/app/{key}` paths.
+ */
+function installWebSocketAppSegmentRewrite(segment: "app" | "apps"): void {
+  if (segment === "app" || typeof window === "undefined") {
+    return;
+  }
+
+  const marker = "__mmtReverbAppSegmentRewrite";
+  const w = window as Window & { [marker]?: string };
+  if (w[marker] === segment) {
+    return;
+  }
+
+  const NativeWebSocket = window.WebSocket;
+
+  function RewritingWebSocket(
+    this: WebSocket,
+    url: string | URL,
+    protocols?: string | string[],
+  ): WebSocket {
+    const original = typeof url === "string" ? url : url.toString();
+    const rewritten = original.replace(/\/app\//, `/${segment}/`);
+    return protocols === undefined
+      ? new NativeWebSocket(rewritten)
+      : new NativeWebSocket(rewritten, protocols);
+  }
+
+  RewritingWebSocket.prototype = NativeWebSocket.prototype;
+  Object.assign(RewritingWebSocket, NativeWebSocket);
+  // @ts-expect-error assign constructable WebSocket wrapper
+  window.WebSocket = RewritingWebSocket;
+  w[marker] = segment;
+}
+
 const reverbConfig = {
   appKey: process.env.NEXT_PUBLIC_REVERB_APP_KEY?.trim(),
   host: process.env.NEXT_PUBLIC_REVERB_HOST?.trim() || "localhost",
   port: Number(process.env.NEXT_PUBLIC_REVERB_PORT?.trim() || "8080"),
   scheme: process.env.NEXT_PUBLIC_REVERB_SCHEME?.trim() || "http",
   wsPath: normalizeReverbWsPath(process.env.NEXT_PUBLIC_REVERB_PATH),
+  appSegment: normalizeAppSegment(process.env.NEXT_PUBLIC_REVERB_APP_SEGMENT),
 } as const;
 
 export function isRealtimeConfigured(): boolean {
@@ -80,9 +126,11 @@ export function getEchoClient(): EchoClient | null {
   }
 
   const key = reverbConfig.appKey!;
-  const { host, port, scheme, wsPath } = reverbConfig;
+  const { host, port, scheme, wsPath, appSegment } = reverbConfig;
   const forceTLS = scheme === "https";
   const PusherClient = resolvePusherConstructor();
+
+  installWebSocketAppSegmentRewrite(appSegment);
 
   // Prefer explicit constructor injection over window.Pusher (more reliable in Next).
   echoSingleton = new Echo({

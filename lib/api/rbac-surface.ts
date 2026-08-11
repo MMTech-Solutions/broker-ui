@@ -3,8 +3,11 @@ export type RbacSurface = "admin_panel" | "customer_app";
 /**
  * Derives RBAC surface from the broker API path.
  * Admin routes live under `v1/admin/*` and resolve to `admin_panel`.
- * Public routes (`v1/public/*` or any path segment `/public/`) resolve to
- * `null` so the BFF does not attach customer/admin userinfo.
+ * Truly anonymous routes live under `v1/public/*` and resolve to `null`
+ * so the BFF does not attach customer/admin credentials.
+ *
+ * Paths that merely end with a resource name like `.../global-settings/public`
+ * are still authenticated client routes (`customer_app`).
  */
 export function resolveRbacSurfaceFromApiPath(
   apiPath: string,
@@ -13,8 +16,7 @@ export function resolveRbacSurfaceFromApiPath(
 
   if (
     normalized === "v1/public" ||
-    normalized.startsWith("v1/public/") ||
-    /(^|\/)public(\/|$)/.test(normalized)
+    normalized.startsWith("v1/public/")
   ) {
     return null;
   }

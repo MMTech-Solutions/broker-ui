@@ -12,14 +12,8 @@ import type {
   TradingAccount,
   TradingAccountListFilters,
 } from "@/features/trading-account/types";
-import {
-  listServerGroups,
-  listTradingServers,
-} from "@/features/trading-server/api";
-import type {
-  ServerGroup,
-  TradingServer,
-} from "@/features/trading-server/types";
+import { listCatalogServerGroups } from "@/features/trading-server/api";
+import type { ServerGroup } from "@/features/trading-server/types";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import { browserIamRequest } from "@/lib/api/iam-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
@@ -68,39 +62,24 @@ export async function updateClientTradingAccountCredentials(
   );
 }
 
-function formatPlatformLabel(
-  platform: ServerGroup["platform"] | string | number | undefined | null,
-): string {
-  if (platform === undefined || platform === null) {
-    return "—";
-  }
-
-  if (typeof platform === "object") {
-    return platform.name || "—";
-  }
-
-  return String(platform);
-}
-
-function buildPlatformsFromTradingServers(
-  tradingServers: TradingServer[],
+function buildPlatformsFromServerGroups(
   serverGroups: ClientServerGroup[],
 ): Platform[] {
   const byId = new Map<string, Platform>();
 
-  for (const server of tradingServers) {
-    const group = serverGroups.find(
-      (item) => item.trading_server_id === server.id,
-    );
-    const nested = group?.platform;
-    const id = nested?.id ?? server.platform_id;
-    const name = nested?.name ?? formatPlatformLabel(server.platform_id);
+  for (const group of serverGroups) {
+    const nested = group.platform;
+    if (!nested?.id) {
+      continue;
+    }
 
-    if (!byId.has(id)) {
-      byId.set(id, {
-        id,
-        name,
-        custom_name: nested?.custom_name ?? null,
+    if (!byId.has(nested.id)) {
+      byId.set(nested.id, {
+        id: nested.id,
+        name: nested.name,
+        custom_name: nested.custom_name ?? null,
+        description: nested.description ?? null,
+        image_path: nested.image_path ?? null,
         is_active: true,
       });
     }
@@ -109,32 +88,23 @@ function buildPlatformsFromTradingServers(
   return [...byId.values()];
 }
 
+function toClientServerGroup(group: ServerGroup): ClientServerGroup {
+  return {
+    ...group,
+    environment: group.environment,
+  };
+}
+
 export async function loadClientAccountCatalog(): Promise<ClientAccountCatalog> {
-  const tradingServersResponse = await listTradingServers({
+  const serverGroupsResponse = await listCatalogServerGroups({
     per_page: 100,
   });
 
-  const groupsByServer = await Promise.all(
-    tradingServersResponse.data.map(async (server) => {
-      const groupsResponse = await listServerGroups(server.id, {
-        per_page: 100,
-      });
-
-      return groupsResponse.data.map(
-        (group): ClientServerGroup => ({
-          ...group,
-          environment: server.environment,
-        }),
-      );
-    }),
+  const serverGroups = serverGroupsResponse.data.map(toClientServerGroup);
+  const platforms = buildPlatformsFromServerGroups(serverGroups);
+  const platformById = new Map(
+    platforms.map((platform) => [platform.id, platform]),
   );
-
-  const serverGroups = groupsByServer.flat();
-  const platforms = buildPlatformsFromTradingServers(
-    tradingServersResponse.data,
-    serverGroups,
-  );
-  const platformById = new Map(platforms.map((platform) => [platform.id, platform]));
 
   let leverages: ClientAccountCatalog["leverages"] = [];
 
@@ -156,49 +126,38 @@ export async function loadClientAccountCatalog(): Promise<ClientAccountCatalog> 
     initialAmounts = [];
   }
 
-  const serverGroupById = new Map(serverGroups.map((group) => [group.id, group]));
+  const serverGroupById = new Map(
+    serverGroups.map((group) => [group.id, group]),
+  );
   const leverageById = new Map(
     leverages.map((leverage) => [leverage.id, leverage]),
-  );
-  const tradingServerById = new Map(
-    tradingServersResponse.data.map((server) => [server.id, server]),
   );
 
   return {
     platforms,
-    tradingServers: tradingServersResponse.data,
     serverGroups,
     leverages,
     initialAmounts,
     serverGroupById,
     leverageById,
-    tradingServerById,
     platformById,
   };
 }
 
 /**
- * Lightweight map of server_group_id → trading-server environment.
+ * Lightweight map of server_group_id → environment.
  * Used by insurance eligibility without loading leverages/initial amounts.
  */
 export async function loadClientServerGroupEnvironments(): Promise<
   Map<string, number>
 > {
-  const tradingServersResponse = await listTradingServers({
+  const serverGroupsResponse = await listCatalogServerGroups({
     per_page: 100,
   });
 
-  const groupsByServer = await Promise.all(
-    tradingServersResponse.data.map(async (server) => {
-      const groupsResponse = await listServerGroups(server.id, {
-        per_page: 100,
-      });
-
-      return groupsResponse.data.map(
-        (group) => [group.id, server.environment] as const,
-      );
-    }),
+  return new Map(
+    serverGroupsResponse.data
+      .filter((group) => group.environment != null)
+      .map((group) => [group.id, group.environment as number]),
   );
-
-  return new Map(groupsByServer.flat());
 }

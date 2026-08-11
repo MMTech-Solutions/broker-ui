@@ -1,7 +1,7 @@
 import type { InitialAmount } from "@/features/initial-amount/types";
 import type { Leverage } from "@/features/leverage/types";
 import type { Platform } from "@/features/platform/types";
-import type { ServerGroup, TradingServer } from "@/features/trading-server/types";
+import type { ServerGroup } from "@/features/trading-server/types";
 import type { TradingAccount } from "@/features/trading-account/types";
 
 export type { TradingAccount };
@@ -12,14 +12,14 @@ export type ClientServerGroup = ServerGroup & {
 
 export type ClientTradingAccountListFilters = {
   platformId: string;
-  tradingServerId: string;
+  environment: string;
   leverageId: string;
 };
 
 export const EMPTY_CLIENT_TRADING_ACCOUNT_FILTERS: ClientTradingAccountListFilters =
   {
     platformId: "all",
-    tradingServerId: "all",
+    environment: "all",
     leverageId: "all",
   };
 
@@ -47,13 +47,11 @@ export type TwoFactorChallenge = {
 
 export type ClientAccountCatalog = {
   platforms: Platform[];
-  tradingServers: TradingServer[];
   serverGroups: ClientServerGroup[];
   leverages: Leverage[];
   initialAmounts: InitialAmount[];
   serverGroupById: Map<string, ClientServerGroup>;
   leverageById: Map<string, Leverage>;
-  tradingServerById: Map<string, TradingServer>;
   platformById: Map<string, Platform>;
 };
 

@@ -93,11 +93,15 @@ export type ServerGroup = {
   has_ib_restrictions?: boolean;
   configuration_warnings?: string[] | null;
   ib_external_user_ids?: string[] | null;
+  /** Inherited from parent trading server. */
+  environment?: number;
   /** Nested platform: client has id+name (display); admin also has custom_name. */
   platform?: {
     id: string;
     name: string;
     custom_name?: string | null;
+    description?: string | null;
+    image_path?: string | null;
   };
 };
 
@@ -123,6 +127,16 @@ export type UpdateServerGroupInput = {
 };
 
 export type ServerGroupListFilters = {
+  name?: string;
+  meta_name?: string;
+  page?: number;
+  per_page?: number;
+};
+
+/** Client-facing catalog of server groups (no trading-server path). */
+export type CatalogServerGroupListFilters = {
+  environment?: number;
+  platform_id?: string;
   name?: string;
   meta_name?: string;
   page?: number;

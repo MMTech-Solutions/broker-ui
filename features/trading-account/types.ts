@@ -19,6 +19,8 @@ export type TradingAccountPlatform = {
   name: string;
   /** Present for admin responses only. */
   custom_name?: string | null;
+  description?: string | null;
+  image_path?: string | null;
 };
 
 /** Owner payload from broker list (post user-enrichment). */

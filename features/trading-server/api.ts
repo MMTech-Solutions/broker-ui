@@ -1,4 +1,5 @@
 import type {
+  CatalogServerGroupListFilters,
   CreateTradingServerInput,
   Security,
   SecurityListFilters,
@@ -20,6 +21,7 @@ import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
 const TRADING_SERVERS_CLIENT_PATH = "v1/trading-servers";
 const TRADING_SERVERS_ADMIN_PATH = "v1/admin/trading-servers";
+const SERVER_GROUPS_CLIENT_PATH = "v1/server-groups";
 
 type TradingServerAudience = "client" | "admin";
 
@@ -59,6 +61,18 @@ export async function listServerGroups(
   );
 }
 
+/**
+ * Client catalog: list server groups filtered by environment / platform
+ * without selecting a trading server first.
+ */
+export async function listCatalogServerGroups(
+  filters: CatalogServerGroupListFilters = {},
+): Promise<BrokerSuccessResponse<ServerGroup[]>> {
+  return browserBrokerRequest<ServerGroup[]>(SERVER_GROUPS_CLIENT_PATH, {
+    searchParams: toSearchParams(filters),
+  });
+}
+
 export async function updateServerGroup(
   tradingServerId: string,
   serverGroupId: string,
@@ -81,6 +95,17 @@ export async function listServerGroupLeverages(
 ): Promise<BrokerSuccessResponse<Leverage[]>> {
   return browserBrokerRequest<Leverage[]>(
     `${tradingServersBasePath(audience)}/${tradingServerId}/server-groups/${serverGroupId}/leverages`,
+    { searchParams: toSearchParams(filters) },
+  );
+}
+
+/** Client catalog: leverages for a server group (no trading-server path). */
+export async function listCatalogServerGroupLeverages(
+  serverGroupId: string,
+  filters: LeverageListFilters = {},
+): Promise<BrokerSuccessResponse<Leverage[]>> {
+  return browserBrokerRequest<Leverage[]>(
+    `${SERVER_GROUPS_CLIENT_PATH}/${serverGroupId}/leverages`,
     { searchParams: toSearchParams(filters) },
   );
 }
