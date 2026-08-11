@@ -9,6 +9,7 @@ import {
   iamResend2fa,
   iamVerify2fa,
 } from "@/lib/auth/iam.server";
+import { safeNextPath } from "@/lib/auth/safe-next-path";
 import {
   clear2faPending,
   clearSession,
@@ -21,35 +22,10 @@ import type { AuthArea, LoginFormState } from "@/lib/auth/types";
 
 export type { LoginFormActionState, LoginFormState } from "@/lib/auth/types";
 
-const DEFAULT_POST_LOGIN: Record<AuthArea, string> = {
-  admin: "/",
-  client: "/client",
-};
-
 const LOGIN_PATH: Record<AuthArea, string> = {
   admin: "/login/admin",
   client: "/login",
 };
-
-function safeNextPath(area: AuthArea, raw: FormDataEntryValue | null): string {
-  const value = typeof raw === "string" ? raw.trim() : "";
-  if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/login")) {
-    return DEFAULT_POST_LOGIN[area];
-  }
-
-  if (area === "client") {
-    if (value === "/client" || value.startsWith("/client/")) {
-      return value;
-    }
-    return DEFAULT_POST_LOGIN.client;
-  }
-
-  if (value === "/client" || value.startsWith("/client/") || value.startsWith("/login")) {
-    return DEFAULT_POST_LOGIN.admin;
-  }
-
-  return value;
-}
 
 async function iamForwardHeaders(): Promise<Record<string, string>> {
   const h = await headers();

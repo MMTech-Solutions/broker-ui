@@ -5,7 +5,7 @@ import type {
   TwoFactorChallenge,
   UpdateTradingAccountCredentialsInput,
 } from "@/features/client-trading-account/types";
-import { listInitialAmounts } from "@/features/initial-amount/api";
+import { listClientInitialAmounts } from "@/features/initial-amount/api";
 import { listLeverages } from "@/features/leverage/api";
 import type { Platform } from "@/features/platform/types";
 import type {
@@ -148,7 +148,9 @@ export async function loadClientAccountCatalog(): Promise<ClientAccountCatalog> 
   let initialAmounts: ClientAccountCatalog["initialAmounts"] = [];
 
   try {
-    const initialAmountsResponse = await listInitialAmounts({ per_page: 100 });
+    const initialAmountsResponse = await listClientInitialAmounts({
+      per_page: 100,
+    });
     initialAmounts = initialAmountsResponse.data;
   } catch {
     initialAmounts = [];

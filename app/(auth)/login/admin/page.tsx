@@ -3,15 +3,24 @@ import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/login-form";
 import { AppAreaBar } from "@/components/layout/app-area-bar";
+import { safeNextPath } from "@/lib/auth/safe-next-path";
 import {
   readSession,
   sessionIsAuthenticated,
 } from "@/lib/auth/session.server";
 
-export default async function AdminLoginPage() {
+type AdminLoginPageProps = {
+  searchParams: Promise<{ next?: string | string[] }>;
+};
+
+export default async function AdminLoginPage({
+  searchParams,
+}: AdminLoginPageProps) {
   const session = await readSession("admin");
   if (sessionIsAuthenticated(session)) {
-    redirect("/");
+    const params = await searchParams;
+    const rawNext = Array.isArray(params.next) ? params.next[0] : params.next;
+    redirect(safeNextPath("admin", rawNext));
   }
 
   return (

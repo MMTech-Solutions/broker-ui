@@ -3,15 +3,24 @@ import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/login-form";
 import { AppAreaBar } from "@/components/layout/app-area-bar";
+import { safeNextPath } from "@/lib/auth/safe-next-path";
 import {
   readSession,
   sessionIsAuthenticated,
 } from "@/lib/auth/session.server";
 
-export default async function ClientLoginPage() {
+type ClientLoginPageProps = {
+  searchParams: Promise<{ next?: string | string[] }>;
+};
+
+export default async function ClientLoginPage({
+  searchParams,
+}: ClientLoginPageProps) {
   const session = await readSession("client");
   if (sessionIsAuthenticated(session)) {
-    redirect("/client");
+    const params = await searchParams;
+    const rawNext = Array.isArray(params.next) ? params.next[0] : params.next;
+    redirect(safeNextPath("client", rawNext));
   }
 
   return (

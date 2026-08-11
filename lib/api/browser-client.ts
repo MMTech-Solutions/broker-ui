@@ -9,6 +9,12 @@ type BrowserBrokerRequestOptions = {
   body?: unknown;
   headers?: HeadersInit;
   searchParams?: URLSearchParams | Record<string, string | number | boolean>;
+  /**
+   * When false, a 401 does not force a full-page login redirect.
+   * Use for optional secondary fetches (e.g. admin catalogs from client UI).
+   * @default true
+   */
+  redirectOnUnauthorized?: boolean;
 };
 
 function serializeSearchParamValue(value: string | number | boolean): string {
@@ -91,14 +97,28 @@ export async function browserBrokerRequest<T>(
     );
   }
 
-  if (response.status === 401 && typeof window !== "undefined") {
-    const path = window.location.pathname;
-    const isClient = path === "/client" || path.startsWith("/client/");
-    const loginPath = isClient ? "/login" : "/login/admin";
-    if (!path.startsWith("/login")) {
-      window.location.assign(
-        `${loginPath}?next=${encodeURIComponent(path)}`,
-      );
+  if (
+    response.status === 401 &&
+    typeof window !== "undefined" &&
+    options.redirectOnUnauthorized !== false
+  ) {
+    const pagePath = window.location.pathname;
+    if (!pagePath.startsWith("/login")) {
+      const isAdminApi =
+        normalizedPath === "v1/admin" ||
+        normalizedPath.startsWith("v1/admin/");
+      const isClientPage =
+        pagePath === "/client" || pagePath.startsWith("/client/");
+
+      // Client sessions have no admin cookie; admin-only BFF routes return 401
+      // without meaning the client session is dead. Kicking to /login was
+      // bouncing users (Chrome especially) off client pages like /client/accounts.
+      if (!(isAdminApi && isClientPage)) {
+        const loginPath = isClientPage ? "/login" : "/login/admin";
+        window.location.assign(
+          `${loginPath}?next=${encodeURIComponent(pagePath)}`,
+        );
+      }
     }
   }
 

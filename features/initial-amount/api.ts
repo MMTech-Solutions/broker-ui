@@ -8,7 +8,10 @@ import type {
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
-const INITIAL_AMOUNTS_PATH = "v1/admin/initial-amounts";
+/** Shared read catalog for authenticated client sessions (`GET /v1/initial-amounts`). */
+const INITIAL_AMOUNTS_PATH = "v1/initial-amounts";
+/** Admin list + mutations (`/v1/admin/initial-amounts`). */
+const INITIAL_AMOUNTS_ADMIN_PATH = "v1/admin/initial-amounts";
 
 function compactFilters<T extends Record<string, unknown>>(filters: T) {
   return Object.fromEntries(
@@ -18,10 +21,20 @@ function compactFilters<T extends Record<string, unknown>>(filters: T) {
   );
 }
 
-export async function listInitialAmounts(
+/** Client-area catalog (uses client session / customer_app surface). */
+export async function listClientInitialAmounts(
   filters: InitialAmountListFilters = {},
 ): Promise<BrokerSuccessResponse<InitialAmount[]>> {
   return browserBrokerRequest<InitialAmount[]>(INITIAL_AMOUNTS_PATH, {
+    searchParams: compactFilters(filters),
+  });
+}
+
+/** Admin-area list (uses admin session / admin_panel surface). */
+export async function listInitialAmounts(
+  filters: InitialAmountListFilters = {},
+): Promise<BrokerSuccessResponse<InitialAmount[]>> {
+  return browserBrokerRequest<InitialAmount[]>(INITIAL_AMOUNTS_ADMIN_PATH, {
     searchParams: compactFilters(filters),
   });
 }
@@ -30,14 +43,14 @@ export async function getInitialAmount(
   initialAmountId: string,
 ): Promise<BrokerSuccessResponse<InitialAmount>> {
   return browserBrokerRequest<InitialAmount>(
-    `${INITIAL_AMOUNTS_PATH}/${initialAmountId}`,
+    `${INITIAL_AMOUNTS_ADMIN_PATH}/${initialAmountId}`,
   );
 }
 
 export async function createInitialAmount(
   input: CreateInitialAmountInput,
 ): Promise<BrokerSuccessResponse<InitialAmount>> {
-  return browserBrokerRequest<InitialAmount>(INITIAL_AMOUNTS_PATH, {
+  return browserBrokerRequest<InitialAmount>(INITIAL_AMOUNTS_ADMIN_PATH, {
     method: "POST",
     body: input,
   });
@@ -48,7 +61,7 @@ export async function updateInitialAmount(
   input: UpdateInitialAmountInput,
 ): Promise<BrokerSuccessResponse<InitialAmount>> {
   return browserBrokerRequest<InitialAmount>(
-    `${INITIAL_AMOUNTS_PATH}/${initialAmountId}`,
+    `${INITIAL_AMOUNTS_ADMIN_PATH}/${initialAmountId}`,
     {
       method: "PATCH",
       body: input,
@@ -60,7 +73,7 @@ export async function deleteInitialAmount(
   initialAmountId: string,
 ): Promise<BrokerSuccessResponse<void>> {
   return browserBrokerRequest<void>(
-    `${INITIAL_AMOUNTS_PATH}/${initialAmountId}`,
+    `${INITIAL_AMOUNTS_ADMIN_PATH}/${initialAmountId}`,
     {
       method: "DELETE",
     },
@@ -76,7 +89,7 @@ export async function syncInitialAmountServerGroups(
   };
 
   return browserBrokerRequest<InitialAmount>(
-    `${INITIAL_AMOUNTS_PATH}/${initialAmountId}/server-groups`,
+    `${INITIAL_AMOUNTS_ADMIN_PATH}/${initialAmountId}/server-groups`,
     {
       method: "PATCH",
       body,
