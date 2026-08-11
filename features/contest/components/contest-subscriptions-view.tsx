@@ -472,152 +472,174 @@ export function ContestSubscriptionsView({
         <div className="rounded-xl border">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <ColumnSortHead
-                    label="User ID"
-                    sortKey="user.id"
-                    activeSortBy={sortBy}
-                    activeDirection={sortDirection}
-                    onSort={toggleSort}
-                    disabled={loading}
-                  />
-                  <Input
-                    className="mt-1 h-8"
-                    placeholder="Filter ID"
-                    value={draftFilters.user_id}
-                    onChange={(event) =>
-                      patchDraft({ user_id: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                    disabled={loading}
-                  />
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="h-auto min-w-[140px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <ColumnSortHead
+                      label="User ID"
+                      sortKey="user.id"
+                      activeSortBy={sortBy}
+                      activeDirection={sortDirection}
+                      onSort={toggleSort}
+                      disabled={loading}
+                    />
+                    <Input
+                      className="h-8"
+                      placeholder="Filter ID"
+                      value={draftFilters.user_id}
+                      onChange={(event) =>
+                        patchDraft({ user_id: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                      disabled={loading}
+                    />
+                  </div>
                 </TableHead>
-                <TableHead>
-                  <ColumnSortHead
-                    label="User name"
-                    sortKey="user.name"
-                    activeSortBy={sortBy}
-                    activeDirection={sortDirection}
-                    onSort={toggleSort}
-                    disabled={loading}
-                  />
-                  <Input
-                    className="mt-1 h-8"
-                    placeholder="Filter name"
-                    value={draftFilters.user_name}
-                    onChange={(event) =>
-                      patchDraft({ user_name: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                    disabled={loading}
-                  />
+                <TableHead className="h-auto min-w-[140px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <ColumnSortHead
+                      label="User name"
+                      sortKey="user.name"
+                      activeSortBy={sortBy}
+                      activeDirection={sortDirection}
+                      onSort={toggleSort}
+                      disabled={loading}
+                    />
+                    <Input
+                      className="h-8"
+                      placeholder="Filter name"
+                      value={draftFilters.user_name}
+                      onChange={(event) =>
+                        patchDraft({ user_name: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                      disabled={loading}
+                    />
+                  </div>
                 </TableHead>
-                <TableHead>
-                  <ColumnSortHead
-                    label="User email"
-                    sortKey="user.email"
-                    activeSortBy={sortBy}
-                    activeDirection={sortDirection}
-                    onSort={toggleSort}
-                    disabled={loading}
-                  />
-                  <Input
-                    className="mt-1 h-8"
-                    placeholder="Filter email"
-                    value={draftFilters.user_email}
-                    onChange={(event) =>
-                      patchDraft({ user_email: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                    disabled={loading}
-                  />
+                <TableHead className="h-auto min-w-[150px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <ColumnSortHead
+                      label="User email"
+                      sortKey="user.email"
+                      activeSortBy={sortBy}
+                      activeDirection={sortDirection}
+                      onSort={toggleSort}
+                      disabled={loading}
+                    />
+                    <Input
+                      className="h-8"
+                      placeholder="Filter email"
+                      value={draftFilters.user_email}
+                      onChange={(event) =>
+                        patchDraft({ user_email: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                      disabled={loading}
+                    />
+                  </div>
                 </TableHead>
-                <TableHead>
-                  <span className="text-xs font-medium">Trader ID</span>
-                  <Input
-                    className="mt-1 h-8"
-                    placeholder="Filter trader"
-                    value={draftFilters.external_trader_id}
-                    onChange={(event) =>
-                      patchDraft({ external_trader_id: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                    disabled={loading}
-                  />
+                <TableHead className="h-auto min-w-[140px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium">Trader ID</span>
+                    <Input
+                      className="h-8"
+                      placeholder="Filter trader"
+                      value={draftFilters.external_trader_id}
+                      onChange={(event) =>
+                        patchDraft({ external_trader_id: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                      disabled={loading}
+                    />
+                  </div>
                 </TableHead>
-                <TableHead>
-                  <ColumnSortHead
-                    label="Performance"
-                    sortKey="performance_index"
-                    activeSortBy={sortBy}
-                    activeDirection={sortDirection}
-                    onSort={toggleSort}
-                    disabled={loading}
-                  />
-                  <Input
-                    className="mt-1 h-8"
-                    placeholder="Exact"
-                    value={draftFilters.performance_index}
-                    onChange={(event) =>
-                      patchDraft({ performance_index: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                    disabled={loading}
-                  />
+                <TableHead className="h-auto min-w-[120px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <ColumnSortHead
+                      label="Performance"
+                      sortKey="performance_index"
+                      activeSortBy={sortBy}
+                      activeDirection={sortDirection}
+                      onSort={toggleSort}
+                      disabled={loading}
+                    />
+                    <Input
+                      className="h-8"
+                      placeholder="Exact"
+                      value={draftFilters.performance_index}
+                      onChange={(event) =>
+                        patchDraft({ performance_index: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                      disabled={loading}
+                    />
+                  </div>
                 </TableHead>
-                <TableHead>
-                  <ColumnSortHead
-                    label="Balance snapshot"
-                    sortKey="balance_snapshot"
-                    activeSortBy={sortBy}
-                    activeDirection={sortDirection}
-                    onSort={toggleSort}
-                    disabled={loading}
-                  />
-                  <Input
-                    className="mt-1 h-8"
-                    placeholder="Exact"
-                    value={draftFilters.balance_snapshot}
-                    onChange={(event) =>
-                      patchDraft({ balance_snapshot: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                    disabled={loading}
-                  />
+                <TableHead className="h-auto min-w-[140px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <ColumnSortHead
+                      label="Balance snapshot"
+                      sortKey="balance_snapshot"
+                      activeSortBy={sortBy}
+                      activeDirection={sortDirection}
+                      onSort={toggleSort}
+                      disabled={loading}
+                    />
+                    <Input
+                      className="h-8"
+                      placeholder="Exact"
+                      value={draftFilters.balance_snapshot}
+                      onChange={(event) =>
+                        patchDraft({ balance_snapshot: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                      disabled={loading}
+                    />
+                  </div>
                 </TableHead>
-                <TableHead>Current equity</TableHead>
-                <TableHead>
-                  <ColumnSortHead
-                    label="Entry fee"
-                    sortKey="entry_fee_charged"
-                    activeSortBy={sortBy}
-                    activeDirection={sortDirection}
-                    onSort={toggleSort}
-                    disabled={loading}
-                  />
-                  <Input
-                    className="mt-1 h-8"
-                    placeholder="Exact"
-                    value={draftFilters.entry_fee_charged}
-                    onChange={(event) =>
-                      patchDraft({ entry_fee_charged: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                    disabled={loading}
-                  />
+                <TableHead className="h-auto min-w-[120px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium">Current equity</span>
+                  </div>
                 </TableHead>
-                <TableHead>
-                  <ColumnSortHead
-                    label="Subscribed at"
-                    sortKey="subscribed_at"
-                    activeSortBy={sortBy}
-                    activeDirection={sortDirection}
-                    onSort={toggleSort}
-                    disabled={loading}
-                  />
+                <TableHead className="h-auto min-w-[120px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <ColumnSortHead
+                      label="Entry fee"
+                      sortKey="entry_fee_charged"
+                      activeSortBy={sortBy}
+                      activeDirection={sortDirection}
+                      onSort={toggleSort}
+                      disabled={loading}
+                    />
+                    <Input
+                      className="h-8"
+                      placeholder="Exact"
+                      value={draftFilters.entry_fee_charged}
+                      onChange={(event) =>
+                        patchDraft({ entry_fee_charged: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                      disabled={loading}
+                    />
+                  </div>
                 </TableHead>
-                <TableHead className="w-[72px] text-right">Actions</TableHead>
+                <TableHead className="h-auto min-w-[130px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <ColumnSortHead
+                      label="Subscribed at"
+                      sortKey="subscribed_at"
+                      activeSortBy={sortBy}
+                      activeDirection={sortDirection}
+                      onSort={toggleSort}
+                      disabled={loading}
+                    />
+                  </div>
+                </TableHead>
+                <TableHead className="h-auto w-[72px] align-bottom text-right">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
