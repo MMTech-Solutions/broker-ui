@@ -12,7 +12,9 @@ import type {
   TradingServerListFilters,
   TradingSymbol,
   UpdateServerGroupInput,
+  UpdateSymbolsMarkupInput,
   UpdateTradingServerInput,
+  SymbolsMarkupUpdate,
 } from "@/features/trading-server/types";
 import type { Leverage, LeverageListFilters } from "@/features/leverage/types";
 import { BrokerApiError } from "@/lib/api/errors";
@@ -173,6 +175,19 @@ export async function listSecuritySymbols(
   return browserBrokerRequest<TradingSymbol[]>(
     `${TRADING_SERVERS_ADMIN_PATH}/${tradingServerId}/securities/${securityId}/symbols`,
     { searchParams: toSearchParams(filters) },
+  );
+}
+
+export async function updateSymbolsMarkup(
+  tradingServerId: string,
+  input: UpdateSymbolsMarkupInput,
+): Promise<BrokerSuccessResponse<SymbolsMarkupUpdate>> {
+  return browserBrokerRequest<SymbolsMarkupUpdate>(
+    `${TRADING_SERVERS_ADMIN_PATH}/${tradingServerId}/symbols/markup`,
+    {
+      method: "PATCH",
+      body: input,
+    },
   );
 }
 

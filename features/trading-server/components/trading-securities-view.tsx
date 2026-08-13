@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { FilterXIcon, SearchIcon, TagsIcon } from "lucide-react";
+import { FilterXIcon, PercentIcon, SearchIcon, TagsIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +26,8 @@ import {
   getTradingServerForAdmin,
   listSecurities,
 } from "@/features/trading-server/api";
-import type { Security, TradingServer } from "@/features/trading-server/types";
+import type { Security, SymbolsMarkupScope, TradingServer } from "@/features/trading-server/types";
+import { SetSymbolsMarkupDialog } from "@/features/trading-server/components/set-symbols-markup-dialog";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
@@ -64,6 +66,11 @@ export function TradingSecuritiesView({
 
   const [nameFilter, setNameFilter] = useState("");
   const [appliedNameFilter, setAppliedNameFilter] = useState("");
+  const [markupOpen, setMarkupOpen] = useState(false);
+  const [markupScope, setMarkupScope] = useState<SymbolsMarkupScope | null>(
+    null,
+  );
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const breadcrumbs = useMemo<BreadcrumbItem[]>(
     () => [
@@ -139,6 +146,16 @@ export function TradingSecuritiesView({
     setAppliedNameFilter("");
   }
 
+  function openSecurityMarkup(security: Security) {
+    setMarkupScope({
+      type: "security",
+      securityId: security.id,
+      label: security.name,
+    });
+    setMarkupOpen(true);
+    setSuccessMessage(null);
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar
@@ -146,6 +163,13 @@ export function TradingSecuritiesView({
         backHref={`/platforms/${platformId}/trading-servers`}
         backLabel="Ir atrás"
       />
+
+      {successMessage ? (
+        <Alert>
+          <AlertTitle>Markup updated</AlertTitle>
+          <AlertDescription>{successMessage}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="rounded-xl border p-4">
         <p className="mb-4 text-sm font-medium">Filters</p>
@@ -188,7 +212,7 @@ export function TradingSecuritiesView({
               <TableHead>Name</TableHead>
               <TableHead className="w-[120px]">Position</TableHead>
               <TableHead>Updated</TableHead>
-              <TableHead className="w-[72px] text-right">Actions</TableHead>
+              <TableHead className="w-[108px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -224,18 +248,28 @@ export function TradingSecuritiesView({
                       {formatDateTime(security.updated_at)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <ActionTooltipButton
-                        variant="ghost"
-                        size="icon-sm"
-                        tooltip={`Symbols for ${security.name}`}
-                        render={
-                          <Link
-                            href={`/platforms/${platformId}/trading-servers/${tradingServerId}/securities/${security.id}/symbols?securityName=${encodeURIComponent(security.name)}`}
-                          />
-                        }
-                      >
-                        <TagsIcon />
-                      </ActionTooltipButton>
+                      <div className="flex justify-end gap-1">
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          tooltip={`Set markup for ${security.name}`}
+                          onClick={() => openSecurityMarkup(security)}
+                        >
+                          <PercentIcon />
+                        </ActionTooltipButton>
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          tooltip={`Symbols for ${security.name}`}
+                          render={
+                            <Link
+                              href={`/platforms/${platformId}/trading-servers/${tradingServerId}/securities/${security.id}/symbols?securityName=${encodeURIComponent(security.name)}`}
+                            />
+                          }
+                        >
+                          <TagsIcon />
+                        </ActionTooltipButton>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -274,6 +308,16 @@ export function TradingSecuritiesView({
           </div>
         </div>
       ) : null}
+
+      <SetSymbolsMarkupDialog
+        open={markupOpen}
+        onOpenChange={setMarkupOpen}
+        tradingServerId={tradingServerId}
+        scope={markupScope}
+        onSuccess={(_result, message) => {
+          setSuccessMessage(message);
+        }}
+      />
     </div>
   );
 }

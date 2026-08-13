@@ -15,6 +15,7 @@ export {
   listTradingServersForAdmin,
   syncTradingServer,
   updateServerGroup,
+  updateSymbolsMarkup,
   updateTradingServer,
 } from "@/features/trading-server/api";
 export type {
@@ -25,11 +26,14 @@ export type {
   ServerGroup,
   ServerGroupListFilters,
   SymbolListFilters,
+  SymbolsMarkupScope,
+  SymbolsMarkupUpdate,
   TradingServer,
   TradingServerConfigSchema,
   TradingServerEnvironment,
   TradingServerListFilters,
   TradingSymbol,
   UpdateServerGroupInput,
+  UpdateSymbolsMarkupInput,
   UpdateTradingServerInput,
 } from "@/features/trading-server/types";

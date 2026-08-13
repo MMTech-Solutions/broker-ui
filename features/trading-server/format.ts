@@ -344,3 +344,17 @@ export function buildUpdateServerGroupInput(
     ib_external_user_ids: ibExternalUserIds,
   };
 }
+
+export function formatMarkup(value: string | number | null | undefined): string {
+  if (value == null || value === "") {
+    return "0";
+  }
+
+  const numeric = Number(value);
+
+  if (!Number.isFinite(numeric)) {
+    return String(value);
+  }
+
+  return String(numeric);
+}

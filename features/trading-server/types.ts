@@ -170,7 +170,26 @@ export type TradingSymbol = {
   name: string;
   alpha: string;
   stype: number;
+  markup: string;
   trading_server_id: string;
+};
+
+export type SymbolsMarkupScope =
+  | { type: "trading_server" }
+  | { type: "server_group"; serverGroupId: string; label: string }
+  | { type: "security"; securityId: string; label: string }
+  | { type: "symbols"; symbolIds: string[]; label?: string };
+
+export type UpdateSymbolsMarkupInput = {
+  markup: string;
+  server_group_id?: string;
+  security_id?: string;
+  symbol_ids?: string[];
+};
+
+export type SymbolsMarkupUpdate = {
+  updated_count: number;
+  markup: string;
 };
 
 export type SymbolListFilters = {

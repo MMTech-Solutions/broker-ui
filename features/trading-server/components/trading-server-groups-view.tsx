@@ -7,6 +7,7 @@ import {
   FilterXIcon,
   GaugeIcon,
   PencilIcon,
+  PercentIcon,
   SearchIcon,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ import {
 } from "@/features/trading-server/api";
 import { ServerGroupEditSheet } from "@/features/trading-server/components/server-group-edit-sheet";
 import { ServerGroupLeveragesSyncDialog } from "@/features/trading-server/components/server-group-leverages-sync-dialog";
+import { SetSymbolsMarkupDialog } from "@/features/trading-server/components/set-symbols-markup-dialog";
 import {
   formatBookTypeLabel,
   formatConfigurationWarning,
@@ -44,6 +46,7 @@ import {
 import type {
   ServerGroup,
   ServerGroupListFilters,
+  SymbolsMarkupScope,
   TradingServer,
 } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
@@ -115,6 +118,10 @@ export function TradingServerGroupsView({
 
   const [editOpen, setEditOpen] = useState(false);
   const [leveragesSyncOpen, setLeveragesSyncOpen] = useState(false);
+  const [markupOpen, setMarkupOpen] = useState(false);
+  const [markupScope, setMarkupScope] = useState<SymbolsMarkupScope | null>(
+    null,
+  );
   const [selectedServerGroup, setSelectedServerGroup] =
     useState<ServerGroup | null>(null);
 
@@ -214,6 +221,16 @@ export function TradingServerGroupsView({
   function openLeveragesSyncDialog(serverGroup: ServerGroup) {
     setSelectedServerGroup(serverGroup);
     setLeveragesSyncOpen(true);
+    setSuccessMessage(null);
+  }
+
+  function openMarkupDialog(serverGroup: ServerGroup) {
+    setMarkupScope({
+      type: "server_group",
+      serverGroupId: serverGroup.id,
+      label: serverGroup.name ?? serverGroup.meta_name,
+    });
+    setMarkupOpen(true);
     setSuccessMessage(null);
   }
 
@@ -323,7 +340,7 @@ export function TradingServerGroupsView({
               <TableHead className="text-right">Default amount</TableHead>
               <TableHead className="w-[120px]">Accounts</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[140px] text-right">Actions</TableHead>
+              <TableHead className="w-[176px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -398,6 +415,14 @@ export function TradingServerGroupsView({
                       onClick={(event) => event.stopPropagation()}
                     >
                       <div className="flex justify-end gap-1">
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          tooltip={`Set markup for ${serverGroup.name}`}
+                          onClick={() => openMarkupDialog(serverGroup)}
+                        >
+                          <PercentIcon />
+                        </ActionTooltipButton>
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"
@@ -480,6 +505,16 @@ export function TradingServerGroupsView({
         tradingServerId={tradingServerId}
         serverGroup={selectedServerGroup}
         onSuccess={(message) => setSuccessMessage(message)}
+      />
+
+      <SetSymbolsMarkupDialog
+        open={markupOpen}
+        onOpenChange={setMarkupOpen}
+        tradingServerId={tradingServerId}
+        scope={markupScope}
+        onSuccess={(_result, message) => {
+          setSuccessMessage(message);
+        }}
       />
     </div>
   );

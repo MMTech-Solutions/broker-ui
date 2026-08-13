@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FilterXIcon, SearchIcon, TagsIcon } from "lucide-react";
+import { FilterXIcon, PercentIcon, SearchIcon, TagsIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,8 @@ import {
   getTradingServerForAdmin,
   listServerGroupSecurities,
 } from "@/features/trading-server/api";
-import type { Security, TradingServer } from "@/features/trading-server/types";
+import type { Security, SymbolsMarkupScope, TradingServer } from "@/features/trading-server/types";
+import { SetSymbolsMarkupDialog } from "@/features/trading-server/components/set-symbols-markup-dialog";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
@@ -70,6 +72,11 @@ export function TradingServerGroupSecuritiesView({
 
   const [nameFilter, setNameFilter] = useState("");
   const [appliedNameFilter, setAppliedNameFilter] = useState("");
+  const [markupOpen, setMarkupOpen] = useState(false);
+  const [markupScope, setMarkupScope] = useState<SymbolsMarkupScope | null>(
+    null,
+  );
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const serverGroupsHref = `/platforms/${platformId}/trading-servers/${tradingServerId}/server-groups`;
 
@@ -146,13 +153,42 @@ export function TradingServerGroupSecuritiesView({
     setAppliedNameFilter("");
   }
 
+  function openMarkup(scope: SymbolsMarkupScope) {
+    setMarkupScope(scope);
+    setMarkupOpen(true);
+    setSuccessMessage(null);
+  }
+
+  const groupLabel = serverGroupName ?? "this server group";
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar
         breadcrumbs={breadcrumbs}
         backHref={serverGroupsHref}
         backLabel="Ir atrás"
-      />
+      >
+        <Button
+          type="button"
+          onClick={() =>
+            openMarkup({
+              type: "server_group",
+              serverGroupId,
+              label: groupLabel,
+            })
+          }
+        >
+          <PercentIcon data-icon="inline-start" />
+          Set markup for group
+        </Button>
+      </PageContentToolbar>
+
+      {successMessage ? (
+        <Alert>
+          <AlertTitle>Markup updated</AlertTitle>
+          <AlertDescription>{successMessage}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="rounded-xl border p-4">
         <p className="mb-4 text-sm font-medium">Filters</p>
@@ -195,7 +231,7 @@ export function TradingServerGroupSecuritiesView({
               <TableHead>Name</TableHead>
               <TableHead className="w-[120px]">Position</TableHead>
               <TableHead>Updated</TableHead>
-              <TableHead className="w-[72px] text-right">Actions</TableHead>
+              <TableHead className="w-[108px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -229,18 +265,34 @@ export function TradingServerGroupSecuritiesView({
                       {formatDateTime(security.updated_at)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <ActionTooltipButton
-                        variant="ghost"
-                        size="icon-sm"
-                        tooltip={`Symbols for ${security.name}`}
-                        render={
-                          <Link
-                            href={`/platforms/${platformId}/trading-servers/${tradingServerId}/securities/${security.id}/symbols?securityName=${encodeURIComponent(security.name)}&serverGroupId=${encodeURIComponent(serverGroupId)}&groupName=${encodeURIComponent(serverGroupName ?? "")}`}
-                          />
-                        }
-                      >
-                        <TagsIcon />
-                      </ActionTooltipButton>
+                      <div className="flex justify-end gap-1">
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          tooltip={`Set markup for ${security.name}`}
+                          onClick={() =>
+                            openMarkup({
+                              type: "security",
+                              securityId: security.id,
+                              label: security.name,
+                            })
+                          }
+                        >
+                          <PercentIcon />
+                        </ActionTooltipButton>
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          tooltip={`Symbols for ${security.name}`}
+                          render={
+                            <Link
+                              href={`/platforms/${platformId}/trading-servers/${tradingServerId}/securities/${security.id}/symbols?securityName=${encodeURIComponent(security.name)}&serverGroupId=${encodeURIComponent(serverGroupId)}&groupName=${encodeURIComponent(serverGroupName ?? "")}`}
+                            />
+                          }
+                        >
+                          <TagsIcon />
+                        </ActionTooltipButton>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -279,6 +331,16 @@ export function TradingServerGroupSecuritiesView({
           </div>
         </div>
       ) : null}
+
+      <SetSymbolsMarkupDialog
+        open={markupOpen}
+        onOpenChange={setMarkupOpen}
+        tradingServerId={tradingServerId}
+        scope={markupScope}
+        onSuccess={(_result, message) => {
+          setSuccessMessage(message);
+        }}
+      />
     </div>
   );
 }

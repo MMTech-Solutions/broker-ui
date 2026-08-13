@@ -1,30 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FilterXIcon, SearchIcon } from "lucide-react";
+import { FilterXIcon, PercentIcon, SearchIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getPlatform } from "@/features/platform/api";
 import type { Platform } from "@/features/platform/types";
 import {
   getTradingServerForAdmin,
   listSymbols,
 } from "@/features/trading-server/api";
+import { SetSymbolsMarkupDialog } from "@/features/trading-server/components/set-symbols-markup-dialog";
+import { TradingSymbolsTable } from "@/features/trading-server/components/trading-symbols-table";
 import type {
   SymbolListFilters,
+  SymbolsMarkupScope,
   TradingServer,
   TradingSymbol,
 } from "@/features/trading-server/types";
@@ -95,6 +90,13 @@ export function TradingSymbolsView({
   const [draftFilters, setDraftFilters] =
     useState<SymbolFilterFormState>(emptySymbolFilters);
   const [appliedFilters, setAppliedFilters] = useState<SymbolListFilters>({});
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [markupOpen, setMarkupOpen] = useState(false);
+  const [markupScope, setMarkupScope] = useState<SymbolsMarkupScope | null>(
+    null,
+  );
+  const [initialMarkup, setInitialMarkup] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const breadcrumbs = useMemo<BreadcrumbItem[]>(
     () => [
@@ -157,6 +159,7 @@ export function TradingSymbolsView({
 
   useEffect(() => {
     void loadSymbols(page, appliedFilters);
+    setSelectedIds([]);
   }, [appliedFilters, loadSymbols, page]);
 
   function applyFilters() {
@@ -170,13 +173,52 @@ export function TradingSymbolsView({
     setAppliedFilters({});
   }
 
+  function openMarkup(
+    scope: SymbolsMarkupScope,
+    markupValue: string | null = null,
+  ) {
+    setMarkupScope(scope);
+    setInitialMarkup(markupValue);
+    setMarkupOpen(true);
+    setSuccessMessage(null);
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar
         breadcrumbs={breadcrumbs}
         backHref={`/platforms/${platformId}/trading-servers`}
         backLabel="Ir atrás"
-      />
+      >
+        <div className="flex flex-wrap gap-2">
+          {selectedIds.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                openMarkup({ type: "symbols", symbolIds: selectedIds })
+              }
+            >
+              <PercentIcon data-icon="inline-start" />
+              Set markup ({selectedIds.length})
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            onClick={() => openMarkup({ type: "trading_server" })}
+          >
+            <PercentIcon data-icon="inline-start" />
+            Set markup for all
+          </Button>
+        </div>
+      </PageContentToolbar>
+
+      {successMessage ? (
+        <Alert>
+          <AlertTitle>Markup updated</AlertTitle>
+          <AlertDescription>{successMessage}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="rounded-xl border p-4">
         <p className="mb-4 text-sm font-medium">Filters</p>
@@ -250,49 +292,23 @@ export function TradingSymbolsView({
         <ApiErrorAlert title="Could not load symbols" message={error} />
       ) : null}
 
-      <div className="rounded-xl border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Alpha</TableHead>
-              <TableHead className="w-[120px]">Stype</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading
-              ? Array.from({ length: 5 }).map((_, index) => (
-                  <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={3}>
-                      <Skeleton className="h-8 w-full" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              : null}
-
-            {!loading && symbols.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={3}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No symbols found for this trading server.
-                </TableCell>
-              </TableRow>
-            ) : null}
-
-            {!loading
-              ? symbols.map((symbol) => (
-                  <TableRow key={symbol.id}>
-                    <TableCell className="font-medium">{symbol.name}</TableCell>
-                    <TableCell>{symbol.alpha}</TableCell>
-                    <TableCell>{symbol.stype}</TableCell>
-                  </TableRow>
-                ))
-              : null}
-          </TableBody>
-        </Table>
-      </div>
+      <TradingSymbolsTable
+        symbols={symbols}
+        loading={loading}
+        emptyMessage="No symbols found for this trading server."
+        selectedIds={selectedIds}
+        onSelectedIdsChange={setSelectedIds}
+        onSetMarkup={(symbol) =>
+          openMarkup(
+            {
+              type: "symbols",
+              symbolIds: [symbol.id],
+              label: symbol.alpha,
+            },
+            symbol.markup,
+          )
+        }
+      />
 
       {pagination && pagination.last_page > 1 ? (
         <div className="flex items-center justify-between">
@@ -324,6 +340,19 @@ export function TradingSymbolsView({
           </div>
         </div>
       ) : null}
+
+      <SetSymbolsMarkupDialog
+        open={markupOpen}
+        onOpenChange={setMarkupOpen}
+        tradingServerId={tradingServerId}
+        scope={markupScope}
+        initialMarkup={initialMarkup}
+        onSuccess={(_result, message) => {
+          setSelectedIds([]);
+          setSuccessMessage(message);
+          void loadSymbols(page, appliedFilters, { silent: true });
+        }}
+      />
     </div>
   );
 }
