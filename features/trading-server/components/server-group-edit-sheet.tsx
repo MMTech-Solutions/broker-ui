@@ -32,6 +32,7 @@ import {
   formatCurrencyLabel,
   parseOptionalMajorToMinorUnits,
   parseOptionalMinorUnits,
+  parseNonNegativeDecimal,
   type ServerGroupEditFormState,
 } from "@/features/trading-server/format";
 import type {
@@ -164,6 +165,33 @@ export function ServerGroupEditSheet({
           );
           return;
         }
+      }
+    }
+
+    const decimalTermFields = [
+      ["pips", "Pips"],
+      ["lot", "Lot"],
+      ["min_trade", "Min trade"],
+      ["commission", "Commission"],
+    ] as const;
+
+    for (const [field, label] of decimalTermFields) {
+      if (parseNonNegativeDecimal(form[field]) === undefined) {
+        setError(`${label} must be a number greater than or equal to 0.`);
+        return;
+      }
+    }
+
+    const integerTermFields = [
+      ["margin_call", "Margin call"],
+      ["stop_out", "Stop out"],
+    ] as const;
+
+    for (const [field, label] of integerTermFields) {
+      const raw = form[field].trim();
+      if (raw !== "" && parseOptionalMinorUnits(raw) === undefined) {
+        setError(`${label} must be an integer greater than or equal to 0.`);
+        return;
       }
     }
 
@@ -671,6 +699,54 @@ export function ServerGroupEditSheet({
                     </span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-lg border p-4">
+              <p className="text-sm font-medium">Trading terms</p>
+              <p className="text-xs text-muted-foreground">
+                Informational details shown to clients when they pick this
+                server group. They do not affect trading or eligibility.
+              </p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {(
+                  [
+                    ["pips", "Pips", "decimal"],
+                    ["lot", "Lot", "decimal"],
+                    ["min_trade", "Min trade", "decimal"],
+                    ["commission", "Commission", "decimal"],
+                    ["margin_call", "Margin call", "numeric"],
+                    ["stop_out", "Stop out", "numeric"],
+                  ] as const
+                ).map(([field, label, inputMode]) => (
+                  <div key={field} className="space-y-2">
+                    <Label htmlFor={`server-group-${field}`}>{label}</Label>
+                    <div className="relative">
+                      <Input
+                        id={`server-group-${field}`}
+                        inputMode={inputMode}
+                        className={
+                          inputMode === "numeric" ? "pr-8" : undefined
+                        }
+                        value={form[field]}
+                        onChange={(event) =>
+                          setForm((current) =>
+                            current
+                              ? { ...current, [field]: event.target.value }
+                              : current,
+                          )
+                        }
+                        disabled={submitting}
+                      />
+                      {inputMode === "numeric" ? (
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                          %
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 

@@ -30,7 +30,12 @@ import type {
 import type { Leverage } from "@/features/leverage/types";
 import type { Platform } from "@/features/platform/types";
 import { listCatalogServerGroupLeverages } from "@/features/trading-server/api";
-import { serverGroupDisplayName } from "@/features/trading-server/format";
+import {
+  CLIENT_TRADING_TERM_ROWS,
+  formatServerGroupTradingTermValue,
+  getServerGroupTradingTerms,
+  serverGroupDisplayName,
+} from "@/features/trading-server/format";
 import { TRADING_SERVER_ENVIRONMENT } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
@@ -428,7 +433,7 @@ export function ClientTradingAccountCreateDialog({
                       {Array.from({ length: 2 }).map((_, index) => (
                         <Skeleton
                           key={`server-group-skeleton-${index}`}
-                          className="h-20 w-full rounded-xl"
+                          className="h-36 w-full rounded-xl"
                         />
                       ))}
                     </div>
@@ -438,23 +443,44 @@ export function ClientTradingAccountCreateDialog({
                     </p>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2">
-                      {serverGroups.map((group) => (
-                        <SelectableCard
-                          key={group.id}
-                          selected={group.id === serverGroupId}
-                          disabled={submitting}
-                          onSelect={() => setServerGroupId(group.id)}
-                        >
-                          <span className="block truncate text-sm font-medium">
-                            {serverGroupDisplayName(group)}
-                          </span>
-                          {group.description ? (
-                            <span className="mt-1 line-clamp-2 block text-xs text-muted-foreground">
-                              {group.description}
+                      {serverGroups.map((group) => {
+                        const terms = getServerGroupTradingTerms(
+                          group.trading_terms,
+                        );
+
+                        return (
+                          <SelectableCard
+                            key={group.id}
+                            selected={group.id === serverGroupId}
+                            disabled={submitting}
+                            onSelect={() => setServerGroupId(group.id)}
+                          >
+                            <span className="block truncate text-sm font-medium">
+                              {serverGroupDisplayName(group)}
                             </span>
-                          ) : null}
-                        </SelectableCard>
-                      ))}
+                            {group.description ? (
+                              <span className="mt-1 line-clamp-2 block text-xs text-muted-foreground">
+                                {group.description}
+                              </span>
+                            ) : null}
+                            <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                              {CLIENT_TRADING_TERM_ROWS.map(({ key, label }) => (
+                                <div key={key} className="min-w-0">
+                                  <dt className="text-muted-foreground">
+                                    {label}
+                                  </dt>
+                                  <dd className="truncate font-medium">
+                                    {formatServerGroupTradingTermValue(
+                                      key,
+                                      terms,
+                                    )}
+                                  </dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </SelectableCard>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

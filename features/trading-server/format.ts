@@ -4,6 +4,7 @@ import type {
   RestrictedCountry,
   ServerGroup,
   ServerGroupCurrency,
+  ServerGroupTradingTerms,
   UpdateServerGroupInput,
 } from "@/features/trading-server/types";
 
@@ -250,6 +251,12 @@ export type ServerGroupEditFormState = {
   min_deposit: string;
   min_withdrawal: string;
   ib_external_user_ids: string;
+  pips: string;
+  lot: string;
+  min_trade: string;
+  margin_call: string;
+  commission: string;
+  stop_out: string;
 };
 
 export function buildServerGroupEditFormState(
@@ -290,6 +297,12 @@ export function buildServerGroupEditFormState(
     min_deposit: moneyInputFromApi(serverGroup.min_deposit, precision),
     min_withdrawal: moneyInputFromApi(serverGroup.min_withdrawal, precision),
     ib_external_user_ids: (serverGroup.ib_external_user_ids ?? []).join("\n"),
+    pips: formatMarkup(serverGroup.trading_terms?.pips),
+    lot: formatMarkup(serverGroup.trading_terms?.lot),
+    min_trade: formatMarkup(serverGroup.trading_terms?.min_trade),
+    margin_call: String(serverGroup.trading_terms?.margin_call ?? 0),
+    commission: formatMarkup(serverGroup.trading_terms?.commission),
+    stop_out: String(serverGroup.trading_terms?.stop_out ?? 0),
   };
 }
 
@@ -342,6 +355,14 @@ export function buildUpdateServerGroupInput(
     min_deposit: toMinorUnits(form.min_deposit),
     min_withdrawal: toMinorUnits(form.min_withdrawal),
     ib_external_user_ids: ibExternalUserIds,
+    trading_terms: {
+      pips: parseNonNegativeDecimal(form.pips) ?? "0",
+      lot: parseNonNegativeDecimal(form.lot) ?? "0",
+      min_trade: parseNonNegativeDecimal(form.min_trade) ?? "0",
+      margin_call: parseOptionalMinorUnits(form.margin_call) ?? 0,
+      commission: parseNonNegativeDecimal(form.commission) ?? "0",
+      stop_out: parseOptionalMinorUnits(form.stop_out) ?? 0,
+    },
   };
 }
 
@@ -357,4 +378,64 @@ export function formatMarkup(value: string | number | null | undefined): string 
   }
 
   return String(numeric);
+}
+
+export function parseNonNegativeDecimal(value: string): string | undefined {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "0";
+  }
+
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
+export function getServerGroupTradingTerms(
+  terms: ServerGroup["trading_terms"],
+): ServerGroupTradingTerms {
+  return {
+    pips: formatMarkup(terms?.pips),
+    lot: formatMarkup(terms?.lot),
+    min_trade: formatMarkup(terms?.min_trade),
+    margin_call:
+      typeof terms?.margin_call === "number" && Number.isFinite(terms.margin_call)
+        ? Math.max(0, Math.trunc(terms.margin_call))
+        : 0,
+    commission: formatMarkup(terms?.commission),
+    stop_out:
+      typeof terms?.stop_out === "number" && Number.isFinite(terms.stop_out)
+        ? Math.max(0, Math.trunc(terms.stop_out))
+        : 0,
+  };
+}
+
+export function formatTradingTermPercent(value: number): string {
+  return `${value}%`;
+}
+
+export const CLIENT_TRADING_TERM_ROWS: {
+  key: keyof ServerGroupTradingTerms;
+  label: string;
+}[] = [
+  { key: "pips", label: "Pips" },
+  { key: "lot", label: "Lote" },
+  { key: "min_trade", label: "Min. trade" },
+  { key: "margin_call", label: "Margin call" },
+  { key: "commission", label: "Comisión" },
+  { key: "stop_out", label: "Stop out" },
+];
+
+export function formatServerGroupTradingTermValue(
+  key: keyof ServerGroupTradingTerms,
+  terms: ServerGroupTradingTerms,
+): string {
+  if (key === "margin_call" || key === "stop_out") {
+    return formatTradingTermPercent(terms[key]);
+  }
+
+  return formatMarkup(terms[key]);
 }

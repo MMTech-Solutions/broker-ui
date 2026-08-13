@@ -66,6 +66,15 @@ export type RestrictedCountry = {
   name: string;
 };
 
+export type ServerGroupTradingTerms = {
+  pips: string;
+  lot: string;
+  min_trade: string;
+  margin_call: number;
+  commission: string;
+  stop_out: number;
+};
+
 export type ServerGroup = {
   id: string;
   /** Platform identity (admin list/update only; omitted for clients). */
@@ -96,6 +105,7 @@ export type ServerGroup = {
   configuration_warnings?: string[] | null;
   ib_external_user_ids?: string[] | null;
   environment?: number | null;
+  trading_terms?: ServerGroupTradingTerms;
   /** Nested platform: client has id+name (display); admin also has custom_name. */
   platform?: {
     id: string;
@@ -131,6 +141,7 @@ export type UpdateServerGroupInput = {
   /** Minor units integer expected by PATCH. */
   min_withdrawal?: number;
   ib_external_user_ids?: string[];
+  trading_terms?: Partial<ServerGroupTradingTerms>;
 };
 
 export type ServerGroupListFilters = {

@@ -25,6 +25,7 @@ export type {
   SecurityListFilters,
   ServerGroup,
   ServerGroupListFilters,
+  ServerGroupTradingTerms,
   SymbolListFilters,
   SymbolsMarkupScope,
   SymbolsMarkupUpdate,
