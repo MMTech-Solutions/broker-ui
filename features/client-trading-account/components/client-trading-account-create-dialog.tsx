@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { createClientTradingAccount } from "@/features/client-trading-account/api";
+import {
+  createClientTradingAccount,
+  listClientServerGroupsForSelection,
+} from "@/features/client-trading-account/api";
 import {
   formatInitialAmount,
   serverGroupNeedsInitialAmount,
@@ -108,13 +111,15 @@ export function ClientTradingAccountCreateDialog({
   catalog,
   onSuccess,
 }: ClientTradingAccountCreateDialogProps) {
+  const [platformId, setPlatformId] = useState("");
   const [environment, setEnvironment] = useState<string>(
     String(TRADING_SERVER_ENVIRONMENT.DEMO),
   );
-  const [platformId, setPlatformId] = useState("");
   const [serverGroupId, setServerGroupId] = useState("");
   const [leverageId, setLeverageId] = useState("");
   const [amountId, setAmountId] = useState("");
+  const [serverGroups, setServerGroups] = useState<ClientServerGroup[]>([]);
+  const [loadingServerGroups, setLoadingServerGroups] = useState(false);
   const [groupLeverages, setGroupLeverages] = useState<Leverage[]>([]);
   const [loadingLeverages, setLoadingLeverages] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -122,40 +127,15 @@ export function ClientTradingAccountCreateDialog({
 
   const environmentValue = Number.parseInt(environment, 10);
 
-  const platformsForEnvironment = useMemo(() => {
-    if (!catalog) {
-      return [];
-    }
-
-    const platformIds = new Set(
-      catalog.serverGroups
-        .filter((group) => group.environment === environmentValue)
-        .map((group) => group.platform?.id)
-        .filter((id): id is string => Boolean(id)),
-    );
-
-    return catalog.platforms.filter((platform) => platformIds.has(platform.id));
-  }, [catalog, environmentValue]);
-
-  const filteredServerGroups = useMemo(() => {
-    if (!catalog || !platformId) {
-      return [];
-    }
-
-    return catalog.serverGroups.filter(
-      (group) =>
-        group.environment === environmentValue &&
-        group.platform?.id === platformId,
-    );
-  }, [catalog, environmentValue, platformId]);
+  const platforms = catalog?.platforms ?? [];
 
   const selectedServerGroup = useMemo<ClientServerGroup | null>(() => {
-    if (!serverGroupId || !catalog) {
+    if (!serverGroupId) {
       return null;
     }
 
-    return catalog.serverGroupById.get(serverGroupId) ?? null;
-  }, [catalog, serverGroupId]);
+    return serverGroups.find((group) => group.id === serverGroupId) ?? null;
+  }, [serverGroupId, serverGroups]);
 
   const showInitialAmountPicker =
     selectedServerGroup != null &&
@@ -167,48 +147,79 @@ export function ClientTradingAccountCreateDialog({
     }
 
     setError(null);
-    setEnvironment(String(TRADING_SERVER_ENVIRONMENT.DEMO));
     setPlatformId("");
+    setEnvironment(String(TRADING_SERVER_ENVIRONMENT.DEMO));
     setServerGroupId("");
     setLeverageId("");
     setAmountId("");
+    setServerGroups([]);
     setGroupLeverages([]);
   }, [open]);
 
   useEffect(() => {
-    if (!open || !catalog) {
+    if (!open || !catalog || platforms.length === 0) {
       return;
     }
 
     setPlatformId((current) => {
-      if (platformsForEnvironment.some((platform) => platform.id === current)) {
+      if (platforms.some((platform) => platform.id === current)) {
         return current;
       }
 
-      return platformsForEnvironment[0]?.id ?? "";
+      return platforms[0]?.id ?? "";
     });
-  }, [catalog, environmentValue, open, platformsForEnvironment]);
+  }, [catalog, open, platforms]);
 
   useEffect(() => {
-    if (!open || !catalog || !platformId) {
+    if (!open || !platformId) {
+      setServerGroups([]);
       setServerGroupId("");
       return;
     }
 
-    const groups = catalog.serverGroups.filter(
-      (group) =>
-        group.environment === environmentValue &&
-        group.platform?.id === platformId,
-    );
+    let cancelled = false;
 
-    setServerGroupId((current) => {
-      if (current && groups.some((group) => group.id === current)) {
-        return current;
+    async function loadServerGroups() {
+      setLoadingServerGroups(true);
+      setError(null);
+
+      try {
+        const groups = await listClientServerGroupsForSelection({
+          platformId,
+          environment: environmentValue,
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        setServerGroups(groups);
+        setServerGroupId((current) => {
+          if (current && groups.some((group) => group.id === current)) {
+            return current;
+          }
+
+          return groups[0]?.id ?? "";
+        });
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(formatBrokerApiError(loadError));
+          setServerGroups([]);
+          setServerGroupId("");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingServerGroups(false);
+        }
       }
+    }
 
-      return groups[0]?.id ?? "";
-    });
-  }, [catalog, environmentValue, open, platformId]);
+    void loadServerGroups();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [environmentValue, open, platformId]);
 
   useEffect(() => {
     if (!open || !serverGroupId) {
@@ -264,6 +275,11 @@ export function ClientTradingAccountCreateDialog({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!platformId) {
+      setError("Selecciona una plataforma.");
+      return;
+    }
+
     if (!serverGroupId || !leverageId) {
       setError("Selecciona grupo de servidor y apalancamiento.");
       return;
@@ -299,8 +315,7 @@ export function ClientTradingAccountCreateDialog({
         <DialogHeader className="shrink-0">
           <DialogTitle>Nueva cuenta de trading</DialogTitle>
           <DialogDescription>
-            Crea una cuenta live o demo eligiendo entorno, plataforma, grupo de
-            servidor y apalancamiento.
+            Elige plataforma, entorno, grupo de servidor y apalancamiento.
           </DialogDescription>
         </DialogHeader>
 
@@ -328,48 +343,14 @@ export function ClientTradingAccountCreateDialog({
             ) : (
               <>
                 <div className="space-y-3">
-                  <Label>Entorno</Label>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <SelectableCard
-                      selected={
-                        environmentValue === TRADING_SERVER_ENVIRONMENT.DEMO
-                      }
-                      disabled={submitting}
-                      onSelect={() =>
-                        setEnvironment(String(TRADING_SERVER_ENVIRONMENT.DEMO))
-                      }
-                    >
-                      <span className="text-sm font-medium">Demo</span>
-                      <span className="mt-1 text-xs text-muted-foreground">
-                        Cuenta de práctica sin fondos reales.
-                      </span>
-                    </SelectableCard>
-                    <SelectableCard
-                      selected={
-                        environmentValue === TRADING_SERVER_ENVIRONMENT.LIVE
-                      }
-                      disabled={submitting}
-                      onSelect={() =>
-                        setEnvironment(String(TRADING_SERVER_ENVIRONMENT.LIVE))
-                      }
-                    >
-                      <span className="text-sm font-medium">Live</span>
-                      <span className="mt-1 text-xs text-muted-foreground">
-                        Cuenta real para operar con tu capital.
-                      </span>
-                    </SelectableCard>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
                   <Label>Plataforma</Label>
-                  {platformsForEnvironment.length === 0 ? (
+                  {platforms.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No hay plataformas disponibles para este entorno.
+                      No hay plataformas configuradas.
                     </p>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2">
-                      {platformsForEnvironment.map((platform) => {
+                      {platforms.map((platform) => {
                         const title = platform.custom_name ?? platform.name;
 
                         return (
@@ -402,15 +383,62 @@ export function ClientTradingAccountCreateDialog({
                 </div>
 
                 <div className="space-y-3">
+                  <Label>Entorno</Label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <SelectableCard
+                      selected={
+                        environmentValue === TRADING_SERVER_ENVIRONMENT.DEMO
+                      }
+                      disabled={submitting || !platformId}
+                      onSelect={() =>
+                        setEnvironment(String(TRADING_SERVER_ENVIRONMENT.DEMO))
+                      }
+                    >
+                      <span className="text-sm font-medium">Demo</span>
+                      <span className="mt-1 text-xs text-muted-foreground">
+                        Cuenta de práctica sin fondos reales.
+                      </span>
+                    </SelectableCard>
+                    <SelectableCard
+                      selected={
+                        environmentValue === TRADING_SERVER_ENVIRONMENT.LIVE
+                      }
+                      disabled={submitting || !platformId}
+                      onSelect={() =>
+                        setEnvironment(String(TRADING_SERVER_ENVIRONMENT.LIVE))
+                      }
+                    >
+                      <span className="text-sm font-medium">Live</span>
+                      <span className="mt-1 text-xs text-muted-foreground">
+                        Cuenta real para operar con tu capital.
+                      </span>
+                    </SelectableCard>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
                   <Label>Grupo de servidor</Label>
-                  {filteredServerGroups.length === 0 ? (
+                  {!platformId ? (
                     <p className="text-sm text-muted-foreground">
                       Selecciona una plataforma para ver los grupos
                       disponibles.
                     </p>
+                  ) : loadingServerGroups ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {Array.from({ length: 2 }).map((_, index) => (
+                        <Skeleton
+                          key={`server-group-skeleton-${index}`}
+                          className="h-20 w-full rounded-xl"
+                        />
+                      ))}
+                    </div>
+                  ) : serverGroups.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No hay grupos disponibles para esta plataforma y entorno.
+                    </p>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2">
-                      {filteredServerGroups.map((group) => (
+                      {serverGroups.map((group) => (
                         <SelectableCard
                           key={group.id}
                           selected={group.id === serverGroupId}
@@ -444,7 +472,9 @@ export function ClientTradingAccountCreateDialog({
                     </div>
                   ) : groupLeverages.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No hay apalancamientos para el grupo seleccionado.
+                      {serverGroupId
+                        ? "No hay apalancamientos para el grupo seleccionado."
+                        : "Selecciona un grupo de servidor."}
                     </p>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-3">

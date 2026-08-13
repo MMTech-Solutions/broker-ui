@@ -7,7 +7,7 @@ import type {
 } from "@/features/client-trading-account/types";
 import { listClientInitialAmounts } from "@/features/initial-amount/api";
 import { listLeverages } from "@/features/leverage/api";
-import type { Platform } from "@/features/platform/types";
+import { listConfiguredPlatforms } from "@/features/platform/api";
 import type {
   TradingAccount,
   TradingAccountListFilters,
@@ -62,32 +62,6 @@ export async function updateClientTradingAccountCredentials(
   );
 }
 
-function buildPlatformsFromServerGroups(
-  serverGroups: ClientServerGroup[],
-): Platform[] {
-  const byId = new Map<string, Platform>();
-
-  for (const group of serverGroups) {
-    const nested = group.platform;
-    if (!nested?.id) {
-      continue;
-    }
-
-    if (!byId.has(nested.id)) {
-      byId.set(nested.id, {
-        id: nested.id,
-        name: nested.name,
-        custom_name: nested.custom_name ?? null,
-        description: nested.description ?? null,
-        image_path: nested.image_path ?? null,
-        is_active: true,
-      });
-    }
-  }
-
-  return [...byId.values()];
-}
-
 function toClientServerGroup(group: ServerGroup): ClientServerGroup {
   return {
     ...group,
@@ -95,13 +69,14 @@ function toClientServerGroup(group: ServerGroup): ClientServerGroup {
   };
 }
 
+/**
+ * Base catalog for client account screens: configured platforms, leverages,
+ * initial amounts. Server groups are loaded on demand (filtered by platform/env)
+ * when creating an account.
+ */
 export async function loadClientAccountCatalog(): Promise<ClientAccountCatalog> {
-  const serverGroupsResponse = await listCatalogServerGroups({
-    per_page: 100,
-  });
-
-  const serverGroups = serverGroupsResponse.data.map(toClientServerGroup);
-  const platforms = buildPlatformsFromServerGroups(serverGroups);
+  const platformsResponse = await listConfiguredPlatforms();
+  const platforms = platformsResponse.data;
   const platformById = new Map(
     platforms.map((platform) => [platform.id, platform]),
   );
@@ -126,6 +101,18 @@ export async function loadClientAccountCatalog(): Promise<ClientAccountCatalog> 
     initialAmounts = [];
   }
 
+  // Keep a full group map for enriching existing accounts (environment labels, etc.).
+  let serverGroups: ClientServerGroup[] = [];
+
+  try {
+    const serverGroupsResponse = await listCatalogServerGroups({
+      per_page: 100,
+    });
+    serverGroups = serverGroupsResponse.data.map(toClientServerGroup);
+  } catch {
+    serverGroups = [];
+  }
+
   const serverGroupById = new Map(
     serverGroups.map((group) => [group.id, group]),
   );
@@ -142,6 +129,19 @@ export async function loadClientAccountCatalog(): Promise<ClientAccountCatalog> 
     leverageById,
     platformById,
   };
+}
+
+export async function listClientServerGroupsForSelection(filters: {
+  platformId: string;
+  environment: number;
+}): Promise<ClientServerGroup[]> {
+  const response = await listCatalogServerGroups({
+    platform_id: filters.platformId,
+    environment: filters.environment,
+    per_page: 100,
+  });
+
+  return response.data.map(toClientServerGroup);
 }
 
 /**

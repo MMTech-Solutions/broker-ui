@@ -157,7 +157,8 @@ export async function proxyBrokerRequest(
     });
   }
 
-  const responseBody = await upstream.text();
+  // arrayBuffer preserves binary bodies (e.g. platform images); also fine for JSON.
+  const responseBody = await upstream.arrayBuffer();
 
   return new Response(responseBody, {
     status: upstream.status,

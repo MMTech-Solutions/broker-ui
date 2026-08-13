@@ -3,6 +3,7 @@ export {
   deletePlatform,
   getPlatform,
   listAvailablePlatforms,
+  listConfiguredPlatforms,
   listPlatforms,
   updatePlatform,
 } from "@/features/platform/api";

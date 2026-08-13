@@ -1,3 +1,4 @@
+import { platformImageUrl } from "@/features/platform/image";
 import type {
   CreatePlatformInput,
   Platform,
@@ -8,8 +9,34 @@ import type { AvailablePlatform } from "@/features/platform/types";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
-const PLATFORMS_PATH = "v1/admin/platforms";
+const PLATFORMS_ADMIN_PATH = "v1/admin/platforms";
+const PLATFORMS_CLIENT_PATH = "v1/platforms";
 const PLATFORMS_AVAILABLE_PATH = "v1/platforms/availables";
+
+function withProxyImagePath(platform: Platform): Platform {
+  return {
+    ...platform,
+    image_path: platformImageUrl(platform.id, platform.image_path),
+  };
+}
+
+function mapPlatformsResponse(
+  response: BrokerSuccessResponse<Platform[]>,
+): BrokerSuccessResponse<Platform[]> {
+  return {
+    ...response,
+    data: response.data.map(withProxyImagePath),
+  };
+}
+
+function mapPlatformResponse(
+  response: BrokerSuccessResponse<Platform>,
+): BrokerSuccessResponse<Platform> {
+  return {
+    ...response,
+    data: withProxyImagePath(response.data),
+  };
+}
 
 function appendPlatformFormData(
   formData: FormData,
@@ -43,9 +70,20 @@ function appendPlatformFormData(
 export async function listPlatforms(
   filters: PlatformListFilters = {},
 ): Promise<BrokerSuccessResponse<Platform[]>> {
-  return browserBrokerRequest<Platform[]>(PLATFORMS_PATH, {
+  const response = await browserBrokerRequest<Platform[]>(PLATFORMS_ADMIN_PATH, {
     searchParams: filters,
   });
+
+  return mapPlatformsResponse(response);
+}
+
+/** Client catalog: active configured platforms (no filters). */
+export async function listConfiguredPlatforms(): Promise<
+  BrokerSuccessResponse<Platform[]>
+> {
+  const response = await browserBrokerRequest<Platform[]>(PLATFORMS_CLIENT_PATH);
+
+  return mapPlatformsResponse(response);
 }
 
 export async function listAvailablePlatforms(): Promise<
@@ -59,7 +97,11 @@ export async function listAvailablePlatforms(): Promise<
 export async function getPlatform(
   platformId: string,
 ): Promise<BrokerSuccessResponse<Platform>> {
-  return browserBrokerRequest<Platform>(`${PLATFORMS_PATH}/${platformId}`);
+  const response = await browserBrokerRequest<Platform>(
+    `${PLATFORMS_ADMIN_PATH}/${platformId}`,
+  );
+
+  return mapPlatformResponse(response);
 }
 
 export async function createPlatform(
@@ -68,10 +110,12 @@ export async function createPlatform(
   const formData = new FormData();
   appendPlatformFormData(formData, input);
 
-  return browserBrokerRequest<Platform>(PLATFORMS_PATH, {
+  const response = await browserBrokerRequest<Platform>(PLATFORMS_ADMIN_PATH, {
     method: "POST",
     body: formData,
   });
+
+  return mapPlatformResponse(response);
 }
 
 export async function updatePlatform(
@@ -81,16 +125,21 @@ export async function updatePlatform(
   const formData = new FormData();
   appendPlatformFormData(formData, input);
 
-  return browserBrokerRequest<Platform>(`${PLATFORMS_PATH}/${platformId}`, {
-    method: "PATCH",
-    body: formData,
-  });
+  const response = await browserBrokerRequest<Platform>(
+    `${PLATFORMS_ADMIN_PATH}/${platformId}`,
+    {
+      method: "PATCH",
+      body: formData,
+    },
+  );
+
+  return mapPlatformResponse(response);
 }
 
 export async function deletePlatform(
   platformId: string,
 ): Promise<BrokerSuccessResponse<void>> {
-  return browserBrokerRequest<void>(`${PLATFORMS_PATH}/${platformId}`, {
+  return browserBrokerRequest<void>(`${PLATFORMS_ADMIN_PATH}/${platformId}`, {
     method: "DELETE",
   });
 }
