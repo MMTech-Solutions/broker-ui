@@ -52,8 +52,10 @@ import {
 } from "@/features/trading-account/types";
 import {
   listServerGroupsForAdmin,
+  listTradingServerEnvironments,
   listTradingServersForAdmin,
 } from "@/features/trading-server/api";
+import type { TradingServerEnvironment } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
@@ -64,12 +66,13 @@ const tradingAccountsBreadcrumbs: BreadcrumbItem[] = [
   { label: "Trading accounts", current: true },
 ];
 
-const TABLE_COLUMN_COUNT = 13;
+const TABLE_COLUMN_COUNT = 14;
 
 type ServerGroupOption = {
   id: string;
   label: string;
   platformLabel: string;
+  environment: number | null;
 };
 
 const moneyFormatter = new Intl.NumberFormat(undefined, {
@@ -130,6 +133,14 @@ function formToAppliedFilters(
 
   if (platformId && platformId !== "all") {
     filters.platform_id = platformId;
+  }
+
+  const environment = form.environment.trim();
+  if (environment && environment !== "all") {
+    const parsed = Number.parseInt(environment, 10);
+    if (Number.isFinite(parsed)) {
+      filters.environment = parsed;
+    }
   }
 
   if (serverGroupId && serverGroupId !== "all") {
@@ -258,6 +269,9 @@ export function TradingAccountsView() {
   const [serverGroupsLoading, setServerGroupsLoading] = useState(false);
   const [platformOptions, setPlatformOptions] = useState<Platform[]>([]);
   const [platformsLoading, setPlatformsLoading] = useState(false);
+  const [environmentOptions, setEnvironmentOptions] = useState<
+    TradingServerEnvironment[]
+  >([]);
 
   const [accessAccount, setAccessAccount] = useState<TradingAccount | null>(
     null,
@@ -271,12 +285,15 @@ export function TradingAccountsView() {
     setPlatformsLoading(true);
 
     try {
-      const [serversResponse, platformsResponse] = await Promise.all([
-        listTradingServersForAdmin({ per_page: 100 }),
-        listPlatforms({ per_page: 100 }),
-      ]);
+      const [serversResponse, platformsResponse, environmentsResponse] =
+        await Promise.all([
+          listTradingServersForAdmin({ per_page: 100 }),
+          listPlatforms({ per_page: 100 }),
+          listTradingServerEnvironments(),
+        ]);
 
       setPlatformOptions(platformsResponse.data);
+      setEnvironmentOptions(environmentsResponse.data);
 
       const platformLabelById = new Map(
         platformsResponse.data.map((platform) => [
@@ -300,6 +317,7 @@ export function TradingAccountsView() {
               group.name?.trim() ||
               group.id,
             platformLabel,
+            environment: group.environment ?? null,
           }));
         }),
       );
@@ -318,6 +336,7 @@ export function TradingAccountsView() {
     } catch {
       setServerGroupOptions([]);
       setPlatformOptions([]);
+      setEnvironmentOptions([]);
     } finally {
       setServerGroupsLoading(false);
       setPlatformsLoading(false);
@@ -419,6 +438,25 @@ export function TradingAccountsView() {
     () => new Map(serverGroupOptions.map((option) => [option.id, option])),
     [serverGroupOptions],
   );
+
+  const environmentLabelByValue = useMemo(
+    () =>
+      new Map(
+        environmentOptions.map((environment) => [
+          environment.value,
+          environment.label,
+        ]),
+      ),
+    [environmentOptions],
+  );
+
+  function formatEnvironmentLabel(environment: number | null | undefined): string {
+    if (environment == null) {
+      return "—";
+    }
+
+    return environmentLabelByValue.get(environment) ?? String(environment);
+  }
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-hidden p-4">
@@ -579,6 +617,36 @@ export function TradingAccountsView() {
                     {platformOptions.map((platform) => (
                       <SelectItem key={platform.id} value={platform.id}>
                         {platform.custom_name?.trim() || platform.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TableHead>
+
+              <TableHead className="min-w-[120px] align-bottom">
+                <span className="text-xs font-medium">Environment</span>
+                <Select
+                  value={draftFilters.environment || "all"}
+                  onValueChange={(value) =>
+                    patchDraft(
+                      {
+                        environment: value === "all" ? "" : (value ?? ""),
+                      },
+                      { apply: true },
+                    )
+                  }
+                >
+                  <SelectTrigger className="mt-1.5 h-8 w-full">
+                    <SelectValue placeholder="All environments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {environmentOptions.map((environment) => (
+                      <SelectItem
+                        key={environment.value}
+                        value={String(environment.value)}
+                      >
+                        {environment.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -815,6 +883,9 @@ export function TradingAccountsView() {
                           account.platform?.name ??
                           serverGroupMeta?.platformLabel ??
                           "—"}
+                      </TableCell>
+                      <TableCell>
+                        {formatEnvironmentLabel(serverGroupMeta?.environment)}
                       </TableCell>
                       <TableCell>
                         {serverGroupMeta?.label ??

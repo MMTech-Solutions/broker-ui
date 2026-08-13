@@ -175,11 +175,19 @@ export function ClientTradingAccountsView() {
     setLoading(true);
     setError(null);
 
+    const environmentValue =
+      filters.environment !== "all"
+        ? Number.parseInt(filters.environment, 10)
+        : undefined;
+
     try {
       const [accountsResponse, catalogData] = await Promise.all([
         listClientTradingAccounts({
           page: requestedPage,
           per_page: 15,
+          ...(Number.isFinite(environmentValue)
+            ? { environment: environmentValue }
+            : {}),
         }),
         loadClientAccountCatalog(),
       ]);
@@ -195,7 +203,7 @@ export function ClientTradingAccountsView() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters.environment]);
 
   useEffect(() => {
     void loadData(page);
@@ -257,13 +265,6 @@ export function ClientTradingAccountsView() {
         account.platformId !== filters.platformId
       ) {
         return false;
-      }
-
-      if (filters.environment !== "all") {
-        const environmentValue = Number.parseInt(filters.environment, 10);
-        if (account.environment !== environmentValue) {
-          return false;
-        }
       }
 
       if (
@@ -389,12 +390,13 @@ export function ClientTradingAccountsView() {
           <Label htmlFor="filter-environment">Entorno</Label>
           <Select
             value={filters.environment}
-            onValueChange={(value) =>
+            onValueChange={(value) => {
+              setPage(1);
               setFilters((current) => ({
                 ...current,
                 environment: value ?? "all",
-              }))
-            }
+              }));
+            }}
           >
             <SelectTrigger id="filter-environment">
               <SelectValue placeholder="Todos">

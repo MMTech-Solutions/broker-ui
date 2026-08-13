@@ -83,6 +83,7 @@ export type TradingAccountListFilters = {
   external_trader_id?: string;
   custom_name?: string;
   platform_id?: string;
+  environment?: number;
   server_group_id?: string;
   is_active?: boolean;
   is_trading_enabled?: boolean;
@@ -114,6 +115,7 @@ export type TradingAccountFilterFormState = {
   user_name: string;
   user_email: string;
   platform_id: string;
+  environment: string;
   server_group_id: string;
   current_balance: string;
   current_equity: string;
@@ -129,6 +131,7 @@ export const EMPTY_TRADING_ACCOUNT_FILTERS: TradingAccountFilterFormState = {
   user_name: "",
   user_email: "",
   platform_id: "",
+  environment: "",
   server_group_id: "",
   current_balance: "",
   current_equity: "",
