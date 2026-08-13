@@ -25,7 +25,6 @@ import {
 import {
   createTradingServer,
   listTradingServerConfigSchemas,
-  listTradingServerEnvironments,
   updateTradingServer,
 } from "@/features/trading-server/api";
 import {
@@ -37,7 +36,6 @@ import {
 import type {
   TradingServer,
   TradingServerConfigSchema,
-  TradingServerEnvironment,
 } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
@@ -59,11 +57,7 @@ export function TradingServerFormDialog({
   onSuccess,
 }: TradingServerFormDialogProps) {
   const [schemas, setSchemas] = useState<TradingServerConfigSchema[]>([]);
-  const [environments, setEnvironments] = useState<TradingServerEnvironment[]>(
-    [],
-  );
   const [schemaId, setSchemaId] = useState("");
-  const [environment, setEnvironment] = useState<number | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [config, setConfig] = useState<Record<string, string>>({});
   const [loadingOptions, setLoadingOptions] = useState(false);
@@ -96,9 +90,8 @@ export function TradingServerFormDialog({
       setLoadingOptions(true);
 
       try {
-        const [schemasResponse, environmentsResponse] = await Promise.all([
+        const [schemasResponse] = await Promise.all([
           listTradingServerConfigSchemas(platformId),
-          listTradingServerEnvironments(),
         ]);
 
         if (cancelled) {
@@ -106,7 +99,6 @@ export function TradingServerFormDialog({
         }
 
         const nextSchemas = schemasResponse.data;
-        const nextEnvironments = environmentsResponse.data;
         const initialSchemaId =
           mode === "edit" && tradingServer
             ? tradingServer.config_schema_id
@@ -117,13 +109,7 @@ export function TradingServerFormDialog({
           null;
 
         setSchemas(nextSchemas);
-        setEnvironments(nextEnvironments);
         setSchemaId(initialSchema?.id ?? "");
-        setEnvironment(
-          mode === "edit" && tradingServer
-            ? tradingServer.environment
-            : (nextEnvironments[0]?.value ?? null),
-        );
         setIsActive(
           mode === "edit" && tradingServer ? tradingServer.is_active : true,
         );
@@ -176,8 +162,8 @@ export function TradingServerFormDialog({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!selectedSchema || environment === null) {
-      setError("Select a configuration schema and environment.");
+    if (!selectedSchema) {
+      setError("Select a configuration schema.");
       return;
     }
 
@@ -196,13 +182,11 @@ export function TradingServerFormDialog({
           platform_id: platformId,
           config_schema_id: schemaId || undefined,
           config: serializedConfig,
-          environment,
           is_active: isActive,
         });
       } else if (tradingServer) {
         await updateTradingServer(tradingServer.id, {
           config: serializedConfig,
-          environment,
           is_active: isActive,
         });
       }
@@ -265,28 +249,6 @@ export function TradingServerFormDialog({
                   <SelectItem key={schema.id} value={schema.id}>
                     {schema.slug}
                     {schema.is_default ? " (default)" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="trading-server-environment">Environment</Label>
-            <Select
-              value={environment !== null ? String(environment) : null}
-              onValueChange={(value) =>
-                setEnvironment(value ? Number.parseInt(value, 10) : null)
-              }
-              disabled={loadingOptions || submitting}
-            >
-              <SelectTrigger id="trading-server-environment" className="w-full">
-                <SelectValue placeholder="Select environment" />
-              </SelectTrigger>
-              <SelectContent>
-                {environments.map((item) => (
-                  <SelectItem key={item.value} value={String(item.value)}>
-                    {item.label}
                   </SelectItem>
                 ))}
               </SelectContent>

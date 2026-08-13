@@ -24,12 +24,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { updateServerGroup } from "@/features/trading-server/api";
+import { updateServerGroup, listTradingServerEnvironments } from "@/features/trading-server/api";
 import {
   buildServerGroupEditFormState,
   buildUpdateServerGroupInput,
   formatConfigurationWarning,
   formatCurrencyLabel,
+  parseOptionalMajorToMinorUnits,
   parseOptionalMinorUnits,
   type ServerGroupEditFormState,
 } from "@/features/trading-server/format";
@@ -37,6 +38,7 @@ import type {
   BookType,
   RestrictedCountry,
   ServerGroup,
+  TradingServerEnvironment,
 } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
@@ -61,6 +63,9 @@ export function ServerGroupEditSheet({
   onSuccess,
 }: ServerGroupEditSheetProps) {
   const [form, setForm] = useState<ServerGroupEditFormState | null>(null);
+  const [environments, setEnvironments] = useState<TradingServerEnvironment[]>(
+    [],
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -81,6 +86,24 @@ export function ServerGroupEditSheet({
     setForm(buildServerGroupEditFormState(serverGroup));
     setWarnings(serverGroup.configuration_warnings ?? []);
     setError(null);
+
+    let cancelled = false;
+
+    void listTradingServerEnvironments()
+      .then((response) => {
+        if (!cancelled) {
+          setEnvironments(response.data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEnvironments([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, serverGroup]);
 
   async function handleSubmit() {
@@ -110,6 +133,38 @@ export function ServerGroupEditSheet({
         "Currency precision is required before activating this server group.",
       );
       return;
+    }
+
+    if (form.is_active && form.environment === null) {
+      setError("Environment is required before activating this server group.");
+      return;
+    }
+
+    const denominationFactor = parseOptionalMinorUnits(
+      form.currency_denomination_factor,
+    );
+
+    if (denominationFactor === undefined || denominationFactor < 1) {
+      setError("Currency denomination factor must be an integer of at least 1.");
+      return;
+    }
+
+    if (precision !== undefined) {
+      const moneyFields = [
+        ["default_amount", "Default amount"],
+        ["min_deposit", "Min deposit"],
+        ["min_withdrawal", "Min withdrawal"],
+      ] as const;
+
+      for (const [field, label] of moneyFields) {
+        const raw = form[field].trim();
+        if (raw !== "" && parseOptionalMajorToMinorUnits(raw, precision) === undefined) {
+          setError(
+            `${label} must be a valid amount in major units (e.g. 1.00 ${currencyCode || "USD"}).`,
+          );
+          return;
+        }
+      }
     }
 
     setSubmitting(true);
@@ -168,7 +223,8 @@ export function ServerGroupEditSheet({
             Edit commercial settings for this server group. The platform name is
             synced and read-only; meta name is the label shown to clients. If
             currency was not synced, set the ISO code and precision before
-            activating the group.
+            activating the group. Environment must also be set before
+            activation.
           </SheetDescription>
         </SheetHeader>
 
@@ -297,6 +353,78 @@ export function ServerGroupEditSheet({
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="server-group-currency-denomination-factor">
+                Currency denomination factor
+              </Label>
+              <Input
+                id="server-group-currency-denomination-factor"
+                inputMode="numeric"
+                min={1}
+                placeholder="1"
+                value={form.currency_denomination_factor}
+                onChange={(event) =>
+                  setForm((current) =>
+                    current
+                      ? {
+                          ...current,
+                          currency_denomination_factor: event.target.value,
+                        }
+                      : current,
+                  )
+                }
+                disabled={submitting}
+              />
+              <p className="text-xs text-muted-foreground">
+                Converts account units to the base currency. Use 1 for standard
+                accounts, 100 for cent accounts (e.g. USC).
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="server-group-environment">Environment</Label>
+              <Select
+                value={
+                  form.environment !== null
+                    ? String(form.environment)
+                    : "__none__"
+                }
+                onValueChange={(value) =>
+                  setForm((current) =>
+                    current
+                      ? {
+                          ...current,
+                          environment:
+                            value === "__none__" || value == null
+                              ? null
+                              : Number.parseInt(value, 10),
+                          ...(value === "__none__" || value == null
+                            ? { is_active: false }
+                            : {}),
+                        }
+                      : current,
+                  )
+                }
+                disabled={submitting}
+              >
+                <SelectTrigger id="server-group-environment">
+                  <SelectValue placeholder="Not set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Not set</SelectItem>
+                  {environments.map((item) => (
+                    <SelectItem key={item.value} value={String(item.value)}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Required to activate the group. Demo groups do not support
+                deposits, withdrawals, or being the system default.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="server-group-book-type">Book type</Label>
               <Select
                 value={form.book_type || "__none__"}
@@ -351,8 +479,6 @@ export function ServerGroupEditSheet({
                   ["is_default", "Default group"],
                   ["is_private", "Private group"],
                   ["is_active", "Active"],
-                  ["is_deposit_enabled", "Deposits enabled"],
-                  ["is_withdrawal_enabled", "Withdrawals enabled"],
                   ["use_countries_restrictions", "Country restrictions"],
                 ] as const
               ).map(([field, label]) => {
@@ -360,9 +486,10 @@ export function ServerGroupEditSheet({
                 const precisionUnset =
                   parseOptionalMinorUnits(form.currency_precision) ===
                   undefined;
+                const environmentUnset = form.environment === null;
                 const disableActive =
                   field === "is_active" &&
-                  (currencyCodeMissing || precisionUnset);
+                  (currencyCodeMissing || precisionUnset || environmentUnset);
 
                 return (
                 <div key={field} className="flex items-center gap-2">
@@ -384,11 +511,31 @@ export function ServerGroupEditSheet({
               })}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="server-group-account-limits">
+                Account limits
+              </Label>
+              <Input
+                id="server-group-account-limits"
+                inputMode="numeric"
+                value={form.account_limits}
+                onChange={(event) =>
+                  setForm((current) =>
+                    current
+                      ? { ...current, account_limits: event.target.value }
+                      : current,
+                  )
+                }
+                disabled={submitting}
+              />
+            </div>
+
             <div className="space-y-3 rounded-lg border p-4">
-              <p className="text-sm font-medium">Amounts and limits</p>
+              <p className="text-sm font-medium">Initial trading amount</p>
               <p className="text-xs text-muted-foreground">
-                Monetary fields use minor currency units (e.g. cents for{" "}
-                {displayCurrencyLabel}).
+                Credited on the trading account at creation as balance or
+                credit. It does not go through Finance. Amounts are in major
+                units (e.g. 1.00 {displayCurrencyLabel}).
               </p>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -396,19 +543,25 @@ export function ServerGroupEditSheet({
                   <Label htmlFor="server-group-default-amount">
                     Default amount
                   </Label>
-                  <Input
-                    id="server-group-default-amount"
-                    inputMode="numeric"
-                    value={form.default_amount}
-                    onChange={(event) =>
-                      setForm((current) =>
-                        current
-                          ? { ...current, default_amount: event.target.value }
-                          : current,
-                      )
-                    }
-                    disabled={submitting}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="server-group-default-amount"
+                      inputMode="decimal"
+                      className="pr-14"
+                      value={form.default_amount}
+                      onChange={(event) =>
+                        setForm((current) =>
+                          current
+                            ? { ...current, default_amount: event.target.value }
+                            : current,
+                        )
+                      }
+                      disabled={submitting}
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                      {displayCurrencyLabel}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -435,60 +588,88 @@ export function ServerGroupEditSheet({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="server-group-account-limits">
-                    Account limits
-                  </Label>
-                  <Input
-                    id="server-group-account-limits"
-                    inputMode="numeric"
-                    value={form.account_limits}
-                    onChange={(event) =>
-                      setForm((current) =>
-                        current
-                          ? { ...current, account_limits: event.target.value }
-                          : current,
-                      )
-                    }
-                    disabled={submitting}
-                  />
-                </div>
+            <div className="space-y-3 rounded-lg border p-4">
+              <p className="text-sm font-medium">Deposits and withdrawals</p>
+              <p className="text-xs text-muted-foreground">
+                Finance cashflow. Independent of the initial trading amount.
+                Minimums are in major units (e.g. 1.00 {displayCurrencyLabel}).
+              </p>
 
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(
+                  [
+                    ["is_deposit_enabled", "Deposits enabled"],
+                    ["is_withdrawal_enabled", "Withdrawals enabled"],
+                  ] as const
+                ).map(([field, label]) => (
+                  <div key={field} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`server-group-${field}`}
+                      checked={form[field]}
+                      onCheckedChange={(checked) =>
+                        setForm((current) =>
+                          current
+                            ? { ...current, [field]: checked === true }
+                            : current,
+                        )
+                      }
+                      disabled={submitting}
+                    />
+                    <Label htmlFor={`server-group-${field}`}>{label}</Label>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="server-group-min-deposit">Min deposit</Label>
-                  <Input
-                    id="server-group-min-deposit"
-                    inputMode="numeric"
-                    value={form.min_deposit}
-                    onChange={(event) =>
-                      setForm((current) =>
-                        current
-                          ? { ...current, min_deposit: event.target.value }
-                          : current,
-                      )
-                    }
-                    disabled={submitting}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="server-group-min-deposit"
+                      inputMode="decimal"
+                      className="pr-14"
+                      value={form.min_deposit}
+                      onChange={(event) =>
+                        setForm((current) =>
+                          current
+                            ? { ...current, min_deposit: event.target.value }
+                            : current,
+                        )
+                      }
+                      disabled={submitting}
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                      {displayCurrencyLabel}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-2 sm:col-span-2">
+                <div className="space-y-2">
                   <Label htmlFor="server-group-min-withdrawal">
                     Min withdrawal
                   </Label>
-                  <Input
-                    id="server-group-min-withdrawal"
-                    inputMode="numeric"
-                    value={form.min_withdrawal}
-                    onChange={(event) =>
-                      setForm((current) =>
-                        current
-                          ? { ...current, min_withdrawal: event.target.value }
-                          : current,
-                      )
-                    }
-                    disabled={submitting}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="server-group-min-withdrawal"
+                      inputMode="decimal"
+                      className="pr-14"
+                      value={form.min_withdrawal}
+                      onChange={(event) =>
+                        setForm((current) =>
+                          current
+                            ? { ...current, min_withdrawal: event.target.value }
+                            : current,
+                        )
+                      }
+                      disabled={submitting}
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                      {displayCurrencyLabel}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

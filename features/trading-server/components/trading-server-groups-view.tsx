@@ -32,6 +32,7 @@ import type { Platform } from "@/features/platform/types";
 import {
   getTradingServerForAdmin,
   listServerGroupsForAdmin,
+  listTradingServerEnvironments,
 } from "@/features/trading-server/api";
 import { ServerGroupEditSheet } from "@/features/trading-server/components/server-group-edit-sheet";
 import { ServerGroupLeveragesSyncDialog } from "@/features/trading-server/components/server-group-leverages-sync-dialog";
@@ -91,6 +92,9 @@ export function TradingServerGroupsView({
     null,
   );
   const [serverGroups, setServerGroups] = useState<ServerGroup[]>([]);
+  const [environmentLabels, setEnvironmentLabels] = useState<
+    Record<number, string>
+  >({});
   const [configurationWarnings, setConfigurationWarnings] = useState<string[]>(
     [],
   );
@@ -145,7 +149,7 @@ export function TradingServerGroupsView({
       setError(null);
 
       try {
-        const [platformResult, serverResult, serverGroupsResponse] =
+        const [platformResult, serverResult, serverGroupsResponse, environmentsResponse] =
           await Promise.all([
             getPlatform(platformId),
             getTradingServerForAdmin(tradingServerId),
@@ -154,11 +158,20 @@ export function TradingServerGroupsView({
               page: requestedPage,
               per_page: 15,
             }),
+            listTradingServerEnvironments(),
           ]);
 
         setPlatform(platformResult.data);
         setTradingServer(serverResult.data);
         setServerGroups(serverGroupsResponse.data);
+        setEnvironmentLabels(
+          Object.fromEntries(
+            environmentsResponse.data.map((environment) => [
+              environment.value,
+              environment.label,
+            ]),
+          ),
+        );
         setConfigurationWarnings(
           serverGroupsResponse.meta.configuration_warnings ?? [],
         );
@@ -304,6 +317,7 @@ export function TradingServerGroupsView({
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Meta name</TableHead>
+              <TableHead>Environment</TableHead>
               <TableHead>Currency</TableHead>
               <TableHead>Book</TableHead>
               <TableHead className="text-right">Default amount</TableHead>
@@ -316,7 +330,7 @@ export function TradingServerGroupsView({
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={9}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -326,7 +340,7 @@ export function TradingServerGroupsView({
             {!loading && serverGroups.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No server groups found for this trading server.
@@ -345,6 +359,12 @@ export function TradingServerGroupsView({
                       {serverGroup.name}
                     </TableCell>
                     <TableCell>{serverGroup.meta_name}</TableCell>
+                    <TableCell>
+                      {serverGroup.environment != null
+                        ? (environmentLabels[serverGroup.environment] ??
+                          String(serverGroup.environment))
+                        : "—"}
+                    </TableCell>
                     <TableCell>
                       {formatCurrencyLabel(serverGroup.currency)}
                     </TableCell>

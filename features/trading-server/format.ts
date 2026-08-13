@@ -15,8 +15,6 @@ const CONFIGURATION_WARNING_LABELS: Record<string, string> = {
     "This group is marked as default, but create-default-account on registration is disabled.",
   auto_create_without_default_group:
     "Create-default-account on registration is enabled, but there is no active default server group.",
-  deposit_disabled_with_default_amount:
-    "Default amount is set but deposits are disabled.",
   withdrawal_disabled: "Withdrawals are disabled for this group.",
   countries_restrictions_empty:
     "Country restrictions are enabled but no countries are listed.",
@@ -25,6 +23,17 @@ const CONFIGURATION_WARNING_LABELS: Record<string, string> = {
     "Currency code is not configured. Set it before activating this group.",
   currency_precision_missing:
     "Currency precision is not configured. Set it before activating this group.",
+  environment_missing:
+    "Environment is not configured. Set Demo or Live before activating this group. If the group is already active, configure it now.",
+  default_without_amount:
+    "This group is marked as default but has no default amount.",
+  demo_private: "Demo groups should not be private.",
+  demo_default: "Demo groups should not be the system default group.",
+  demo_deposit_enabled: "Demo groups should not have deposits enabled.",
+  demo_withdrawal_enabled: "Demo groups should not have withdrawals enabled.",
+  demo_default_amount: "Demo groups should not have a default amount.",
+  demo_min_deposit: "Demo groups should not have a minimum deposit.",
+  demo_min_withdrawal: "Demo groups should not have a minimum withdrawal.",
   meta_name_missing:
     "Meta name is not set. Clients will fall back to the platform group name.",
   no_server_groups:
@@ -177,9 +186,51 @@ export function parseOptionalMinorUnits(value: string): number | undefined {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
+/**
+ * API money fields are already decimal major strings (MoneyTransformer).
+ * Keep them as-is for operator input; convert back to minor units on submit.
+ */
+export function moneyInputFromApi(
+  value: string | number | null | undefined,
+  precision: number | null,
+): string {
+  if (precision == null) {
+    return "";
+  }
+
+  if (value == null || value === "") {
+    return "0";
+  }
+
+  return String(value);
+}
+
+export function parseOptionalMajorToMinorUnits(
+  value: string,
+  precision: number,
+): number | undefined {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(
+    decimalMajorToMinorUnits(trimmed, precision),
+    10,
+  );
+
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
 export type ServerGroupEditFormState = {
   meta_name: string;
   description: string;
+  environment: number | null;
   is_default: boolean;
   is_private: boolean;
   is_active: boolean;
@@ -190,6 +241,7 @@ export type ServerGroupEditFormState = {
   currency_code: string;
   currency_code_editable: boolean;
   currency_precision: string;
+  currency_denomination_factor: string;
   book_type: BookType | "";
   default_amount: string;
   default_amount_type: BalanceAdjustmentType;
@@ -214,6 +266,7 @@ export function buildServerGroupEditFormState(
   return {
     meta_name: serverGroup.meta_name ?? "",
     description: serverGroup.description ?? "",
+    environment: serverGroup.environment ?? null,
     is_default: serverGroup.is_default ?? false,
     is_private: serverGroup.is_private ?? false,
     is_active: serverGroup.is_active,
@@ -224,21 +277,15 @@ export function buildServerGroupEditFormState(
     currency_code: currency.code,
     currency_code_editable: currencyCodeMissing,
     currency_precision: precisionMissing ? "" : String(precision),
+    currency_denomination_factor: String(
+      serverGroup.currency_denomination_factor ?? 1,
+    ),
     book_type: serverGroup.book_type ?? "",
-    default_amount:
-      precision == null
-        ? ""
-        : decimalMajorToMinorUnits(serverGroup.default_amount, precision),
+    default_amount: moneyInputFromApi(serverGroup.default_amount, precision),
     default_amount_type: serverGroup.default_amount_type ?? "BALANCE",
     account_limits: String(serverGroup.account_limits ?? 0),
-    min_deposit:
-      precision == null
-        ? ""
-        : decimalMajorToMinorUnits(serverGroup.min_deposit, precision),
-    min_withdrawal:
-      precision == null
-        ? ""
-        : decimalMajorToMinorUnits(serverGroup.min_withdrawal, precision),
+    min_deposit: moneyInputFromApi(serverGroup.min_deposit, precision),
+    min_withdrawal: moneyInputFromApi(serverGroup.min_withdrawal, precision),
     ib_external_user_ids: (serverGroup.ib_external_user_ids ?? []).join("\n"),
   };
 }
@@ -260,10 +307,15 @@ export function buildUpdateServerGroupInput(
 
   const currencyCode = form.currency_code.trim().toUpperCase();
   const currencyPrecision = parseOptionalMinorUnits(form.currency_precision);
+  const toMinorUnits = (value: string) =>
+    currencyPrecision === undefined
+      ? 0
+      : (parseOptionalMajorToMinorUnits(value, currencyPrecision) ?? 0);
 
   return {
     meta_name: form.meta_name.trim(),
     description: form.description.trim() || null,
+    environment: form.environment,
     is_default: form.is_default,
     is_private: form.is_private,
     is_active: form.is_active,
@@ -278,11 +330,13 @@ export function buildUpdateServerGroupInput(
     ...(currencyPrecision !== undefined
       ? { currency_precision: currencyPrecision }
       : {}),
-    default_amount: parseOptionalMinorUnits(form.default_amount) ?? 0,
+    currency_denomination_factor:
+      parseOptionalMinorUnits(form.currency_denomination_factor) ?? 1,
+    default_amount: toMinorUnits(form.default_amount),
     default_amount_type: form.default_amount_type,
     account_limits: parseOptionalMinorUnits(form.account_limits) ?? 0,
-    min_deposit: parseOptionalMinorUnits(form.min_deposit) ?? 0,
-    min_withdrawal: parseOptionalMinorUnits(form.min_withdrawal) ?? 0,
+    min_deposit: toMinorUnits(form.min_deposit),
+    min_withdrawal: toMinorUnits(form.min_withdrawal),
     ib_external_user_ids: ibExternalUserIds,
   };
 }

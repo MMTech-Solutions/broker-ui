@@ -31,7 +31,6 @@ import {
 import { getPlatform } from "@/features/platform/api";
 import type { Platform } from "@/features/platform/types";
 import {
-  listTradingServerEnvironments,
   listTradingServersForAdmin,
 } from "@/features/trading-server/api";
 import { TradingServerDeleteDialog } from "@/features/trading-server/components/trading-server-delete-dialog";
@@ -56,9 +55,6 @@ type TradingServersViewProps = {
 export function TradingServersView({ platformId }: TradingServersViewProps) {
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [tradingServers, setTradingServers] = useState<TradingServer[]>([]);
-  const [environmentLabels, setEnvironmentLabels] = useState<
-    Record<number, string>
-  >({});
   const [pagination, setPagination] = useState<BrokerPaginationMeta | null>(
     null,
   );
@@ -97,23 +93,6 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
     [platform],
   );
 
-  const loadEnvironmentLabels = useCallback(async () => {
-    try {
-      const environmentsResponse = await listTradingServerEnvironments();
-
-      setEnvironmentLabels(
-        Object.fromEntries(
-          environmentsResponse.data.map((environment) => [
-            environment.value,
-            environment.label,
-          ]),
-        ),
-      );
-    } catch {
-      setEnvironmentLabels({});
-    }
-  }, []);
-
   const loadServers = useCallback(
     async (requestedPage: number) => {
       setLoading(true);
@@ -132,8 +111,6 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
         setPlatform(platformResult.data);
         setTradingServers(serversResponse.data);
         setPagination(serversResponse.meta.pagination ?? null);
-
-        void loadEnvironmentLabels();
       } catch (loadError) {
         setError(formatBrokerApiError(loadError));
         setTradingServers([]);
@@ -142,7 +119,7 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
         setLoading(false);
       }
     },
-    [loadEnvironmentLabels, platformId],
+    [platformId],
   );
 
   useEffect(() => {
@@ -235,7 +212,6 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
             <TableRow>
               <TableHead>Host</TableHead>
               <TableHead>Schema</TableHead>
-              <TableHead>Environment</TableHead>
               <TableHead>Connection</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[276px] text-right">Actions</TableHead>
@@ -245,7 +221,7 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={5}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -255,7 +231,7 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
             {!loading && tradingServers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={5}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No trading servers found for this platform.
@@ -277,10 +253,6 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
                         <span className="font-mono text-xs text-muted-foreground">
                           {server.config_schema_id.slice(0, 8)}…
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        {environmentLabels[server.environment] ??
-                          server.environment}
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate">
                         {server.connection_id ?? server.connection_signature}

@@ -37,7 +37,6 @@ export type TradingServer = {
   config: Record<string, string | number>;
   connection_signature: string;
   connection_id: string | null;
-  environment: number;
   is_active: boolean;
   initialized_at: string | null;
   created_at: string | null;
@@ -47,7 +46,6 @@ export type TradingServer = {
 
 export type TradingServerListFilters = {
   platform_id?: string;
-  environment?: number;
   is_active?: boolean;
   page?: number;
   per_page?: number;
@@ -75,9 +73,12 @@ export type ServerGroup = {
   meta_name: string;
   trading_server_id: string;
   description?: string | null;
+  /** Major-unit decimal string from the API (MoneyTransformer). */
   min_deposit?: string | null;
+  /** Major-unit decimal string from the API (MoneyTransformer). */
   min_withdrawal?: string | null;
   account_limits?: number;
+  /** Major-unit decimal string from the API (MoneyTransformer). */
   default_amount?: string | null;
   default_amount_type?: BalanceAdjustmentType | null;
   currency?: string | ServerGroupCurrency | { code?: string; iso_code?: string; precision?: number | null };
@@ -93,8 +94,7 @@ export type ServerGroup = {
   has_ib_restrictions?: boolean;
   configuration_warnings?: string[] | null;
   ib_external_user_ids?: string[] | null;
-  /** Inherited from parent trading server. */
-  environment?: number;
+  environment?: number | null;
   /** Nested platform: client has id+name (display); admin also has custom_name. */
   platform?: {
     id: string;
@@ -108,6 +108,7 @@ export type ServerGroup = {
 export type UpdateServerGroupInput = {
   description?: string | null;
   meta_name?: string;
+  environment?: number | null;
   is_default?: boolean;
   is_private?: boolean;
   is_active?: boolean;
@@ -117,11 +118,15 @@ export type UpdateServerGroupInput = {
   restricted_countries?: RestrictedCountry[];
   currency?: string;
   currency_precision?: number;
+  currency_denomination_factor?: number;
   book_type?: BookType | null;
+  /** Minor units integer expected by PATCH. */
   default_amount?: number;
   default_amount_type?: BalanceAdjustmentType;
   account_limits?: number;
+  /** Minor units integer expected by PATCH. */
   min_deposit?: number;
+  /** Minor units integer expected by PATCH. */
   min_withdrawal?: number;
   ib_external_user_ids?: string[];
 };
@@ -178,13 +183,11 @@ export type CreateTradingServerInput = {
   platform_id: string;
   config_schema_id?: string;
   config: Record<string, string | number>;
-  environment: number;
   is_active?: boolean;
 };
 
 export type UpdateTradingServerInput = {
   config_schema_id?: string;
   config?: Record<string, string | number>;
-  environment?: number;
   is_active?: boolean;
 };

@@ -78,7 +78,6 @@ export function InitialAmountServerGroupsDialog({
           listTradingServersForAdmin({
             per_page: 100,
             is_active: true,
-            environment: TRADING_SERVER_ENVIRONMENT.DEMO,
           }),
         ]);
 
@@ -92,10 +91,15 @@ export function InitialAmountServerGroupsDialog({
               per_page: 100,
             });
 
-            return groupsResponse.data.map((group) => ({
-              id: group.id,
-              label: `${server.connection_signature} · ${group.name}`,
-            }));
+            return groupsResponse.data
+              .filter(
+                (group) =>
+                  group.environment === TRADING_SERVER_ENVIRONMENT.DEMO,
+              )
+              .map((group) => ({
+                id: group.id,
+                label: `${server.connection_signature} · ${group.name}`,
+              }));
           }),
         );
 
@@ -187,7 +191,7 @@ export function InitialAmountServerGroupsDialog({
                 : "—"}
             </span>{" "}
             for demo accounts when the group has no default amount configured.
-            Only server groups on demo trading servers are available.
+            Only demo server groups are available.
           </DialogDescription>
         </DialogHeader>
 
