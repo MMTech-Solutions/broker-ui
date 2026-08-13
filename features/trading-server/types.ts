@@ -90,6 +90,7 @@ export type ServerGroup = {
   is_deposit_enabled?: boolean;
   is_withdrawal_enabled?: boolean;
   use_countries_restrictions?: boolean;
+  is_restricted_countries_allowlist?: boolean;
   restricted_countries?: RestrictedCountry[] | null;
   has_ib_restrictions?: boolean;
   configuration_warnings?: string[] | null;
@@ -115,6 +116,7 @@ export type UpdateServerGroupInput = {
   is_deposit_enabled?: boolean;
   is_withdrawal_enabled?: boolean;
   use_countries_restrictions?: boolean;
+  is_restricted_countries_allowlist?: boolean;
   restricted_countries?: RestrictedCountry[];
   currency?: string;
   currency_precision?: number;

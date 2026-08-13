@@ -677,7 +677,7 @@ export function ServerGroupEditSheet({
             {form.use_countries_restrictions ? (
               <div className="space-y-3 rounded-lg border p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">Restricted countries</p>
+                  <p className="text-sm font-medium">Country list</p>
                   <Button
                     type="button"
                     variant="outline"
@@ -700,6 +700,48 @@ export function ServerGroupEditSheet({
                     <PlusIcon data-icon="inline-start" />
                     Add country
                   </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="server-group-country-list-mode">
+                    List mode
+                  </Label>
+                  <Select
+                    value={
+                      form.is_restricted_countries_allowlist
+                        ? "allowlist"
+                        : "denylist"
+                    }
+                    onValueChange={(value) =>
+                      setForm((current) =>
+                        current
+                          ? {
+                              ...current,
+                              is_restricted_countries_allowlist:
+                                value === "allowlist",
+                            }
+                          : current,
+                      )
+                    }
+                    disabled={submitting}
+                  >
+                    <SelectTrigger id="server-group-country-list-mode">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="denylist">
+                        Block listed countries
+                      </SelectItem>
+                      <SelectItem value="allowlist">
+                        Allow only listed countries
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {form.is_restricted_countries_allowlist
+                      ? "Only users whose country is in this list can open accounts. An empty list blocks everyone."
+                      : "Users whose country is in this list cannot open accounts. An empty list blocks nobody with a resolvable country."}
+                  </p>
                 </div>
 
                 {form.restricted_countries.length === 0 ? (

@@ -237,6 +237,7 @@ export type ServerGroupEditFormState = {
   is_deposit_enabled: boolean;
   is_withdrawal_enabled: boolean;
   use_countries_restrictions: boolean;
+  is_restricted_countries_allowlist: boolean;
   restricted_countries: RestrictedCountry[];
   currency_code: string;
   currency_code_editable: boolean;
@@ -273,6 +274,8 @@ export function buildServerGroupEditFormState(
     is_deposit_enabled: serverGroup.is_deposit_enabled ?? true,
     is_withdrawal_enabled: serverGroup.is_withdrawal_enabled ?? true,
     use_countries_restrictions: serverGroup.use_countries_restrictions ?? false,
+    is_restricted_countries_allowlist:
+      serverGroup.is_restricted_countries_allowlist ?? false,
     restricted_countries: serverGroup.restricted_countries ?? [],
     currency_code: currency.code,
     currency_code_editable: currencyCodeMissing,
@@ -322,6 +325,7 @@ export function buildUpdateServerGroupInput(
     is_deposit_enabled: form.is_deposit_enabled,
     is_withdrawal_enabled: form.is_withdrawal_enabled,
     use_countries_restrictions: form.use_countries_restrictions,
+    is_restricted_countries_allowlist: form.is_restricted_countries_allowlist,
     restricted_countries: restrictedCountries,
     book_type: form.book_type === "" ? null : form.book_type,
     ...(form.currency_code_editable && currencyCode !== ""
