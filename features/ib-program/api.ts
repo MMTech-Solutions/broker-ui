@@ -4,10 +4,36 @@ import type {
   IbProgramListFilters,
   UpdateIbProgramInput,
 } from "@/features/ib-program/types";
+import { ibProgramImageUrl } from "@/features/ib-program/image";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
 const IB_PROGRAMS_PATH = "v1/admin/ib-programs";
+
+function withProxyImagePath(program: IbProgram): IbProgram {
+  return {
+    ...program,
+    image_path: ibProgramImageUrl(program.id, program.image_path),
+  };
+}
+
+function mapIbProgramResponse(
+  response: BrokerSuccessResponse<IbProgram>,
+): BrokerSuccessResponse<IbProgram> {
+  return {
+    ...response,
+    data: withProxyImagePath(response.data),
+  };
+}
+
+function mapIbProgramsResponse(
+  response: BrokerSuccessResponse<IbProgram[]>,
+): BrokerSuccessResponse<IbProgram[]> {
+  return {
+    ...response,
+    data: response.data.map(withProxyImagePath),
+  };
+}
 
 function appendIbProgramFormData(
   formData: FormData,
@@ -41,9 +67,11 @@ function appendIbProgramFormData(
 export async function listIbPrograms(
   filters: IbProgramListFilters = {},
 ): Promise<BrokerSuccessResponse<IbProgram[]>> {
-  return browserBrokerRequest<IbProgram[]>(IB_PROGRAMS_PATH, {
+  const response = await browserBrokerRequest<IbProgram[]>(IB_PROGRAMS_PATH, {
     searchParams: filters,
   });
+
+  return mapIbProgramsResponse(response);
 }
 
 export async function createIbProgram(
@@ -52,10 +80,12 @@ export async function createIbProgram(
   const formData = new FormData();
   appendIbProgramFormData(formData, input);
 
-  return browserBrokerRequest<IbProgram>(IB_PROGRAMS_PATH, {
+  const response = await browserBrokerRequest<IbProgram>(IB_PROGRAMS_PATH, {
     method: "POST",
     body: formData,
   });
+
+  return mapIbProgramResponse(response);
 }
 
 export async function updateIbProgram(
@@ -65,13 +95,15 @@ export async function updateIbProgram(
   const formData = new FormData();
   appendIbProgramFormData(formData, input);
 
-  return browserBrokerRequest<IbProgram>(
+  const response = await browserBrokerRequest<IbProgram>(
     `${IB_PROGRAMS_PATH}/${ibProgramId}`,
     {
       method: "PATCH",
       body: formData,
     },
   );
+
+  return mapIbProgramResponse(response);
 }
 
 export async function deleteIbProgram(

@@ -7,10 +7,53 @@ import type {
   SyncIbPlanProgramsInput,
   UpdateIbPlanInput,
 } from "@/features/ib-plan/types";
+import { ibPlanImageUrl } from "@/features/ib-plan/image";
+import { ibProgramImageUrl } from "@/features/ib-program/image";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
 const IB_PLANS_PATH = "v1/admin/ib-plans";
+
+function withProxyProgramImage<T extends { id: string; image_path?: string | null }>(
+  program: T,
+): T {
+  return {
+    ...program,
+    image_path: ibProgramImageUrl(program.id, program.image_path),
+  };
+}
+
+function withProxyPlanImage(plan: IbPlan): IbPlan {
+  return {
+    ...plan,
+    image_path: ibPlanImageUrl(plan.id, plan.image_path),
+  };
+}
+
+function withProxyPlanProgramAssignment(assignment: IbPlanProgram): IbPlanProgram {
+  return {
+    ...assignment,
+    program: withProxyProgramImage(assignment.program),
+  };
+}
+
+function mapIbPlanResponse(
+  response: BrokerSuccessResponse<IbPlan>,
+): BrokerSuccessResponse<IbPlan> {
+  return {
+    ...response,
+    data: withProxyPlanImage(response.data),
+  };
+}
+
+function mapIbPlansResponse(
+  response: BrokerSuccessResponse<IbPlan[]>,
+): BrokerSuccessResponse<IbPlan[]> {
+  return {
+    ...response,
+    data: response.data.map(withProxyPlanImage),
+  };
+}
 
 function appendIbPlanFormData(
   formData: FormData,
@@ -44,9 +87,11 @@ function appendIbPlanFormData(
 export async function listIbPlans(
   filters: IbPlanListFilters = {},
 ): Promise<BrokerSuccessResponse<IbPlan[]>> {
-  return browserBrokerRequest<IbPlan[]>(IB_PLANS_PATH, {
+  const response = await browserBrokerRequest<IbPlan[]>(IB_PLANS_PATH, {
     searchParams: filters,
   });
+
+  return mapIbPlansResponse(response);
 }
 
 export async function createIbPlan(
@@ -55,10 +100,12 @@ export async function createIbPlan(
   const formData = new FormData();
   appendIbPlanFormData(formData, input);
 
-  return browserBrokerRequest<IbPlan>(IB_PLANS_PATH, {
+  const response = await browserBrokerRequest<IbPlan>(IB_PLANS_PATH, {
     method: "POST",
     body: formData,
   });
+
+  return mapIbPlanResponse(response);
 }
 
 export async function updateIbPlan(
@@ -68,10 +115,12 @@ export async function updateIbPlan(
   const formData = new FormData();
   appendIbPlanFormData(formData, input);
 
-  return browserBrokerRequest<IbPlan>(`${IB_PLANS_PATH}/${ibPlanId}`, {
+  const response = await browserBrokerRequest<IbPlan>(`${IB_PLANS_PATH}/${ibPlanId}`, {
     method: "PATCH",
     body: formData,
   });
+
+  return mapIbPlanResponse(response);
 }
 
 export async function deleteIbPlan(
@@ -85,20 +134,33 @@ export async function deleteIbPlan(
 export async function listIbPlanPrograms(
   ibPlanId: string,
 ): Promise<BrokerSuccessResponse<IbPlanProgramsResponse>> {
-  return browserBrokerRequest<IbPlanProgramsResponse>(
+  const response = await browserBrokerRequest<IbPlanProgramsResponse>(
     `${IB_PLANS_PATH}/${ibPlanId}/programs`,
   );
+
+  return {
+    ...response,
+    data: {
+      ...response.data,
+      programs: response.data.programs.map(withProxyPlanProgramAssignment),
+    },
+  };
 }
 
 export async function syncIbPlanPrograms(
   ibPlanId: string,
   input: SyncIbPlanProgramsInput,
 ): Promise<BrokerSuccessResponse<IbPlanProgram[]>> {
-  return browserBrokerRequest<IbPlanProgram[]>(
+  const response = await browserBrokerRequest<IbPlanProgram[]>(
     `${IB_PLANS_PATH}/${ibPlanId}/programs`,
     {
       method: "PATCH",
       body: input,
     },
   );
+
+  return {
+    ...response,
+    data: response.data.map(withProxyPlanProgramAssignment),
+  };
 }

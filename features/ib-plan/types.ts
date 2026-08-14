@@ -60,6 +60,7 @@ export type IbPlanProgram = {
     id: string;
     name: string;
     description: string;
+    image_path?: string | null;
     settlement_period?: string;
     is_active?: boolean;
   };
