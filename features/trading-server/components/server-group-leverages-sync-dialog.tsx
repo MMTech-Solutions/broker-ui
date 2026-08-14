@@ -63,10 +63,10 @@ export function ServerGroupLeveragesSyncDialog({
 
       try {
         const [catalogResponse, assignedResponse] = await Promise.all([
-          listLeverages({ per_page: 100 }),
+          listLeverages({ per_page: 100 }, "admin"),
           listServerGroupLeverages(tradingServerId, serverGroup.id, {
             per_page: 100,
-          }),
+          }, "admin"),
         ]);
 
         if (cancelled) {

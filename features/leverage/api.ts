@@ -12,6 +12,8 @@ const LEVERAGES_PATH = "v1/leverages";
 /** Mutations / show require broker.leverage.manage. */
 const LEVERAGES_ADMIN_PATH = "v1/admin/leverages";
 
+type LeverageAudience = "client" | "admin";
+
 function compactFilters<T extends Record<string, unknown>>(filters: T) {
   return Object.fromEntries(
     Object.entries(filters).filter(
@@ -22,8 +24,11 @@ function compactFilters<T extends Record<string, unknown>>(filters: T) {
 
 export async function listLeverages(
   filters: LeverageListFilters = {},
+  audience: LeverageAudience = "client",
 ): Promise<BrokerSuccessResponse<Leverage[]>> {
-  return browserBrokerRequest<Leverage[]>(LEVERAGES_PATH, {
+  const path = audience === "admin" ? LEVERAGES_ADMIN_PATH : LEVERAGES_PATH;
+
+  return browserBrokerRequest<Leverage[]>(path, {
     searchParams: compactFilters(filters),
   });
 }

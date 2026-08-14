@@ -62,12 +62,15 @@ export function LeveragesView() {
       setError(null);
 
       try {
-        const response = await listLeverages({
-          page: requestedPage,
-          per_page: 15,
-          name: nameFilter || undefined,
-          value: valueFilter,
-        });
+        const response = await listLeverages(
+          {
+            page: requestedPage,
+            per_page: 15,
+            name: nameFilter || undefined,
+            value: valueFilter,
+          },
+          "admin",
+        );
 
         setLeverages(response.data);
         setPagination(response.meta.pagination ?? null);
