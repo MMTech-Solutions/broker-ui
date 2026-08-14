@@ -9,6 +9,7 @@ import type {
   ContestSubscription,
   SubscribeToContestInput,
 } from "@/features/client-contest/types";
+import { contestBannerImageUrl } from "@/features/contest/image";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
@@ -54,9 +55,17 @@ export async function listPublicContestConditions(
 export async function getPublicContestGlobalSettings(): Promise<
   BrokerSuccessResponse<ContestGlobalSettings>
 > {
-  return browserBrokerRequest<ContestGlobalSettings>(
+  const response = await browserBrokerRequest<ContestGlobalSettings>(
     `${CONTESTS_PATH}/global-settings/public`,
   );
+
+  return {
+    ...response,
+    data: {
+      ...response.data,
+      banner_image_url: contestBannerImageUrl(response.data.banner_image_url),
+    },
+  };
 }
 
 export async function listEligibleAccountsForContest(

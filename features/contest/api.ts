@@ -25,6 +25,7 @@ import type {
   ContestBan,
   ContestBanListFilters,
 } from "@/features/contest/types";
+import { contestBannerImageUrl } from "@/features/contest/image";
 import { listServerGroupsForAdmin, listTradingServersForAdmin } from "@/features/trading-server/api";
 import { getServerGroupCurrency } from "@/features/trading-server/format";
 import type { ServerGroup } from "@/features/trading-server/types";
@@ -331,12 +332,32 @@ export async function revertContestBan(
   );
 }
 
+function withProxyBannerUrl(
+  settings: ContestGlobalSettings,
+): ContestGlobalSettings {
+  return {
+    ...settings,
+    banner_image_url: contestBannerImageUrl(settings.banner_image_url),
+  };
+}
+
+function mapContestGlobalSettingsResponse(
+  response: BrokerSuccessResponse<ContestGlobalSettings>,
+): BrokerSuccessResponse<ContestGlobalSettings> {
+  return {
+    ...response,
+    data: withProxyBannerUrl(response.data),
+  };
+}
+
 export async function getContestGlobalSettings(): Promise<
   BrokerSuccessResponse<ContestGlobalSettings>
 > {
-  return browserBrokerRequest<ContestGlobalSettings>(
+  const response = await browserBrokerRequest<ContestGlobalSettings>(
     `${CONTESTS_PATH}/global-settings`,
   );
+
+  return mapContestGlobalSettingsResponse(response);
 }
 
 export async function updateContestGlobalSettings(
@@ -374,10 +395,12 @@ export async function updateContestGlobalSettings(
     );
   }
 
-  return browserBrokerRequest<ContestGlobalSettings>(
+  const response = await browserBrokerRequest<ContestGlobalSettings>(
     `${CONTESTS_PATH}/global-settings`,
     { method: "PATCH", body: formData },
   );
+
+  return mapContestGlobalSettingsResponse(response);
 }
 
 export async function loadContestFormCatalog(): Promise<{
