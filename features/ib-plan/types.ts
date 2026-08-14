@@ -55,7 +55,7 @@ export type IbPlanProgram = {
   id: string;
   sort_order: number;
   progression_min_volume: string;
-  progression_max_volume: string;
+  progression_max_volume: string | null;
   program: {
     id: string;
     name: string;
@@ -78,7 +78,7 @@ export type SyncIbPlanProgramsInput = {
     ib_program_id: string;
     sort_order: number;
     progression_min_volume: string;
-    progression_max_volume: string;
+    progression_max_volume: string | null;
   }[];
 };
 
@@ -88,5 +88,5 @@ export type PlanProgramAssignment = {
   description: string;
   sortOrder: number;
   progressionMinVolume: string;
-  progressionMaxVolume: string;
+  progressionMaxVolume: string | null;
 };

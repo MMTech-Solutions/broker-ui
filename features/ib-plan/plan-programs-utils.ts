@@ -74,7 +74,7 @@ export function assignmentsToSyncPayload(
   ib_program_id: string;
   sort_order: number;
   progression_min_volume: string;
-  progression_max_volume: string;
+  progression_max_volume: string | null;
 }[] {
   return assigned.map((entry) => ({
     ib_program_id: entry.ibProgramId,
@@ -99,7 +99,7 @@ export function moveProgramToAvailable(
   available: IbProgram[],
   assigned: PlanProgramAssignment[],
   programId: string,
-  thresholdsCache: Map<string, { min: string; max: string }>,
+  thresholdsCache: Map<string, { min: string; max: string | null }>,
 ): { available: IbProgram[]; assigned: PlanProgramAssignment[] } {
   const entry = assigned.find((item) => item.ibProgramId === programId);
 
@@ -136,7 +136,7 @@ export function moveProgramToAssigned(
   assigned: PlanProgramAssignment[],
   programId: string,
   targetIndex: number,
-  thresholdsCache: Map<string, { min: string; max: string }>,
+  thresholdsCache: Map<string, { min: string; max: string | null }>,
 ): { available: IbProgram[]; assigned: PlanProgramAssignment[] } {
   const program = available.find((item) => item.id === programId);
 
@@ -201,9 +201,9 @@ export function updateAssignmentPivot(
   updates: {
     sortOrder: number;
     progressionMinVolume: string;
-    progressionMaxVolume: string;
+    progressionMaxVolume: string | null;
   },
-  thresholdsCache: Map<string, { min: string; max: string }>,
+  thresholdsCache: Map<string, { min: string; max: string | null }>,
 ): PlanProgramAssignment[] {
   const current = assigned.find((entry) => entry.ibProgramId === programId);
 
@@ -216,7 +216,7 @@ export function updateAssignmentPivot(
     ...current,
     sortOrder: updates.sortOrder,
     progressionMinVolume: updates.progressionMinVolume.trim(),
-    progressionMaxVolume: updates.progressionMaxVolume.trim(),
+    progressionMaxVolume: updates.progressionMaxVolume?.trim() || null,
   };
   const targetIndex = Math.max(0, Math.min(updates.sortOrder, without.length));
 

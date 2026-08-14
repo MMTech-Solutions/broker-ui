@@ -135,7 +135,10 @@ export function ClientIbProgressionPanel({
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
                     Volumen {formatProgressionVolume(entry.progression_min_volume)}{" "}
-                    – {formatProgressionVolume(entry.progression_max_volume)}
+                    –{" "}
+                    {entry.progression_max_volume !== null
+                      ? formatProgressionVolume(entry.progression_max_volume)
+                      : "Sin tope"}
                   </p>
                 </div>
               );

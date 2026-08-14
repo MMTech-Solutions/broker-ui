@@ -45,6 +45,10 @@ type IbPlanProgramsSyncViewProps = {
   ibPlanId: string;
 };
 
+function formatProgressionMaxVolume(value: string | null): string {
+  return value ?? "Sin tope";
+}
+
 function AvailableProgramItem({
   program,
   disabled,
@@ -112,7 +116,7 @@ export function IbPlanProgramsSyncView({ ibPlanId }: IbPlanProgramsSyncViewProps
     useState<PlanProgramAssignment | null>(null);
 
   const thresholdsCacheRef = useRef(
-    new Map<string, { min: string; max: string }>(),
+    new Map<string, { min: string; max: string | null }>(),
   );
 
   const isDirty = useMemo(
@@ -169,7 +173,7 @@ export function IbPlanProgramsSyncView({ ibPlanId }: IbPlanProgramsSyncViewProps
         planProgramsResponse.meta.thresholds_warning_message ?? null,
       );
 
-      const cache = new Map<string, { min: string; max: string }>();
+      const cache = new Map<string, { min: string; max: string | null }>();
       for (const entry of assigned) {
         cache.set(entry.ibProgramId, {
           min: entry.progressionMinVolume,
@@ -323,7 +327,7 @@ export function IbPlanProgramsSyncView({ ibPlanId }: IbPlanProgramsSyncViewProps
   function handlePivotSave(updates: {
     sortOrder: number;
     progressionMinVolume: string;
-    progressionMaxVolume: string;
+    progressionMaxVolume: string | null;
   }) {
     if (!assignmentToEdit) {
       return;
@@ -526,7 +530,9 @@ export function IbPlanProgramsSyncView({ ibPlanId }: IbPlanProgramsSyncViewProps
                             {assignment.progressionMinVolume}
                           </TableCell>
                           <TableCell className="font-mono text-xs">
-                            {assignment.progressionMaxVolume}
+                            {formatProgressionMaxVolume(
+                              assignment.progressionMaxVolume,
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
@@ -565,6 +571,7 @@ export function IbPlanProgramsSyncView({ ibPlanId }: IbPlanProgramsSyncViewProps
 
       <IbPlanProgramPivotFormDialog
         assignment={assignmentToEdit}
+        assignmentCount={assignedPrograms.length}
         open={pivotOpen}
         onOpenChange={setPivotOpen}
         onSave={handlePivotSave}

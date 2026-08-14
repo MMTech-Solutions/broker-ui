@@ -18,12 +18,13 @@ import type { PlanProgramAssignment } from "@/features/ib-plan/types";
 
 type IbPlanProgramPivotFormDialogProps = {
   assignment: PlanProgramAssignment | null;
+  assignmentCount: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (updates: {
     sortOrder: number;
     progressionMinVolume: string;
-    progressionMaxVolume: string;
+    progressionMaxVolume: string | null;
   }) => void;
 };
 
@@ -35,6 +36,7 @@ type FormState = {
 
 export function IbPlanProgramPivotFormDialog({
   assignment,
+  assignmentCount,
   open,
   onOpenChange,
   onSave,
@@ -55,7 +57,7 @@ export function IbPlanProgramPivotFormDialog({
     setForm({
       sortOrder: String(assignment.sortOrder),
       progressionMinVolume: assignment.progressionMinVolume,
-      progressionMaxVolume: assignment.progressionMaxVolume,
+      progressionMaxVolume: assignment.progressionMaxVolume ?? "",
     });
   }, [open, assignment]);
 
@@ -72,12 +74,20 @@ export function IbPlanProgramPivotFormDialog({
       return;
     }
 
-    if (!min || !max) {
-      setError("Progression thresholds are required.");
+    if (!min) {
+      setError("Progression min volume is required.");
       return;
     }
 
-    if (Number.parseFloat(max) <= Number.parseFloat(min)) {
+    const targetIndex = Math.max(0, Math.min(sortOrder, assignmentCount - 1));
+    const isLastThreshold = assignmentCount > 0 && targetIndex === assignmentCount - 1;
+
+    if (!isLastThreshold && !max) {
+      setError("Max volume is required unless this is the last program.");
+      return;
+    }
+
+    if (max && Number.parseFloat(max) <= Number.parseFloat(min)) {
       setError("Max volume must be greater than min volume.");
       return;
     }
@@ -90,7 +100,7 @@ export function IbPlanProgramPivotFormDialog({
     onSave({
       sortOrder,
       progressionMinVolume: min,
-      progressionMaxVolume: max,
+      progressionMaxVolume: max || null,
     });
     onOpenChange(false);
   }
@@ -168,7 +178,7 @@ export function IbPlanProgramPivotFormDialog({
                   progressionMaxVolume: event.target.value,
                 }))
               }
-              required
+              placeholder="Leave empty for no limit on the last program"
             />
           </div>
 
