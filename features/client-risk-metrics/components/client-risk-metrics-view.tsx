@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart2Icon,
+  LayoutDashboardIcon,
   LayersIcon,
   RefreshCwIcon,
   WifiIcon,
@@ -21,6 +22,7 @@ import {
   getAccountRiskMetricsHistory,
   getAccountRiskMetricsSummary,
 } from "@/features/client-risk-metrics/api";
+import { ClientAnalyticsDashboardPanel } from "@/features/client-risk-metrics/components/client-analytics-dashboard-panel";
 import { RiskMetricsEquityChart } from "@/features/client-risk-metrics/components/risk-metrics-equity-chart";
 import { RiskMetricsShareDialog } from "@/features/client-risk-metrics/components/risk-metrics-share-dialog";
 import { RiskMetricsSummaryCards } from "@/features/client-risk-metrics/components/risk-metrics-summary-cards";
@@ -46,7 +48,7 @@ const DAYS_OPTIONS = [
   { value: 90, label: "90 días" },
 ];
 
-type Tab = "summary" | "chart" | "positions";
+type Tab = "summary" | "chart" | "analytics" | "positions";
 type LiveStatus = "idle" | "connecting" | "connected" | "unavailable" | "error";
 
 type ClientRiskMetricsViewProps = {
@@ -70,6 +72,19 @@ export function ClientRiskMetricsView({
   const [days, setDays] = useState(30);
   const [activeTab, setActiveTab] = useState<Tab>("summary");
   const [liveStatus, setLiveStatus] = useState<LiveStatus>("idle");
+  const [analyticsRefreshToken, setAnalyticsRefreshToken] = useState(0);
+  const [analyticsMounted, setAnalyticsMounted] = useState(false);
+
+  const analyticsWindow = useMemo(() => {
+    const to = new Date();
+    to.setUTCSeconds(0, 0);
+    const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+
+    return {
+      from_utc: from.toISOString(),
+      to_utc: to.toISOString(),
+    };
+  }, [days, analyticsRefreshToken]);
 
   const breadcrumbs: BreadcrumbItem[] = [
     { label: "Inicio", href: "/client" },
@@ -130,7 +145,13 @@ export function ClientRiskMetricsView({
   );
 
   useEffect(() => {
-    if (activeTab === "positions") {
+    if (activeTab === "analytics") {
+      setAnalyticsMounted(true);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "positions" || activeTab === "analytics") {
       return;
     }
 
@@ -227,6 +248,11 @@ export function ClientRiskMetricsView({
   }, [accountId]);
 
   function handleManualRefresh() {
+    if (activeTab === "analytics") {
+      setAnalyticsRefreshToken((current) => current + 1);
+      return;
+    }
+
     void fetchSummary(false);
     if (activeTab === "chart") {
       void fetchEquityHistory(false);
@@ -245,11 +271,12 @@ export function ClientRiskMetricsView({
             : null;
 
   const showMetricsChrome = activeTab !== "positions";
+  const showShareAndLive = activeTab === "summary" || activeTab === "chart";
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar breadcrumbs={breadcrumbs}>
-        {liveLabel && showMetricsChrome ? (
+        {liveLabel && showShareAndLive ? (
           <span
             className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${
               liveStatus === "connected"
@@ -267,7 +294,9 @@ export function ClientRiskMetricsView({
         ) : null}
         {showMetricsChrome ? (
           <>
-            <RiskMetricsShareDialog accountId={accountId} />
+            {showShareAndLive ? (
+              <RiskMetricsShareDialog accountId={accountId} />
+            ) : null}
             <Button
               variant="ghost"
               size="icon-sm"
@@ -290,7 +319,7 @@ export function ClientRiskMetricsView({
         ) : null}
       </PageContentToolbar>
 
-      {error && showMetricsChrome ? (
+      {error && showShareAndLive ? (
         <ApiErrorAlert
           title="No se pudieron cargar las métricas"
           message={error}
@@ -342,6 +371,17 @@ export function ClientRiskMetricsView({
               Curva de equity
             </button>
             <button
+              onClick={() => setActiveTab("analytics")}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                activeTab === "analytics"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayoutDashboardIcon className="h-3.5 w-3.5" />
+              Analytics
+            </button>
+            <button
               onClick={() => setActiveTab("positions")}
               className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 activeTab === "positions"
@@ -378,16 +418,29 @@ export function ClientRiskMetricsView({
 
         {activeTab === "summary" ? (
           <RiskMetricsSummaryCards summary={summary} loading={loading} />
-        ) : activeTab === "chart" ? (
+        ) : null}
+        {activeTab === "chart" ? (
           <RiskMetricsEquityChart
             history={equityHistory}
             loading={historyLoading}
           />
-        ) : (
+        ) : null}
+        {analyticsMounted ? (
+          <div className={activeTab === "analytics" ? undefined : "hidden"}>
+            <ClientAnalyticsDashboardPanel
+              accountId={accountId}
+              fromUtc={analyticsWindow.from_utc}
+              toUtc={analyticsWindow.to_utc}
+              refreshToken={analyticsRefreshToken}
+              active={activeTab === "analytics"}
+            />
+          </div>
+        ) : null}
+        {activeTab === "positions" ? (
           <ClientPositionsPanel accountId={accountId} />
-        )}
+        ) : null}
 
-        {summary && showMetricsChrome ? (
+        {summary && showShareAndLive ? (
           <p className="text-xs text-muted-foreground">
             Fase: <span className="font-medium">{summary.phase_name}</span>
             {" · "}

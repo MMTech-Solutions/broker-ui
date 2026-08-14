@@ -9,6 +9,7 @@ type BrowserBrokerRequestOptions = {
   body?: unknown;
   headers?: HeadersInit;
   searchParams?: URLSearchParams | Record<string, string | number | boolean>;
+  signal?: AbortSignal;
   /**
    * When false, a 401 does not force a full-page login redirect.
    * Use for optional secondary fetches (e.g. admin catalogs from client UI).
@@ -74,6 +75,7 @@ export async function browserBrokerRequest<T>(
       headers,
       body,
       cache: "no-store",
+      signal: options.signal,
     },
   );
 

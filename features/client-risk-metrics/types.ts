@@ -90,3 +90,107 @@ export type RiskMetricChangedPayload = {
   changed_at: string;
   changes: RiskMetricChangeDelta[];
 };
+
+export type GetAnalyticsOverviewParams = {
+  from_utc?: string;
+  to_utc?: string;
+  symbol?: string;
+  side?: "buy" | "sell";
+  session?: "sydney" | "tokyo" | "london" | "ny";
+};
+
+export type AnalyticsFilterRange = {
+  from_utc: string | null;
+  to_utc: string | null;
+  symbol: string | null;
+  side: string | null;
+  session: string | null;
+  granularity: string | null;
+};
+
+export type AnalyticsOverviewKpis = {
+  trades: number;
+  wins: number;
+  losses: number;
+  breakeven: number;
+  win_rate: number;
+  profit_factor: number;
+  expectancy: number;
+  payoff_ratio: number;
+  avg_win: number;
+  avg_loss: number;
+  best_trade: number;
+  worst_trade: number;
+  avg_duration_sec: number;
+  volume_sum: number;
+};
+
+export type AnalyticsOverviewCosts = {
+  gross_pnl: number;
+  gross_profit: number;
+  gross_loss: number;
+  commission_sum: number;
+  swap_sum: number;
+  net_pnl: number;
+  cost_drag_pct: number;
+};
+
+export type AnalyticsOverviewEquity = {
+  equity_first: number;
+  equity_last: number;
+  return_pct: number;
+};
+
+export type AnalyticsOverviewRisk = {
+  max_drawdown_abs: number;
+  max_drawdown_pct: number;
+  ulcer_index: number;
+  recovery_factor: number;
+  underwater_now_pct: number;
+};
+
+export type AnalyticsOverviewLive = {
+  equity: number;
+  balance: number;
+  margin_used: number;
+  margin_free: number;
+  margin_level_pct: number;
+  floating_pnl: number;
+  open_positions: number;
+  snapshot_at: string | null;
+};
+
+export type AnalyticsOverviewHealth = {
+  score: number;
+  level: string;
+};
+
+export type AnalyticsOverviewDays = {
+  days_traded: number;
+  days_positive: number;
+  days_negative: number;
+  max_consecutive_positive: number;
+  max_consecutive_negative: number;
+  current_consecutive_positive: number;
+  consistency_largest_day_pct: number;
+};
+
+export type AnalyticsOverviewStreaks = {
+  current_win_streak: number;
+  current_loss_streak: number;
+  max_win_streak: number;
+  max_loss_streak: number;
+};
+
+export type AnalyticsOverview = {
+  generated_at: string;
+  range: AnalyticsFilterRange;
+  kpis: AnalyticsOverviewKpis;
+  costs: AnalyticsOverviewCosts;
+  equity: AnalyticsOverviewEquity;
+  risk: AnalyticsOverviewRisk;
+  days: AnalyticsOverviewDays;
+  streaks: AnalyticsOverviewStreaks;
+  live: AnalyticsOverviewLive;
+  health: AnalyticsOverviewHealth;
+};
