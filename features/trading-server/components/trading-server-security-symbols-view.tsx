@@ -6,6 +6,7 @@ import { FilterXIcon, PercentIcon, SearchIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
+import { PageNumberPagination } from "@/components/page-number-pagination";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,6 +100,7 @@ export function TradingServerSecuritySymbolsView({
     null,
   );
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -179,7 +181,7 @@ export function TradingServerSecuritySymbolsView({
             listSecuritySymbols(tradingServerId, securityId, {
               ...filters,
               page: requestedPage,
-              per_page: 15,
+              per_page: perPage,
             }),
           ]);
 
@@ -197,7 +199,7 @@ export function TradingServerSecuritySymbolsView({
         }
       }
     },
-    [platformId, securityId, tradingServerId],
+    [platformId, securityId, tradingServerId, perPage],
   );
 
   useEffect(() => {
@@ -361,36 +363,18 @@ export function TradingServerSecuritySymbolsView({
         }
       />
 
-      {pagination && pagination.last_page > 1 ? (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {pagination.current_page} of {pagination.last_page} (
-            {pagination.total} total)
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1 || loading}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagination.last_page || loading}
-              onClick={() =>
-                setPage((current) =>
-                  Math.min(pagination.last_page, current + 1),
-                )
-              }
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      <PageNumberPagination
+        currentPage={pagination?.current_page ?? page}
+        lastPage={pagination?.last_page ?? 1}
+        total={pagination?.total}
+        disabled={loading}
+        onPageChange={setPage}
+        perPage={perPage}
+        onPerPageChange={(nextPerPage) => {
+          setPage(1);
+          setPerPage(nextPerPage);
+        }}
+      />
 
       <SetSymbolsMarkupDialog
         open={markupOpen}

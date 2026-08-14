@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -433,7 +434,7 @@ export function ClientTradingAccountCreateDialog({
                       {Array.from({ length: 2 }).map((_, index) => (
                         <Skeleton
                           key={`server-group-skeleton-${index}`}
-                          className="h-36 w-full rounded-xl"
+                          className="h-24 w-full rounded-xl"
                         />
                       ))}
                     </div>
@@ -463,21 +464,21 @@ export function ClientTradingAccountCreateDialog({
                                 {group.description}
                               </span>
                             ) : null}
-                            <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                            <span className="mt-2 flex flex-wrap gap-1">
                               {CLIENT_TRADING_TERM_ROWS.map(({ key, label }) => (
-                                <div key={key} className="min-w-0">
-                                  <dt className="text-muted-foreground">
-                                    {label}
-                                  </dt>
-                                  <dd className="truncate font-medium">
-                                    {formatServerGroupTradingTermValue(
-                                      key,
-                                      terms,
-                                    )}
-                                  </dd>
-                                </div>
+                                <Badge
+                                  key={key}
+                                  variant="secondary"
+                                  className="border-transparent bg-foreground/10 text-muted-foreground"
+                                >
+                                  {label}{" "}
+                                  {formatServerGroupTradingTermValue(
+                                    key,
+                                    terms,
+                                  )}
+                                </Badge>
                               ))}
-                            </dl>
+                            </span>
                           </SelectableCard>
                         );
                       })}
