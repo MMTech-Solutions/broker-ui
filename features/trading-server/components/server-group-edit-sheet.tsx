@@ -90,7 +90,7 @@ export function ServerGroupEditSheet({
 
     let cancelled = false;
 
-    void listTradingServerEnvironments()
+    void listTradingServerEnvironments("admin")
       .then((response) => {
         if (!cancelled) {
           setEnvironments(response.data);

@@ -289,7 +289,7 @@ export function TradingAccountsView() {
         await Promise.all([
           listTradingServersForAdmin({ per_page: 100 }),
           listPlatforms({ per_page: 100 }),
-          listTradingServerEnvironments(),
+          listTradingServerEnvironments("admin"),
         ]);
 
       setPlatformOptions(platformsResponse.data);

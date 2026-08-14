@@ -33,7 +33,10 @@ function tradingServersBasePath(audience: TradingServerAudience): string {
     : TRADING_SERVERS_CLIENT_PATH;
 }
 
-let cachedEnvironments: TradingServerEnvironment[] | null = null;
+const cachedEnvironmentsByAudience = new Map<
+  TradingServerAudience,
+  TradingServerEnvironment[]
+>();
 const configSchemasByPlatform = new Map<
   string,
   TradingServerConfigSchema[]
@@ -191,22 +194,26 @@ export async function updateSymbolsMarkup(
   );
 }
 
-export async function listTradingServerEnvironments(): Promise<
+export async function listTradingServerEnvironments(
+  audience: TradingServerAudience = "client",
+): Promise<
   BrokerSuccessResponse<TradingServerEnvironment[]>
 > {
-  if (cachedEnvironments) {
+  const cached = cachedEnvironmentsByAudience.get(audience);
+
+  if (cached) {
     return {
       success: true,
-      data: cachedEnvironments,
+      data: cached,
       meta: {},
     };
   }
 
   const response = await browserBrokerRequest<TradingServerEnvironment[]>(
-    `${TRADING_SERVERS_CLIENT_PATH}/environments/availables`,
+    `${tradingServersBasePath(audience)}/environments/availables`,
   );
 
-  cachedEnvironments = response.data;
+  cachedEnvironmentsByAudience.set(audience, response.data);
 
   return response;
 }

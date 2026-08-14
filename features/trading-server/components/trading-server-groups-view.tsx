@@ -165,7 +165,7 @@ export function TradingServerGroupsView({
               page: requestedPage,
               per_page: 15,
             }),
-            listTradingServerEnvironments(),
+            listTradingServerEnvironments("admin"),
           ]);
 
         setPlatform(platformResult.data);
