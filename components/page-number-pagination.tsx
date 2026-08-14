@@ -62,6 +62,7 @@ export function PageNumberPagination({
   perPageOptions = PAGE_SIZE_OPTIONS,
   onPerPageChange,
 }: PageNumberPaginationProps) {
+  const isDisabled = disabled === true;
   const showPages = lastPage > 1;
   const showPerPage = onPerPageChange != null && perPage != null;
 
@@ -83,7 +84,7 @@ export function PageNumberPagination({
             </Label>
             <Select
               value={String(perPage)}
-              disabled={disabled}
+              disabled={isDisabled}
               onValueChange={(value) => {
                 const parsed = Number(value);
 
@@ -96,6 +97,7 @@ export function PageNumberPagination({
                 id="pagination-per-page"
                 size="sm"
                 className="w-20"
+                disabled={isDisabled}
               >
                 <SelectValue />
               </SelectTrigger>
@@ -130,7 +132,7 @@ export function PageNumberPagination({
                 size="sm"
                 variant={item === currentPage ? "default" : "outline"}
                 className="min-w-7"
-                disabled={disabled}
+                disabled={isDisabled}
                 aria-current={item === currentPage ? "page" : undefined}
                 onClick={() => onPageChange(item)}
               >
