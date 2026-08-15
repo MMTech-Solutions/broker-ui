@@ -1,465 +1,399 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  BarChart2Icon,
-  LayoutDashboardIcon,
-  LayersIcon,
-  RefreshCwIcon,
-  WifiIcon,
-  WifiOffIcon,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { RefreshCwIcon } from "lucide-react";
 
-import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Button } from "@/components/ui/button";
-import { ClientPositionsPanel } from "@/features/client-positions/components/client-positions-panel";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  applyLiveEquityChange,
-  applyRiskMetricChanges,
-} from "@/features/client-risk-metrics/apply-metric-changes";
-import {
-  getAccountRiskMetricsHistory,
-  getAccountRiskMetricsSummary,
-} from "@/features/client-risk-metrics/api";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getAccountAnalyticsSymbols } from "@/features/client-risk-metrics/api";
+import { ClientAnalyticsBehaviorPanel } from "@/features/client-risk-metrics/components/client-analytics-behavior-panel";
+import { ClientAnalyticsProfitabilityPanel } from "@/features/client-risk-metrics/components/client-analytics-profitability-panel";
+import { ClientAnalyticsRiskDrawdownPanel } from "@/features/client-risk-metrics/components/client-analytics-risk-drawdown-panel";
+import { ClientAnalyticsSymbolPanel } from "@/features/client-risk-metrics/components/client-analytics-symbol-panel";
+import { ClientAnalyticsTemporalPanel } from "@/features/client-risk-metrics/components/client-analytics-temporal-panel";
 import { ClientAnalyticsDashboardPanel } from "@/features/client-risk-metrics/components/client-analytics-dashboard-panel";
-import { RiskMetricsEquityChart } from "@/features/client-risk-metrics/components/risk-metrics-equity-chart";
-import { RiskMetricsShareDialog } from "@/features/client-risk-metrics/components/risk-metrics-share-dialog";
-import { RiskMetricsSummaryCards } from "@/features/client-risk-metrics/components/risk-metrics-summary-cards";
-import type {
-  RiskMetricChangedPayload,
-  RiskMetricsHistory,
-  RiskMetricsSummary,
-} from "@/features/client-risk-metrics/types";
-import { formatBrokerApiError } from "@/lib/api/errors";
+import { cn } from "@/lib/utils";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
-import {
-  getEchoClient,
-  isRealtimeConfigured,
-  riskMetricsPrivateChannel,
-  subscribeEchoConnectionStatus,
-} from "@/lib/realtime/echo";
 
-const DAYS_OPTIONS = [
-  { value: 7, label: "7 días" },
-  { value: 14, label: "14 días" },
-  { value: 30, label: "30 días" },
-  { value: 60, label: "60 días" },
-  { value: 90, label: "90 días" },
+const DEFAULT_SYMBOL_OPTION = { value: "all", label: "All" };
+
+const DATE_RANGE_OPTIONS = [
+  { value: "7", label: "7d" },
+  { value: "14", label: "14d" },
+  { value: "30", label: "30d" },
+  { value: "60", label: "60d" },
+  { value: "90", label: "90d" },
 ];
 
-type Tab = "summary" | "chart" | "analytics" | "positions";
-type LiveStatus = "idle" | "connecting" | "connected" | "unavailable" | "error";
+const SESSION_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "sydney", label: "Sydney" },
+  { value: "tokyo", label: "Tokyo" },
+  { value: "london", label: "London" },
+  { value: "ny", label: "New York" },
+];
+
+const SIDE_OPTIONS = [
+  { value: "both", label: "Both" },
+  { value: "buy", label: "Buy" },
+  { value: "sell", label: "Sell" },
+];
+
+const ANALYTICS_TABS = [
+  {
+    value: "overview",
+    label: "Overview",
+    description: "Where am I?",
+  },
+  {
+    value: "profitability",
+    label: "Profitability",
+    description: "Do I make money, and why?",
+  },
+  {
+    value: "behavior",
+    label: "Behavior",
+    description: "Which habits hurt me?",
+  },
+  {
+    value: "risk",
+    label: "Risk & Drawdown",
+    description: "Am I managing risk?",
+  },
+  {
+    value: "symbol",
+    label: "By symbol",
+    description: "Where do I win/lose?",
+  },
+  {
+    value: "temporal",
+    label: "Temporal",
+    description: "When do I trade best?",
+  },
+] as const;
+
+type AnalyticsTab = (typeof ANALYTICS_TABS)[number]["value"];
 
 type ClientRiskMetricsViewProps = {
   accountId: string;
   accountLogin?: string;
 };
 
+function AnalyticsTabPlaceholder({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <Card className="border-dashed bg-muted/20">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardHeader>
+      <CardContent>
+        <div className="flex min-h-[24rem] items-center justify-center rounded-2xl border border-dashed bg-background/80 px-6 py-10 text-center text-sm text-muted-foreground">
+          Vista en maqueta pendiente de detalle funcional.
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function ClientRiskMetricsView({
   accountId,
   accountLogin,
 }: ClientRiskMetricsViewProps) {
-  const [summary, setSummary] = useState<RiskMetricsSummary | null>(null);
-  const [equityHistory, setEquityHistory] =
-    useState<RiskMetricsHistory | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyRefreshing, setHistoryRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [historyError, setHistoryError] = useState<string | null>(null);
-  const [days, setDays] = useState(30);
-  const [activeTab, setActiveTab] = useState<Tab>("summary");
-  const [liveStatus, setLiveStatus] = useState<LiveStatus>("idle");
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>("overview");
+  const [days, setDays] = useState("30");
+  const [symbol, setSymbol] = useState("all");
+  const [side, setSide] = useState("both");
+  const [session, setSession] = useState("all");
   const [analyticsRefreshToken, setAnalyticsRefreshToken] = useState(0);
-  const [analyticsMounted, setAnalyticsMounted] = useState(false);
+  const [symbolOptions, setSymbolOptions] = useState([DEFAULT_SYMBOL_OPTION]);
 
   const analyticsWindow = useMemo(() => {
+    const totalDays = Number.parseInt(days, 10) || 30;
     const to = new Date();
     to.setUTCSeconds(0, 0);
-    const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+    const from = new Date(to.getTime() - totalDays * 24 * 60 * 60 * 1000);
 
     return {
       from_utc: from.toISOString(),
       to_utc: to.toISOString(),
     };
-  }, [days, analyticsRefreshToken]);
+  }, [days]);
 
   const breadcrumbs: BreadcrumbItem[] = [
     { label: "Inicio", href: "/client" },
     { label: "Cuentas de trading", href: "/client/accounts" },
     {
       label: accountLogin ? `Cuenta ${accountLogin}` : "Cuenta",
-      href: `/client/accounts`,
+      href: "/client/accounts",
     },
     { label: "Métricas", current: true },
   ];
 
-  const fetchSummary = useCallback(
-    async (showLoader: boolean) => {
-      if (showLoader) setLoading(true);
-      else setRefreshing(true);
-      setError(null);
+  const activeTabMeta =
+    ANALYTICS_TABS.find((tab) => tab.value === activeTab) ?? ANALYTICS_TABS[0];
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSymbolOptions() {
       try {
-        const response = await getAccountRiskMetricsSummary(accountId, { days });
-        setSummary(response.data);
-      } catch (err) {
-        setError(formatBrokerApiError(err));
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [accountId, days],
-  );
-
-  const fetchEquityHistory = useCallback(
-    async (showLoader: boolean) => {
-      if (showLoader) setHistoryLoading(true);
-      else setHistoryRefreshing(true);
-      setHistoryError(null);
-
-      const to = new Date();
-      const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
-
-      try {
-        const response = await getAccountRiskMetricsHistory(accountId, {
-          metric_key: "equity",
-          from_utc: from.toISOString(),
-          to_utc: to.toISOString(),
-          granularity: "hour",
-          sort: "time_asc",
-          limit: 5000,
+        const response = await getAccountAnalyticsSymbols(accountId, {
+          from_utc: analyticsWindow.from_utc,
+          to_utc: analyticsWindow.to_utc,
+          side: side === "both" ? undefined : side,
+          session: session === "all" ? undefined : session,
         });
-        setEquityHistory(response.data);
-      } catch (err) {
-        setHistoryError(formatBrokerApiError(err));
-      } finally {
-        setHistoryLoading(false);
-        setHistoryRefreshing(false);
-      }
-    },
-    [accountId, days],
-  );
 
-  useEffect(() => {
-    if (activeTab === "analytics") {
-      setAnalyticsMounted(true);
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === "positions" || activeTab === "analytics") {
-      return;
-    }
-
-    void fetchSummary(true);
-    if (activeTab === "chart") {
-      void fetchEquityHistory(true);
-    }
-  }, [fetchEquityHistory, fetchSummary, activeTab]);
-
-  const activeTabRef = useRef(activeTab);
-  const fetchEquityHistoryRef = useRef(fetchEquityHistory);
-
-  useEffect(() => {
-    activeTabRef.current = activeTab;
-  }, [activeTab]);
-
-  useEffect(() => {
-    fetchEquityHistoryRef.current = fetchEquityHistory;
-  }, [fetchEquityHistory]);
-
-  useEffect(() => {
-    if (!isRealtimeConfigured()) {
-      setLiveStatus("unavailable");
-      return;
-    }
-
-    let echo: ReturnType<typeof getEchoClient>;
-
-    try {
-      echo = getEchoClient();
-    } catch {
-      setLiveStatus("error");
-      return;
-    }
-
-    if (!echo) {
-      setLiveStatus("unavailable");
-      return;
-    }
-
-    setLiveStatus("connecting");
-    const channelName = riskMetricsPrivateChannel(accountId);
-    const unsubscribeConnection = subscribeEchoConnectionStatus(
-      echo,
-      (status) => {
-        if (status === "connected") {
-          // Keep "connecting" until private channel auth succeeds.
-          setLiveStatus((current) =>
-            current === "connected" ? current : "connecting",
-          );
+        if (cancelled) {
           return;
         }
 
-        if (status === "failed" || status === "unavailable") {
-          setLiveStatus("error");
-          return;
-        }
+        const nextOptions = response.data.symbols
+          .map((item) => item.symbol?.trim())
+          .filter((item): item is string => Boolean(item))
+          .filter((item, index, items) => items.indexOf(item) === index)
+          .sort((left, right) => left.localeCompare(right))
+          .map((item) => ({ value: item, label: item }));
 
-        if (status === "disconnected") {
-          setLiveStatus("error");
-        }
-      },
-    );
-
-    const channel = echo.private(channelName);
-
-    channel
-      .subscribed(() => {
-        setLiveStatus("connected");
-        if (activeTabRef.current === "chart") {
-          void fetchEquityHistoryRef.current(false);
-        }
-      })
-      .error(() => {
-        setLiveStatus("error");
-      })
-      .listen(".metric.changed", (payload: RiskMetricChangedPayload) => {
-        setSummary((current) => {
-          if (!current) {
-            return current;
-          }
-
-          return applyRiskMetricChanges(current, payload);
-        });
-        setEquityHistory((current) =>
-          current ? applyLiveEquityChange(current, payload) : current,
+        setSymbolOptions([DEFAULT_SYMBOL_OPTION, ...nextOptions]);
+        setSymbol((current) =>
+          current === "all" || nextOptions.some((option) => option.value === current)
+            ? current
+            : "all",
         );
-      });
+      } catch {
+        if (!cancelled) {
+          setSymbolOptions([DEFAULT_SYMBOL_OPTION]);
+          setSymbol("all");
+        }
+      }
+    }
+
+    void loadSymbolOptions();
 
     return () => {
-      unsubscribeConnection();
-      echo?.leave(channelName);
+      cancelled = true;
     };
-  }, [accountId]);
-
-  function handleManualRefresh() {
-    if (activeTab === "analytics") {
-      setAnalyticsRefreshToken((current) => current + 1);
-      return;
-    }
-
-    void fetchSummary(false);
-    if (activeTab === "chart") {
-      void fetchEquityHistory(false);
-    }
-  }
-
-  const liveLabel =
-    liveStatus === "connected"
-      ? "En vivo"
-      : liveStatus === "connecting"
-        ? "Conectando…"
-        : liveStatus === "error"
-          ? "Tiempo real no disponible"
-          : liveStatus === "unavailable"
-            ? "Sin WebSocket"
-            : null;
-
-  const showMetricsChrome = activeTab !== "positions";
-  const showShareAndLive = activeTab === "summary" || activeTab === "chart";
+  }, [
+    accountId,
+    analyticsRefreshToken,
+    analyticsWindow.from_utc,
+    analyticsWindow.to_utc,
+    side,
+    session,
+  ]);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar breadcrumbs={breadcrumbs}>
-        {liveLabel && showShareAndLive ? (
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${
-              liveStatus === "connected"
-                ? "border-emerald-500/40 text-emerald-600"
-                : "text-muted-foreground"
-            }`}
-          >
-            {liveStatus === "connected" ? (
-              <WifiIcon className="h-3.5 w-3.5" />
-            ) : (
-              <WifiOffIcon className="h-3.5 w-3.5" />
-            )}
-            {liveLabel}
-          </span>
-        ) : null}
-        {showMetricsChrome ? (
-          <>
-            {showShareAndLive ? (
-              <RiskMetricsShareDialog accountId={accountId} />
-            ) : null}
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={handleManualRefresh}
-              disabled={
-                loading ||
-                refreshing ||
-                historyLoading ||
-                historyRefreshing
-              }
-              aria-label="Actualizar métricas"
-            >
-              <RefreshCwIcon
-                className={`h-4 w-4 ${
-                  refreshing || historyRefreshing ? "animate-spin" : ""
-                }`}
-              />
-            </Button>
-          </>
-        ) : null}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setAnalyticsRefreshToken((current) => current + 1)}
+          aria-label="Actualizar analytics"
+        >
+          <RefreshCwIcon className="h-4 w-4" />
+        </Button>
       </PageContentToolbar>
 
-      {error && showShareAndLive ? (
-        <ApiErrorAlert
-          title="No se pudieron cargar las métricas"
-          message={error}
-        />
-      ) : null}
-
-      {historyError && activeTab === "chart" ? (
-        <ApiErrorAlert
-          title="No se pudo cargar el historial de equity"
-          message={historyError}
-        />
-      ) : null}
-
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
-            <button
-              onClick={() => setActiveTab("summary")}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeTab === "summary"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <BarChart2Icon className="h-3.5 w-3.5" />
-              Resumen
-            </button>
-            <button
-              onClick={() => setActiveTab("chart")}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeTab === "chart"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <svg
-                className="h-3.5 w-3.5"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path
-                  d="M1 12 L5 7 L8 9 L11 4 L15 6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Curva de equity
-            </button>
-            <button
-              onClick={() => setActiveTab("analytics")}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeTab === "analytics"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <LayoutDashboardIcon className="h-3.5 w-3.5" />
-              Analytics
-            </button>
-            <button
-              onClick={() => setActiveTab("positions")}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeTab === "positions"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <LayersIcon className="h-3.5 w-3.5" />
-              Posiciones
-            </button>
+      <section className="rounded-[28px] border bg-card p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-6">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Advanced Analytics for{" "}
+              <span className="text-emerald-600">
+                {accountLogin ?? accountId}
+              </span>
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Current phase only · Performance, behavior, and risk for this
+              trading account.
+            </p>
           </div>
 
-          {showMetricsChrome ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Período:</span>
-              <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
-                {DAYS_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setDays(option.value)}
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                      days === option.value
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
+          <div className="flex flex-col gap-4 border-t pt-4">
+            <div className="flex flex-wrap gap-2">
+              {ANALYTICS_TABS.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveTab(tab.value)}
+                  className={cn(
+                    "min-w-[140px] rounded-2xl border px-4 py-3 text-left transition-colors",
+                    activeTab === tab.value
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm"
+                      : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground",
+                  )}
+                >
+                  <span className="block text-sm font-semibold text-foreground">
+                    {tab.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-1 block text-xs",
+                      activeTab === tab.value
+                        ? "text-emerald-600"
+                        : "text-muted-foreground",
+                    )}
                   >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+                    {tab.description}
+                  </span>
+                </button>
+              ))}
             </div>
-          ) : null}
-        </div>
 
-        {activeTab === "summary" ? (
-          <RiskMetricsSummaryCards summary={summary} loading={loading} />
-        ) : null}
-        {activeTab === "chart" ? (
-          <RiskMetricsEquityChart
-            history={equityHistory}
-            loading={historyLoading}
-          />
-        ) : null}
-        {analyticsMounted ? (
-          <div className={activeTab === "analytics" ? undefined : "hidden"}>
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-end">
+              <div className="inline-flex h-9 items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700">
+                Live
+              </div>
+
+              <AnalyticsFilterSelect
+                label="Date range"
+                value={days}
+                onValueChange={setDays}
+                options={DATE_RANGE_OPTIONS}
+              />
+              <AnalyticsFilterSelect
+                label="Symbol"
+                value={symbol}
+                onValueChange={setSymbol}
+                options={symbolOptions}
+              />
+              <AnalyticsFilterSelect
+                label="Side"
+                value={side}
+                onValueChange={setSide}
+                options={SIDE_OPTIONS}
+              />
+              <AnalyticsFilterSelect
+                label="Session"
+                value={session}
+                onValueChange={setSession}
+                options={SESSION_OPTIONS}
+              />
+            </div>
+          </div>
+
+          {activeTab === "overview" ? (
             <ClientAnalyticsDashboardPanel
               accountId={accountId}
               fromUtc={analyticsWindow.from_utc}
               toUtc={analyticsWindow.to_utc}
               refreshToken={analyticsRefreshToken}
-              active={activeTab === "analytics"}
+              active
+              symbol={symbol === "all" ? undefined : symbol}
+              side={side === "both" ? undefined : side}
+              session={session === "all" ? undefined : session}
             />
-          </div>
-        ) : null}
-        {activeTab === "positions" ? (
-          <ClientPositionsPanel accountId={accountId} />
-        ) : null}
+          ) : activeTab === "profitability" ? (
+            <ClientAnalyticsProfitabilityPanel
+              accountId={accountId}
+              fromUtc={analyticsWindow.from_utc}
+              toUtc={analyticsWindow.to_utc}
+              refreshToken={analyticsRefreshToken}
+              active
+              symbol={symbol === "all" ? undefined : symbol}
+              side={side === "both" ? undefined : side}
+              session={session === "all" ? undefined : session}
+            />
+          ) : activeTab === "behavior" ? (
+            <ClientAnalyticsBehaviorPanel
+              accountId={accountId}
+              fromUtc={analyticsWindow.from_utc}
+              toUtc={analyticsWindow.to_utc}
+              refreshToken={analyticsRefreshToken}
+              active
+              symbol={symbol === "all" ? undefined : symbol}
+              side={side === "both" ? undefined : side}
+              session={session === "all" ? undefined : session}
+            />
+          ) : activeTab === "risk" ? (
+            <ClientAnalyticsRiskDrawdownPanel
+              accountId={accountId}
+              fromUtc={analyticsWindow.from_utc}
+              toUtc={analyticsWindow.to_utc}
+              refreshToken={analyticsRefreshToken}
+              active
+              symbol={symbol === "all" ? undefined : symbol}
+              side={side === "both" ? undefined : side}
+              session={session === "all" ? undefined : session}
+            />
+          ) : activeTab === "symbol" ? (
+            <ClientAnalyticsSymbolPanel
+              accountId={accountId}
+              fromUtc={analyticsWindow.from_utc}
+              toUtc={analyticsWindow.to_utc}
+              refreshToken={analyticsRefreshToken}
+              active
+              symbol={symbol === "all" ? undefined : symbol}
+              side={side === "both" ? undefined : side}
+              session={session === "all" ? undefined : session}
+            />
+          ) : activeTab === "temporal" ? (
+            <ClientAnalyticsTemporalPanel
+              accountId={accountId}
+              fromUtc={analyticsWindow.from_utc}
+              toUtc={analyticsWindow.to_utc}
+              refreshToken={analyticsRefreshToken}
+              active
+              symbol={symbol === "all" ? undefined : symbol}
+              side={side === "both" ? undefined : side}
+              session={session === "all" ? undefined : session}
+            />
+          ) : (
+            <AnalyticsTabPlaceholder
+              title={activeTabMeta.label}
+              description={activeTabMeta.description}
+            />
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
 
-        {summary && showShareAndLive ? (
-          <p className="text-xs text-muted-foreground">
-            Fase: <span className="font-medium">{summary.phase_name}</span>
-            {" · "}
-            Datos hasta:{" "}
-            <span className="font-medium tabular-nums">
-              {new Date(summary.series_end_date_utc).toLocaleDateString("es-ES", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
-            {refreshing || historyRefreshing ? (
-              <span className="ml-2 text-muted-foreground/60">
-                Actualizando…
-              </span>
-            ) : null}
-          </p>
-        ) : null}
-      </div>
+function AnalyticsFilterSelect({
+  label,
+  value,
+  onValueChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="flex min-w-[120px] flex-col gap-1">
+      <span className="px-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </span>
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger className="h-10 rounded-full bg-background px-4">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

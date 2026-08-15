@@ -1,11 +1,23 @@
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 import type {
+  AnalyticsBehavior,
+  AnalyticsDailyDayTrades,
+  AnalyticsDaily,
+  AnalyticsDrawdowns,
+  AnalyticsDurationScatter,
+  AnalyticsEquityCurve,
+  AnalyticsOverview,
+  AnalyticsPnlDistribution,
+  AnalyticsProfitability,
+  AnalyticsSessions,
+  AnalyticsSymbols,
+  AnalyticsTimeHeatmap,
   CreateSharedRiskMetricInput,
+  GetAnalyticsEquityCurveParams,
   GetAnalyticsOverviewParams,
   GetRiskMetricsHistoryParams,
   GetRiskMetricsSummaryParams,
-  AnalyticsOverview,
   RiskMetricsHistory,
   RiskMetricsSummary,
   SharedRiskMetric,
@@ -99,6 +111,117 @@ export async function getAccountAnalyticsOverview(
   analyticsOverviewInflight.set(key, request);
 
   return request;
+}
+
+export async function getAccountAnalyticsEquityCurve(
+  accountId: string,
+  params: GetAnalyticsEquityCurveParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsEquityCurve>> {
+  return browserBrokerRequest<AnalyticsEquityCurve>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/equity-curve`,
+    { searchParams: toSearchParams(params) },
+  );
+}
+
+export async function getAccountAnalyticsSymbols(
+  accountId: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsSymbols>> {
+  return browserBrokerRequest<AnalyticsSymbols>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/symbols`,
+    { searchParams: toSearchParams(params) },
+  );
+}
+
+export async function getAccountAnalyticsProfitability(
+  accountId: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsProfitability>> {
+  return browserBrokerRequest<AnalyticsProfitability>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/profitability`,
+    { searchParams: toSearchParams(params) },
+  );
+}
+
+export async function getAccountAnalyticsDaily(
+  accountId: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsDaily>> {
+  return browserBrokerRequest<AnalyticsDaily>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/daily`,
+    { searchParams: toSearchParams(params) },
+  );
+}
+
+export async function getAccountAnalyticsDailyDayTrades(
+  accountId: string,
+  dateUtc: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsDailyDayTrades>> {
+  return browserBrokerRequest<AnalyticsDailyDayTrades>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/daily/${dateUtc}/trades`,
+    { searchParams: toSearchParams(params) },
+  );
+}
+
+export async function getAccountAnalyticsPnlDistribution(
+  accountId: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsPnlDistribution>> {
+  return browserBrokerRequest<AnalyticsPnlDistribution>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/pnl-distribution`,
+    { searchParams: toSearchParams(params) },
+  );
+}
+
+export async function getAccountAnalyticsSessions(
+  accountId: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsSessions>> {
+  return browserBrokerRequest<AnalyticsSessions>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/sessions`,
+    { searchParams: toSearchParams(params) },
+  );
+}
+
+export async function getAccountAnalyticsBehavior(
+  accountId: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsBehavior>> {
+  return browserBrokerRequest<AnalyticsBehavior>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/behavior`,
+    { searchParams: toSearchParams(params) },
+  );
+}
+
+export async function getAccountAnalyticsDrawdowns(
+  accountId: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsDrawdowns>> {
+  return browserBrokerRequest<AnalyticsDrawdowns>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/drawdowns`,
+    { searchParams: toSearchParams(params) },
+  );
+}
+
+export async function getAccountAnalyticsTimeHeatmap(
+  accountId: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsTimeHeatmap>> {
+  return browserBrokerRequest<AnalyticsTimeHeatmap>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/time-heatmap`,
+    { searchParams: toSearchParams(params) },
+  );
+}
+
+export async function getAccountAnalyticsDurationScatter(
+  accountId: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsDurationScatter>> {
+  return browserBrokerRequest<AnalyticsDurationScatter>(
+    `${RISK_METRICS_PATH}/${accountId}/analytics/duration-scatter`,
+    { searchParams: toSearchParams(params) },
+  );
 }
 
 export async function getAccountRiskMetricShare(
