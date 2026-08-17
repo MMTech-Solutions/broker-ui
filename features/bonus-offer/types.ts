@@ -76,13 +76,87 @@ export type BonusOfferTemplate = Pick<
   "id" | "name" | "platform_id" | "is_active"
 >;
 
+export type BonusOfferSortBy =
+  | "id"
+  | "name"
+  | "type"
+  | "bonus_offer_template_id"
+  | "platform_id"
+  | "is_active"
+  | "credit_amount"
+  | "deposit_percent"
+  | "max_credit_amount"
+  | "deposit_application_mode"
+  | "claim_expires_at"
+  | "min_real_balance"
+  | "min_deposit_amount"
+  | "min_position_duration_seconds"
+  | "conversion_window_days"
+  | "activity_per_credit_unit"
+  | "burn_on_withdrawal"
+  | "burn_on_negative_balance"
+  | "created_at"
+  | "updated_at"
+  | "server_groups_count"
+  | "excluded_instruments_count"
+  | "introducing_brokers_count"
+  | "assignments_count";
+
+export type BonusOfferSortDirection = "asc" | "desc";
+
 export type BonusOfferListFilters = {
+  id?: string;
   name?: string;
   type?: BonusOfferType;
-  is_active?: boolean;
+  bonus_offer_template_id?: string;
   platform_id?: string;
+  is_active?: boolean;
+  credit_amount?: number;
+  deposit_percent?: number;
+  max_credit_amount?: number;
+  deposit_application_mode?: DepositApplicationMode;
+  claim_expires_at?: string;
+  min_real_balance?: number;
+  min_deposit_amount?: number;
+  min_position_duration_seconds?: number;
+  conversion_window_days?: number;
+  activity_per_credit_unit?: number;
+  burn_on_withdrawal?: boolean;
+  burn_on_negative_balance?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  server_groups_count?: number;
+  excluded_instruments_count?: number;
+  introducing_brokers_count?: number;
+  assignments_count?: number;
+  sort_by?: BonusOfferSortBy;
+  sort_direction?: BonusOfferSortDirection;
   page?: number;
   per_page?: number;
+};
+
+export type BonusOfferFilterFormState = {
+  name: string;
+  type: "" | BonusOfferType;
+  platform_id: string;
+  server_groups_count: string;
+  excluded_instruments_count: string;
+  introducing_brokers_count: string;
+  assignments_count: string;
+  claim_expires_at: string;
+  is_active: "" | "true" | "false";
+};
+
+export const EMPTY_BONUS_OFFER_FILTERS: BonusOfferFilterFormState = {
+  name: "",
+  type: "",
+  platform_id: "",
+  server_groups_count: "",
+  excluded_instruments_count: "",
+  introducing_brokers_count: "",
+  assignments_count: "",
+  claim_expires_at: "",
+  is_active: "",
 };
 
 export type CreateBonusOfferInput = {

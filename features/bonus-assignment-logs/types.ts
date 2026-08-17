@@ -21,11 +21,23 @@ export type BonusAssignmentExcludedInstrument = {
   symbol?: string;
 };
 
+export type BonusUserOwner = {
+  id: string;
+  email: string | null;
+  name: string;
+};
+
 export type BonusAssignment = {
   id: string;
   bonus_offer_id: string;
   account_id: string;
-  external_user_id: string;
+  /**
+   * Legacy field while production broker still returns external_user_id.
+   * Prefer `user.id` when present.
+   */
+  external_user_id?: string;
+  /** Enriched owner (id, email, name). */
+  user?: BonusUserOwner;
   /** Major currency units (API converts from stored minor units). */
   credited_amount: string | number;
   currency?: string | null;
@@ -64,7 +76,12 @@ export type BonusAssignment = {
 export type DepositBonusIntent = {
   id: string;
   account_id: string;
-  external_user_id: string;
+  /**
+   * Legacy field while production broker still returns external_user_id.
+   * Prefer `user.id` when present.
+   */
+  external_user_id?: string;
+  user?: BonusUserOwner;
   status: DepositBonusIntentStatus;
   bonus_assignment_id?: string | null;
   cancellation_reason?: string | null;
@@ -73,21 +90,146 @@ export type DepositBonusIntent = {
   updated_at?: string | null;
 };
 
+export type BonusAssignmentSortBy =
+  | "id"
+  | "bonus_offer_id"
+  | "offer_name"
+  | "offer_type"
+  | "activity_per_credit_unit"
+  | "conversion_window_days"
+  | "min_position_duration_seconds"
+  | "burn_on_withdrawal"
+  | "burn_on_negative_balance"
+  | "account_id"
+  | "credited_amount"
+  | "status"
+  | "activated_at"
+  | "conversion_deadline_at"
+  | "accumulated_activity"
+  | "pending_removal"
+  | "source_external_transaction_id"
+  | "created_at"
+  | "updated_at"
+  | "user.id"
+  | "user.name"
+  | "user.email";
+
+export type DepositBonusIntentSortBy =
+  | "id"
+  | "account_id"
+  | "status"
+  | "bonus_assignment_id"
+  | "cancellation_reason"
+  | "last_evaluated_at"
+  | "created_at"
+  | "updated_at"
+  | "user.id"
+  | "user.name"
+  | "user.email";
+
+export type BonusListSortDirection = "asc" | "desc";
+
 export type BonusAssignmentListFilters = {
+  id?: string;
+  bonus_offer_id?: string;
+  offer_name?: string;
+  offer_type?: BonusOfferType;
+  activity_per_credit_unit?: number;
+  conversion_window_days?: number;
+  min_position_duration_seconds?: number;
+  burn_on_withdrawal?: boolean;
+  burn_on_negative_balance?: boolean;
+  account_id?: string;
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
+  credited_amount?: number;
+  status?: BonusAssignmentStatus;
+  activated_at?: string;
+  conversion_deadline_at?: string;
+  accumulated_activity?: number | string;
+  pending_removal?: boolean;
+  source_external_transaction_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  sort_by?: BonusAssignmentSortBy;
+  sort_direction?: BonusListSortDirection;
   page?: number;
   per_page?: number;
-  bonus_offer_id?: string;
-  account_id?: string;
-  status?: BonusAssignmentStatus;
 };
 
 export type DepositBonusIntentListFilters = {
+  id?: string;
+  account_id?: string;
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
+  status?: DepositBonusIntentStatus;
+  bonus_assignment_id?: string;
+  cancellation_reason?: string;
+  last_evaluated_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  sort_by?: DepositBonusIntentSortBy;
+  sort_direction?: BonusListSortDirection;
   page?: number;
   per_page?: number;
-  account_id?: string;
-  external_user_id?: string;
-  status?: DepositBonusIntentStatus;
 };
+
+export type BonusAssignmentFilterFormState = {
+  created_at: string;
+  offer_name: string;
+  account_id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  credited_amount: string;
+  status: "" | BonusAssignmentStatus;
+  activated_at: string;
+  conversion_deadline_at: string;
+  accumulated_activity: string;
+  pending_removal: "" | "true" | "false";
+};
+
+export const EMPTY_BONUS_ASSIGNMENT_FILTERS: BonusAssignmentFilterFormState = {
+  created_at: "",
+  offer_name: "",
+  account_id: "",
+  user_id: "",
+  user_name: "",
+  user_email: "",
+  credited_amount: "",
+  status: "",
+  activated_at: "",
+  conversion_deadline_at: "",
+  accumulated_activity: "",
+  pending_removal: "",
+};
+
+export type DepositBonusIntentFilterFormState = {
+  created_at: string;
+  account_id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  status: "" | DepositBonusIntentStatus;
+  bonus_assignment_id: string;
+  last_evaluated_at: string;
+  cancellation_reason: string;
+};
+
+export const EMPTY_DEPOSIT_BONUS_INTENT_FILTERS: DepositBonusIntentFilterFormState =
+  {
+    created_at: "",
+    account_id: "",
+    user_id: "",
+    user_name: "",
+    user_email: "",
+    status: "",
+    bonus_assignment_id: "",
+    last_evaluated_at: "",
+    cancellation_reason: "",
+  };
 
 export const BONUS_ASSIGNMENT_STATUSES: {
   value: BonusAssignmentStatus;
@@ -110,3 +252,22 @@ export const DEPOSIT_BONUS_INTENT_STATUSES: {
 ];
 
 export type BonusLogsTab = "assignments" | "deposit-intents";
+
+export function resolveBonusOwner(record: {
+  user?: BonusUserOwner;
+  external_user_id?: string;
+}): BonusUserOwner {
+  if (record.user) {
+    return {
+      id: record.user.id,
+      email: record.user.email,
+      name: record.user.name,
+    };
+  }
+
+  return {
+    id: record.external_user_id ?? "",
+    email: null,
+    name: "",
+  };
+}

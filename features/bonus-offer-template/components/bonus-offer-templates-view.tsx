@@ -1,8 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import Link from "next/link";
 import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  FilterXIcon,
   ListXIcon,
   PencilIcon,
   PlusIcon,
@@ -15,6 +25,13 @@ import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -27,7 +44,14 @@ import {
 import { listBonusOfferTemplates } from "@/features/bonus-offer-template/api";
 import { BonusOfferTemplateDeleteDialog } from "@/features/bonus-offer-template/components/bonus-offer-template-delete-dialog";
 import { BonusOfferTemplateFormDialog } from "@/features/bonus-offer-template/components/bonus-offer-template-form-dialog";
-import type { BonusOfferTemplate } from "@/features/bonus-offer-template/types";
+import {
+  EMPTY_BONUS_OFFER_TEMPLATE_FILTERS,
+  type BonusOfferTemplate,
+  type BonusOfferTemplateFilterFormState,
+  type BonusOfferTemplateListFilters,
+  type BonusOfferTemplateSortBy,
+  type BonusOfferTemplateSortDirection,
+} from "@/features/bonus-offer-template/types";
 import { bonusOfferTemplateExcludedInstrumentsPath } from "@/features/bonus-excluded-instrument/routes";
 import { invalidateBonusOfferFormCatalog } from "@/features/bonus-offer/api";
 import { listPlatforms } from "@/features/platform/api";
@@ -41,6 +65,115 @@ const bonusOfferTemplatesBreadcrumbs: BreadcrumbItem[] = [
   { label: "Bonus offer templates", current: true },
 ];
 
+const TABLE_COLUMN_COUNT = 8;
+
+function parseOptionalNumber(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function formToAppliedFilters(
+  form: BonusOfferTemplateFilterFormState,
+  sortBy: BonusOfferTemplateSortBy,
+  sortDirection: BonusOfferTemplateSortDirection,
+): BonusOfferTemplateListFilters {
+  const filters: BonusOfferTemplateListFilters = {
+    sort_by: sortBy,
+    sort_direction: sortDirection,
+  };
+
+  const name = form.name.trim();
+  if (name) {
+    filters.name = name;
+  }
+
+  const platformId = form.platform_id.trim();
+  if (platformId && platformId !== "all") {
+    filters.platform_id = platformId;
+  }
+
+  const conversionWindowDays = parseOptionalNumber(form.conversion_window_days);
+  if (conversionWindowDays !== undefined) {
+    filters.conversion_window_days = conversionWindowDays;
+  }
+
+  const activityPerCreditUnit = parseOptionalNumber(
+    form.activity_per_credit_unit,
+  );
+  if (activityPerCreditUnit !== undefined) {
+    filters.activity_per_credit_unit = activityPerCreditUnit;
+  }
+
+  const excludedCount = parseOptionalNumber(form.excluded_instruments_count);
+  if (excludedCount !== undefined) {
+    filters.excluded_instruments_count = excludedCount;
+  }
+
+  const offersCount = parseOptionalNumber(form.offers_count);
+  if (offersCount !== undefined) {
+    filters.offers_count = offersCount;
+  }
+
+  if (form.is_active === "true" || form.is_active === "false") {
+    filters.is_active = form.is_active === "true";
+  }
+
+  return filters;
+}
+
+type ColumnSortHeadProps = {
+  label: string;
+  sortKey: BonusOfferTemplateSortBy;
+  activeSortBy: BonusOfferTemplateSortBy;
+  activeDirection: BonusOfferTemplateSortDirection;
+  onSort: (sortKey: BonusOfferTemplateSortBy) => void;
+  disabled?: boolean;
+};
+
+function ColumnSortHead({
+  label,
+  sortKey,
+  activeSortBy,
+  activeDirection,
+  onSort,
+  disabled,
+}: ColumnSortHeadProps) {
+  const isActive = activeSortBy === sortKey;
+
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-xs font-medium">{label}</span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="size-6 shrink-0"
+        disabled={disabled}
+        title={
+          isActive
+            ? `Sorted ${activeDirection === "asc" ? "ascending" : "descending"} — click to toggle`
+            : `Sort by ${label}`
+        }
+        onClick={() => onSort(sortKey)}
+      >
+        {isActive ? (
+          activeDirection === "asc" ? (
+            <ArrowUpIcon className="size-3.5" />
+          ) : (
+            <ArrowDownIcon className="size-3.5" />
+          )
+        ) : (
+          <ArrowUpDownIcon className="size-3.5 text-muted-foreground" />
+        )}
+      </Button>
+    </div>
+  );
+}
+
 export function BonusOfferTemplatesView() {
   const [templates, setTemplates] = useState<BonusOfferTemplate[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -48,10 +181,21 @@ export function BonusOfferTemplatesView() {
     null,
   );
   const [page, setPage] = useState(1);
-  const [nameFilter, setNameFilter] = useState("");
-  const [appliedNameFilter, setAppliedNameFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [draftFilters, setDraftFilters] =
+    useState<BonusOfferTemplateFilterFormState>(
+      EMPTY_BONUS_OFFER_TEMPLATE_FILTERS,
+    );
+  const [appliedFilters, setAppliedFilters] =
+    useState<BonusOfferTemplateListFilters>({
+      sort_by: "created_at",
+      sort_direction: "desc",
+    });
+  const [sortBy, setSortBy] = useState<BonusOfferTemplateSortBy>("created_at");
+  const [sortDirection, setSortDirection] =
+    useState<BonusOfferTemplateSortDirection>("desc");
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -74,16 +218,16 @@ export function BonusOfferTemplatesView() {
   );
 
   const loadTemplates = useCallback(
-    async (requestedPage: number, name?: string) => {
+    async (requestedPage: number, filters: BonusOfferTemplateListFilters) => {
       setLoading(true);
       setError(null);
 
       try {
         const [templatesResponse, platformsResponse] = await Promise.all([
           listBonusOfferTemplates({
+            ...filters,
             page: requestedPage,
             per_page: 15,
-            ...(name ? { name } : {}),
           }),
           listPlatforms({ per_page: 100 }),
         ]);
@@ -103,13 +247,51 @@ export function BonusOfferTemplatesView() {
   );
 
   useEffect(() => {
-    void loadTemplates(page, appliedNameFilter || undefined);
-  }, [loadTemplates, page, appliedNameFilter]);
+    void loadTemplates(page, appliedFilters);
+  }, [appliedFilters, loadTemplates, page]);
 
-  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function commitFilters(
+    form: BonusOfferTemplateFilterFormState,
+    nextSortBy: BonusOfferTemplateSortBy,
+    nextSortDirection: BonusOfferTemplateSortDirection,
+  ) {
     setPage(1);
-    setAppliedNameFilter(nameFilter.trim());
+    setAppliedFilters(formToAppliedFilters(form, nextSortBy, nextSortDirection));
+  }
+
+  function patchDraft(
+    patch: Partial<BonusOfferTemplateFilterFormState>,
+    options?: { apply?: boolean },
+  ) {
+    const next = { ...draftFilters, ...patch };
+    setDraftFilters(next);
+    if (options?.apply) {
+      commitFilters(next, sortBy, sortDirection);
+    }
+  }
+
+  function onFilterEnter(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      commitFilters(draftFilters, sortBy, sortDirection);
+    }
+  }
+
+  function toggleSort(column: BonusOfferTemplateSortBy) {
+    let nextDirection: BonusOfferTemplateSortDirection = "asc";
+    if (sortBy === column) {
+      nextDirection = sortDirection === "asc" ? "desc" : "asc";
+    }
+
+    setSortBy(column);
+    setSortDirection(nextDirection);
+    commitFilters(draftFilters, column, nextDirection);
+  }
+
+  function clearFilters() {
+    setDraftFilters(EMPTY_BONUS_OFFER_TEMPLATE_FILTERS);
+    setSortBy("created_at");
+    setSortDirection("desc");
+    commitFilters(EMPTY_BONUS_OFFER_TEMPLATE_FILTERS, "created_at", "desc");
   }
 
   function openCreateDialog() {
@@ -131,7 +313,7 @@ export function BonusOfferTemplatesView() {
 
   function handleMutationSuccess() {
     invalidateBonusOfferFormCatalog();
-    void loadTemplates(page, appliedNameFilter || undefined);
+    void loadTemplates(page, appliedFilters);
   }
 
   return (
@@ -141,26 +323,22 @@ export function BonusOfferTemplatesView() {
         backHref="/"
         backLabel="Ir atrás"
       >
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={clearFilters}
+          disabled={loading}
+          title="Clear column filters and sort"
+        >
+          <FilterXIcon data-icon="inline-start" />
+          Clear filters
+        </Button>
         <Button onClick={openCreateDialog}>
           <PlusIcon />
           New template
         </Button>
       </PageContentToolbar>
-
-      <form
-        className="flex flex-col gap-2 sm:flex-row sm:items-center"
-        onSubmit={handleSearchSubmit}
-      >
-        <Input
-          value={nameFilter}
-          onChange={(event) => setNameFilter(event.target.value)}
-          placeholder="Filter by name"
-          className="sm:max-w-xs"
-        />
-        <Button type="submit" variant="secondary" disabled={loading}>
-          Search
-        </Button>
-      </form>
 
       {error ? (
         <ApiErrorAlert
@@ -172,14 +350,169 @@ export function BonusOfferTemplatesView() {
       <div className="rounded-xl border">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Platform</TableHead>
-              <TableHead>Conversion window</TableHead>
-              <TableHead>Activity / credit</TableHead>
-              <TableHead>Excluded</TableHead>
-              <TableHead>Offers</TableHead>
-              <TableHead>Status</TableHead>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="min-w-[140px] align-bottom">
+                <ColumnSortHead
+                  label="Name"
+                  sortKey="name"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Input
+                  className="mt-1.5 h-8"
+                  placeholder="Filter… (Enter)"
+                  title="Press Enter to apply filter"
+                  value={draftFilters.name}
+                  onChange={(event) => patchDraft({ name: event.target.value })}
+                  onKeyDown={onFilterEnter}
+                />
+              </TableHead>
+              <TableHead className="min-w-[140px] align-bottom">
+                <ColumnSortHead
+                  label="Platform"
+                  sortKey="platform_id"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Select
+                  value={draftFilters.platform_id || "all"}
+                  onValueChange={(value) =>
+                    patchDraft(
+                      { platform_id: value === "all" ? "" : (value ?? "") },
+                      { apply: true },
+                    )
+                  }
+                >
+                  <SelectTrigger className="mt-1.5 h-8 w-full">
+                    <SelectValue placeholder="All platforms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {platforms.map((platform) => (
+                      <SelectItem key={platform.id} value={platform.id}>
+                        {platform.custom_name ?? platform.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TableHead>
+              <TableHead className="min-w-[140px] align-bottom">
+                <ColumnSortHead
+                  label="Conversion window"
+                  sortKey="conversion_window_days"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Input
+                  className="mt-1.5 h-8"
+                  placeholder="Days… (Enter)"
+                  title="Press Enter to apply filter"
+                  value={draftFilters.conversion_window_days}
+                  onChange={(event) =>
+                    patchDraft({ conversion_window_days: event.target.value })
+                  }
+                  onKeyDown={onFilterEnter}
+                />
+              </TableHead>
+              <TableHead className="min-w-[140px] align-bottom">
+                <ColumnSortHead
+                  label="Activity / credit"
+                  sortKey="activity_per_credit_unit"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Input
+                  className="mt-1.5 h-8"
+                  placeholder="Value… (Enter)"
+                  title="Press Enter to apply filter"
+                  value={draftFilters.activity_per_credit_unit}
+                  onChange={(event) =>
+                    patchDraft({ activity_per_credit_unit: event.target.value })
+                  }
+                  onKeyDown={onFilterEnter}
+                />
+              </TableHead>
+              <TableHead className="min-w-[110px] align-bottom">
+                <ColumnSortHead
+                  label="Excluded"
+                  sortKey="excluded_instruments_count"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Input
+                  className="mt-1.5 h-8"
+                  placeholder="Count… (Enter)"
+                  title="Press Enter to apply filter"
+                  value={draftFilters.excluded_instruments_count}
+                  onChange={(event) =>
+                    patchDraft({
+                      excluded_instruments_count: event.target.value,
+                    })
+                  }
+                  onKeyDown={onFilterEnter}
+                />
+              </TableHead>
+              <TableHead className="min-w-[100px] align-bottom">
+                <ColumnSortHead
+                  label="Offers"
+                  sortKey="offers_count"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Input
+                  className="mt-1.5 h-8"
+                  placeholder="Count… (Enter)"
+                  title="Press Enter to apply filter"
+                  value={draftFilters.offers_count}
+                  onChange={(event) =>
+                    patchDraft({ offers_count: event.target.value })
+                  }
+                  onKeyDown={onFilterEnter}
+                />
+              </TableHead>
+              <TableHead className="min-w-[120px] align-bottom">
+                <ColumnSortHead
+                  label="Status"
+                  sortKey="is_active"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                />
+                <Select
+                  value={draftFilters.is_active || "all"}
+                  onValueChange={(value) =>
+                    patchDraft(
+                      {
+                        is_active:
+                          value === "all" ? "" : (value as "true" | "false"),
+                      },
+                      { apply: true },
+                    )
+                  }
+                >
+                  <SelectTrigger className="mt-1.5 h-8 w-full">
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="true">Active</SelectItem>
+                    <SelectItem value="false">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableHead>
               <TableHead className="w-[132px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -187,7 +520,7 @@ export function BonusOfferTemplatesView() {
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={TABLE_COLUMN_COUNT}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -197,7 +530,7 @@ export function BonusOfferTemplatesView() {
             {!loading && templates.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={TABLE_COLUMN_COUNT}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No bonus offer templates found.

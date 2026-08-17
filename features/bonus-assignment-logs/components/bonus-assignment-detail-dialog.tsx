@@ -27,6 +27,7 @@ import {
   truncateId,
 } from "@/features/bonus-assignment-logs/format";
 import type { BonusAssignment } from "@/features/bonus-assignment-logs/types";
+import { resolveBonusOwner } from "@/features/bonus-assignment-logs/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
 type BonusAssignmentDetailDialogProps = {
@@ -96,6 +97,7 @@ export function BonusAssignmentDetailDialog({
 
   const offerType =
     assignment?.offer_type ?? assignment?.bonus_offer?.type ?? null;
+  const owner = assignment ? resolveBonusOwner(assignment) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -158,9 +160,17 @@ export function BonusAssignmentDetailDialog({
                 <DetailRow
                   label="User"
                   value={
-                    <span className="font-mono text-xs">
-                      {assignment.external_user_id}
-                    </span>
+                    <div className="space-y-0.5">
+                      <div className="font-mono text-xs">
+                        {owner?.id || "—"}
+                      </div>
+                      <div>
+                        {owner?.name?.trim() ? owner.name : "—"}
+                      </div>
+                      <div className="text-muted-foreground">
+                        {owner?.email?.trim() ? owner.email : "—"}
+                      </div>
+                    </div>
                   }
                 />
                 <DetailRow

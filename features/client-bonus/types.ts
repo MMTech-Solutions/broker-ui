@@ -1,6 +1,8 @@
 import type {
   BonusAssignment,
   BonusAssignmentExcludedInstrument,
+  BonusAssignmentSortBy,
+  BonusListSortDirection,
 } from "@/features/bonus-assignment-logs/types";
 import type { BonusOffer, BonusOfferType } from "@/features/bonus-offer/types";
 
@@ -39,6 +41,14 @@ export type ClaimBonusOfferInput = {
 
 export type ClientBonusAssignmentListFilters = {
   status?: BonusAssignmentStatus;
+  bonus_offer_id?: string;
+  account_id?: string;
+  offer_name?: string;
+  offer_type?: BonusOfferType;
+  credited_amount?: number;
+  pending_removal?: boolean;
+  sort_by?: BonusAssignmentSortBy;
+  sort_direction?: BonusListSortDirection;
   page?: number;
   per_page?: number;
 };

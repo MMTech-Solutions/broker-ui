@@ -21,9 +21,12 @@ export type {
   AdminEligibleBonusAccount,
   BonusExcludedInstrument,
   BonusOffer,
+  BonusOfferFilterFormState,
   BonusOfferIntroducingBroker,
   BonusOfferListFilters,
   BonusOfferServerGroup,
+  BonusOfferSortBy,
+  BonusOfferSortDirection,
   BonusOfferTemplate,
   BonusOfferType,
   CreateBonusOfferInput,
@@ -38,4 +41,5 @@ export type {
 export {
   BONUS_OFFER_TYPES,
   DEPOSIT_APPLICATION_MODES,
+  EMPTY_BONUS_OFFER_FILTERS,
 } from "@/features/bonus-offer/types";
