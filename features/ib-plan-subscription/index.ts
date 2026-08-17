@@ -29,4 +29,5 @@ export {
   IB_PLAN_SUBSCRIPTION_STATUSES,
   PLACEMENT_ASSIGNED_BY_LABELS,
   resolveSubscriptionOwner,
+  resolveSubscriptionProgramName,
 } from "@/features/ib-plan-subscription/types";

@@ -50,6 +50,7 @@ import {
   IB_PLAN_SUBSCRIPTION_STATUSES,
   listIbPlanSubscriptions,
   resolveSubscriptionOwner,
+  resolveSubscriptionProgramName,
   subscriptionStatusLabel,
   subscriptionStatusVariant,
   type IbPlanSubscription,
@@ -98,6 +99,7 @@ function formToAppliedFilters(
   const userEmail = form.user_email.trim();
   const comments = form.comments.trim();
   const programId = form.ib_program_id.trim();
+  const programName = form.ib_program_name.trim();
 
   if (userId) {
     filters.user_id = userId;
@@ -121,6 +123,10 @@ function formToAppliedFilters(
 
   if (programId && programId !== "all") {
     filters.ib_program_id = programId;
+  }
+
+  if (programName) {
+    filters.ib_program_name = programName;
   }
 
   const personalRate = parseOptionalNumber(form.personal_rate);
@@ -496,10 +502,12 @@ export function IbPlanSubscriptionsView({
                   setDraftFilters((current) => ({
                     ...current,
                     ib_program_id: "",
+                    ib_program_name: "",
                   }));
                   setAppliedFilters((current) => {
                     const next = { ...current };
                     delete next.ib_program_id;
+                    delete next.ib_program_name;
                     return next;
                   });
                 }}
@@ -638,7 +646,14 @@ export function IbPlanSubscriptionsView({
                 </TableHead>
 
                 <TableHead className="min-w-[150px] align-bottom">
-                  <span className="text-xs font-medium">Program</span>
+                  <ColumnSortHead
+                    label="Program"
+                    sortKey="ib_program_name"
+                    activeSortBy={sortBy}
+                    activeDirection={sortDirection}
+                    onSort={toggleSort}
+                    disabled={loading}
+                  />
                   <Select
                     value={draftFilters.ib_program_id || "all"}
                     onValueChange={(value) =>
@@ -671,6 +686,16 @@ export function IbPlanSubscriptionsView({
                       ))}
                     </SelectContent>
                   </Select>
+                  <Input
+                    className="mt-1.5 h-8"
+                    placeholder="Name… (Enter)"
+                    title="Partial match on program name. Press Enter to apply."
+                    value={draftFilters.ib_program_name}
+                    onChange={(event) =>
+                      patchDraft({ ib_program_name: event.target.value })
+                    }
+                    onKeyDown={onFilterEnter}
+                  />
                 </TableHead>
 
                 <TableHead className="min-w-[120px] align-bottom text-right">
@@ -801,7 +826,7 @@ export function IbPlanSubscriptionsView({
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {subscription.placement?.program?.name ?? "—"}
+                          {resolveSubscriptionProgramName(subscription) || "—"}
                         </TableCell>
                         <TableCell className="text-right">
                           {subscription.personal_rate}

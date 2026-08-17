@@ -6,6 +6,7 @@ export type IbPlanSubscriptionStatus = "pending" | "active" | "denied";
 export type IbPlanProgramPlacement = {
   id: string;
   ib_program_id: string;
+  ib_program_name?: string | null;
   is_pinned: boolean;
   assigned_by: "initial" | "admin" | "progression";
   assigned_at?: string | null;
@@ -47,7 +48,8 @@ export type IbPlanSubscriptionSortBy =
   | "master_level"
   | "user.id"
   | "user.name"
-  | "user.email";
+  | "user.email"
+  | "ib_program_name";
 
 export type IbPlanSubscriptionSortDirection = "asc" | "desc";
 
@@ -61,6 +63,7 @@ export type IbPlanSubscriptionListFilters = {
   personal_rate?: number;
   comments?: string;
   ib_program_id?: string;
+  ib_program_name?: string;
   sort_by?: IbPlanSubscriptionSortBy;
   sort_direction?: IbPlanSubscriptionSortDirection;
   page?: number;
@@ -73,6 +76,7 @@ export type IbPlanSubscriptionFilterFormState = {
   user_email: string;
   status: "" | IbPlanSubscriptionStatus;
   ib_program_id: string;
+  ib_program_name: string;
   personal_rate: string;
   is_master: "" | "true" | "false";
   comments: string;
@@ -85,6 +89,7 @@ export const EMPTY_IB_PLAN_SUBSCRIPTION_FILTERS: IbPlanSubscriptionFilterFormSta
     user_email: "",
     status: "",
     ib_program_id: "",
+    ib_program_name: "",
     personal_rate: "",
     is_master: "",
     comments: "",
@@ -135,6 +140,16 @@ export const PLACEMENT_ASSIGNED_BY_LABELS: Record<
   admin: "Admin",
   progression: "Progression",
 };
+
+export function resolveSubscriptionProgramName(
+  subscription: IbPlanSubscription,
+): string {
+  return (
+    subscription.placement?.ib_program_name?.trim() ||
+    subscription.placement?.program?.name?.trim() ||
+    ""
+  );
+}
 
 export function resolveSubscriptionOwner(subscription: IbPlanSubscription): {
   id: string;

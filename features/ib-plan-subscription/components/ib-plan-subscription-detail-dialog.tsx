@@ -132,7 +132,8 @@ export function IbPlanSubscriptionDetailDialog({
                   <DetailRow
                     label="Program"
                     value={
-                      subscription.placement.program?.name ??
+                      subscription.placement.ib_program_name?.trim() ||
+                      subscription.placement.program?.name ||
                       subscription.placement.ib_program_id
                     }
                   />
