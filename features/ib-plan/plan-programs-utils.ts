@@ -27,19 +27,24 @@ export function splitAvailablePrograms(
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export function isNonNegativeIntegerString(value: string): boolean {
+  return /^\d+$/.test(value);
+}
+
 export function defaultThresholdsForSortOrder(
   sortOrder: number,
   previousMaxVolume: string | null,
 ): { min: string; max: string } {
   if (sortOrder === 0) {
-    return { min: "0", max: "99.9999" };
+    return { min: "0", max: "99" };
   }
 
-  const min = previousMaxVolume
-    ? String(Math.ceil(parseFloat(previousMaxVolume)))
-    : "100";
+  const previousMax = previousMaxVolume
+    ? Number.parseInt(previousMaxVolume, 10)
+    : Number.NaN;
+  const min = Number.isFinite(previousMax) ? previousMax + 1 : 100;
 
-  return { min, max: String(parseFloat(min) + 100) };
+  return { min: String(min), max: String(min + 100) };
 }
 
 export function createAssignmentFromProgram(

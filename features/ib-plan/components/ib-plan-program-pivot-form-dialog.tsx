@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { isNonNegativeIntegerString } from "@/features/ib-plan/plan-programs-utils";
 import type { PlanProgramAssignment } from "@/features/ib-plan/types";
 
 type IbPlanProgramPivotFormDialogProps = {
@@ -79,6 +80,11 @@ export function IbPlanProgramPivotFormDialog({
       return;
     }
 
+    if (!isNonNegativeIntegerString(min)) {
+      setError("Progression min volume must be a non-negative integer.");
+      return;
+    }
+
     const targetIndex = Math.max(0, Math.min(sortOrder, assignmentCount - 1));
     const isLastThreshold = assignmentCount > 0 && targetIndex === assignmentCount - 1;
 
@@ -87,12 +93,17 @@ export function IbPlanProgramPivotFormDialog({
       return;
     }
 
-    if (max && Number.parseFloat(max) <= Number.parseFloat(min)) {
+    if (max && !isNonNegativeIntegerString(max)) {
+      setError("Progression max volume must be a non-negative integer.");
+      return;
+    }
+
+    if (max && Number.parseInt(max, 10) <= Number.parseInt(min, 10)) {
       setError("Max volume must be greater than min volume.");
       return;
     }
 
-    if (sortOrder === 0 && Number.parseFloat(min) !== 0) {
+    if (sortOrder === 0 && Number.parseInt(min, 10) !== 0) {
       setError("The base program (sort order 0) must have min volume of 0.");
       return;
     }
@@ -150,7 +161,7 @@ export function IbPlanProgramPivotFormDialog({
               id="plan-program-min-volume"
               type="number"
               min={0}
-              step="any"
+              step={1}
               value={form.progressionMinVolume}
               onChange={(event) =>
                 setForm((current) => ({
@@ -170,7 +181,7 @@ export function IbPlanProgramPivotFormDialog({
               id="plan-program-max-volume"
               type="number"
               min={0}
-              step="any"
+              step={1}
               value={form.progressionMaxVolume}
               onChange={(event) =>
                 setForm((current) => ({
