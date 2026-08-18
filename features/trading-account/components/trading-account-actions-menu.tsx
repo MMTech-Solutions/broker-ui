@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  KeyRoundIcon,
   LineChartIcon,
   LockIcon,
   MoreHorizontalIcon,
@@ -23,6 +24,7 @@ import type { TradingAccount } from "@/features/trading-account/types";
 type TradingAccountActionsMenuProps = {
   account: TradingAccount;
   onViewPositions: (account: TradingAccount) => void;
+  onResetPassword: (account: TradingAccount) => void;
   onAccessAction: (
     account: TradingAccount,
     action: TradingAccountAccessAction,
@@ -32,6 +34,7 @@ type TradingAccountActionsMenuProps = {
 export function TradingAccountActionsMenu({
   account,
   onViewPositions,
+  onResetPassword,
   onAccessAction,
 }: TradingAccountActionsMenuProps) {
   return (
@@ -51,6 +54,11 @@ export function TradingAccountActionsMenu({
         <DropdownMenuItem onClick={() => onViewPositions(account)}>
           <LineChartIcon />
           View positions
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={() => onResetPassword(account)}>
+          <KeyRoundIcon />
+          Reset password
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

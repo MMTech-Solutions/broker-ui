@@ -38,6 +38,7 @@ import {
 } from "@/features/trading-account/components/trading-account-access-dialog";
 import { TradingAccountActionsMenu } from "@/features/trading-account/components/trading-account-actions-menu";
 import { TradingAccountPositionsDialog } from "@/features/trading-account/components/trading-account-positions-dialog";
+import { TradingAccountResetCredentialsDialog } from "@/features/trading-account/components/trading-account-reset-credentials-dialog";
 import {
   EMPTY_TRADING_ACCOUNT_FILTERS,
   resolveAccountOwner,
@@ -280,6 +281,8 @@ export function TradingAccountsView() {
     null,
   );
   const [positionsDialogOpen, setPositionsDialogOpen] = useState(false);
+  const [resetAccount, setResetAccount] = useState<TradingAccount | null>(null);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   const loadServerGroupOptions = useCallback(async () => {
     setServerGroupsLoading(true);
@@ -438,6 +441,11 @@ export function TradingAccountsView() {
     setAccessAccount(account);
     setAccessAction(action);
     setAccessDialogOpen(true);
+  }
+
+  function openResetPasswordDialog(account: TradingAccount) {
+    setResetAccount(account);
+    setResetDialogOpen(true);
   }
 
   const serverGroupById = useMemo(
@@ -931,6 +939,7 @@ export function TradingAccountsView() {
                         <TradingAccountActionsMenu
                           account={account}
                           onViewPositions={openPositionsDialog}
+                          onResetPassword={openResetPasswordDialog}
                           onAccessAction={openAccessDialog}
                         />
                       </TableCell>
@@ -997,6 +1006,20 @@ export function TradingAccountsView() {
           if (!open) {
             setPositionsAccount(null);
           }
+        }}
+      />
+
+      <TradingAccountResetCredentialsDialog
+        account={resetAccount}
+        open={resetDialogOpen}
+        onOpenChange={(open) => {
+          setResetDialogOpen(open);
+          if (!open) {
+            setResetAccount(null);
+          }
+        }}
+        onSuccess={() => {
+          void loadTradingAccounts(page, appliedFilters);
         }}
       />
     </div>

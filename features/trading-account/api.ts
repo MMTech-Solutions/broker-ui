@@ -40,6 +40,39 @@ export async function updateTradingAccount(
   );
 }
 
+export type ResetTradingAccountCredentialsInput = {
+  reset_password: boolean;
+  reset_investor_password: boolean;
+  password?: string;
+  investor_password?: string;
+};
+
+export async function resetTradingAccountCredentials(
+  accountId: string,
+  input: ResetTradingAccountCredentialsInput,
+): Promise<BrokerSuccessResponse<TradingAccount>> {
+  const body: Record<string, boolean | string> = {
+    reset_password: input.reset_password,
+    reset_investor_password: input.reset_investor_password,
+  };
+
+  if (input.reset_password && input.password) {
+    body.password = input.password;
+  }
+
+  if (input.reset_investor_password && input.investor_password) {
+    body.investor_password = input.investor_password;
+  }
+
+  return browserBrokerRequest<TradingAccount>(
+    `${TRADING_ACCOUNTS_PATH}/${accountId}/credentials/reset`,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
 export type ListTradingAccountPositionsParams = {
   status?: "open" | "closed";
   page?: number;
