@@ -293,11 +293,10 @@ export async function listEligibleIntroducingBrokers(): Promise<
 }
 
 export async function listContestParticipants(
-  contestId: string,
   filters: ContestParticipantListFilters = {},
 ): Promise<BrokerSuccessResponse<ContestSubscription[]>> {
   return browserBrokerRequest<ContestSubscription[]>(
-    `${CONTESTS_PATH}/${contestId}/participants`,
+    `${CONTESTS_PATH}/participants`,
     { searchParams: toSearchParams(filters) },
   );
 }

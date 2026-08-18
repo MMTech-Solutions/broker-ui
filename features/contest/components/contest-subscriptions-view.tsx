@@ -59,6 +59,7 @@ import {
   type ContestParticipantListFilters,
   type ContestParticipantSortBy,
   type ContestParticipantSortDirection,
+  type ContestStatus,
   type ContestSubscription,
 } from "@/features/contest/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
@@ -72,8 +73,9 @@ const subscriptionsBreadcrumbs: BreadcrumbItem[] = [
   { label: "Subscriptions", current: true },
 ];
 
-const ALL_CONTESTS_VALUE = "__none__";
-const TABLE_COLUMN_COUNT = 10;
+const ALL_CONTESTS_VALUE = "__all__";
+const ALL_STATUSES_VALUE = "__all_statuses__";
+const TABLE_COLUMN_COUNT = 13;
 
 const statusLabels = Object.fromEntries(
   CONTEST_STATUSES.map((option) => [option.value, option.label]),
@@ -98,11 +100,23 @@ function formToAppliedFilters(
     sort_direction: sortDirection,
   };
 
+  const contestId = form.contest_id.trim();
+  const contestName = form.contest_name.trim();
+  const contestStatus = form.contest_status.trim();
   const userId = form.user_id.trim();
   const userName = form.user_name.trim();
   const userEmail = form.user_email.trim();
   const traderId = form.external_trader_id.trim();
 
+  if (contestId) {
+    filters.contest_id = contestId;
+  }
+  if (contestName) {
+    filters.contest_name = contestName;
+  }
+  if (contestStatus) {
+    filters.contest_status = contestStatus as ContestStatus;
+  }
   if (userId) {
     filters.user_id = userId;
   }
@@ -276,18 +290,13 @@ export function ContestSubscriptionsView({
       requestedPage: number,
       filters: ContestParticipantListFilters,
     ) => {
-      if (!contestId) {
-        setSubscriptions([]);
-        setPagination(null);
-        return;
-      }
-
       setLoading(true);
       setError(null);
 
       try {
-        const response = await listContestParticipants(contestId, {
+        const response = await listContestParticipants({
           ...filters,
+          ...(contestId ? { contest_id: contestId } : {}),
           page: requestedPage,
           per_page: 15,
         });
@@ -421,11 +430,11 @@ export function ContestSubscriptionsView({
             disabled={contestsLoading}
           >
             <SelectTrigger id="contest-subscription-filter" className="w-full">
-              <SelectValue placeholder="Select a contest" />
+              <SelectValue placeholder="All contests" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_CONTESTS_VALUE}>
-                Select a contest
+                All contests
               </SelectItem>
               {contestOptions.map((contest) => (
                 <SelectItem key={contest.id} value={contest.id}>
@@ -436,14 +445,21 @@ export function ContestSubscriptionsView({
           </Select>
         </div>
 
-        {selectedContest ? (
-          <div className="flex flex-wrap items-center gap-2 pb-1">
-            <Badge variant={getContestStatusBadgeVariant(selectedContest.status)}>
-              {statusLabels[selectedContest.status] ?? selectedContest.status}
-            </Badge>
-            <span className="text-sm text-muted-foreground">
-              {selectedContest.subscriptions_count ?? 0} active subscriptions
-            </span>
+        <div className="flex flex-wrap items-center gap-2 pb-1">
+            {selectedContest ? (
+              <>
+                <Badge variant={getContestStatusBadgeVariant(selectedContest.status)}>
+                  {statusLabels[selectedContest.status] ?? selectedContest.status}
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  {selectedContest.subscriptions_count ?? 0} active subscriptions
+                </span>
+              </>
+            ) : pagination ? (
+              <span className="text-sm text-muted-foreground">
+                {pagination.total} active subscriptions
+              </span>
+            ) : null}
             <Button
               type="button"
               variant="ghost"
@@ -455,24 +471,104 @@ export function ContestSubscriptionsView({
               Clear filters
             </Button>
           </div>
-        ) : null}
       </div>
 
       {error ? (
         <ApiErrorAlert title="Could not load subscriptions" message={error} />
       ) : null}
 
-      {!selectedContestId && !contestsLoading ? (
-        <div className="rounded-xl border px-4 py-10 text-center text-muted-foreground">
-          Select a contest to view its active subscriptions.
-        </div>
-      ) : null}
-
-      {selectedContestId ? (
-        <div className="rounded-xl border">
+      <div className="rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
+                <TableHead className="h-auto min-w-[140px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <ColumnSortHead
+                      label="Contest ID"
+                      sortKey="contest.id"
+                      activeSortBy={sortBy}
+                      activeDirection={sortDirection}
+                      onSort={toggleSort}
+                      disabled={loading}
+                    />
+                    <Input
+                      className="h-8"
+                      placeholder="Filter ID"
+                      value={
+                        selectedContestId || draftFilters.contest_id
+                      }
+                      onChange={(event) =>
+                        patchDraft({ contest_id: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                      disabled={loading || Boolean(selectedContestId)}
+                    />
+                  </div>
+                </TableHead>
+                <TableHead className="h-auto min-w-[150px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <ColumnSortHead
+                      label="Contest"
+                      sortKey="contest.name"
+                      activeSortBy={sortBy}
+                      activeDirection={sortDirection}
+                      onSort={toggleSort}
+                      disabled={loading}
+                    />
+                    <Input
+                      className="h-8"
+                      placeholder="Filter name"
+                      value={draftFilters.contest_name}
+                      onChange={(event) =>
+                        patchDraft({ contest_name: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                      disabled={loading}
+                    />
+                  </div>
+                </TableHead>
+                <TableHead className="h-auto min-w-[140px] align-bottom whitespace-normal">
+                  <div className="flex flex-col gap-1.5">
+                    <ColumnSortHead
+                      label="Contest status"
+                      sortKey="contest.status"
+                      activeSortBy={sortBy}
+                      activeDirection={sortDirection}
+                      onSort={toggleSort}
+                      disabled={loading}
+                    />
+                    <Select
+                      value={draftFilters.contest_status || ALL_STATUSES_VALUE}
+                      onValueChange={(value) => {
+                        const nextStatus =
+                          value === ALL_STATUSES_VALUE
+                            ? ""
+                            : (value as ContestStatus);
+                        const nextForm = {
+                          ...draftFilters,
+                          contest_status: nextStatus,
+                        };
+                        setDraftFilters(nextForm);
+                        commitFilters(nextForm);
+                      }}
+                      disabled={loading}
+                    >
+                      <SelectTrigger className="h-8 w-full">
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL_STATUSES_VALUE}>
+                          All statuses
+                        </SelectItem>
+                        {CONTEST_STATUSES.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </TableHead>
                 <TableHead className="h-auto min-w-[140px] align-bottom whitespace-normal">
                   <div className="flex flex-col gap-1.5">
                     <ColumnSortHead
@@ -659,7 +755,7 @@ export function ContestSubscriptionsView({
                     colSpan={TABLE_COLUMN_COUNT}
                     className="h-24 text-center text-muted-foreground"
                   >
-                    No active subscriptions for this contest.
+                    No active subscriptions.
                   </TableCell>
                 </TableRow>
               ) : null}
@@ -667,9 +763,37 @@ export function ContestSubscriptionsView({
               {!loading
                 ? subscriptions.map((subscription) => {
                     const owner = resolveContestSubscriptionOwner(subscription);
+                    const rowContest =
+                      contests.find(
+                        (contest) => contest.id === subscription.contest_id,
+                      ) ?? selectedContest;
+                    const contestStatus =
+                      subscription.contest?.status ?? rowContest?.status;
 
                     return (
                       <TableRow key={subscription.id}>
+                        <TableCell
+                          className="font-medium"
+                          title={subscription.contest?.id ?? subscription.contest_id}
+                        >
+                          {abbreviateUuid(
+                            subscription.contest?.id ?? subscription.contest_id,
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {subscription.contest?.name ?? rowContest?.name ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          {contestStatus ? (
+                            <Badge
+                              variant={getContestStatusBadgeVariant(contestStatus)}
+                            >
+                              {statusLabels[contestStatus] ?? contestStatus}
+                            </Badge>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
                         <TableCell
                           className="font-medium"
                           title={owner.id || undefined}
@@ -697,8 +821,8 @@ export function ContestSubscriptionsView({
                         <TableCell>
                           {formatMinorUnits(
                             subscription.entry_fee_charged ?? 0,
-                            selectedContest?.server_group?.currency,
-                            selectedContest?.server_group?.currency_precision,
+                            rowContest?.server_group?.currency,
+                            rowContest?.server_group?.currency_precision,
                           )}
                         </TableCell>
                         <TableCell>
@@ -721,7 +845,6 @@ export function ContestSubscriptionsView({
             </TableBody>
           </Table>
         </div>
-      ) : null}
 
       {pagination && pagination.last_page > 1 ? (
         <div className="flex items-center justify-between">

@@ -52,6 +52,7 @@ export type {
   ContestStatus,
   ContestSubscription,
   ContestSubscriptionAccount,
+  ContestSubscriptionContest,
   CreateContestAwardInput,
   CreateContestBanInput,
   CreateContestConditionInput,

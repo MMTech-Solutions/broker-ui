@@ -56,7 +56,12 @@ export function ContestSubscriptionBanDialog({
   }, [open, subscription]);
 
   async function handleBan() {
-    if (!contest || !subscription) {
+    if (!subscription) {
+      return;
+    }
+
+    const contestId = contest?.id ?? subscription.contest_id;
+    if (!contestId) {
       return;
     }
 
@@ -68,7 +73,7 @@ export function ContestSubscriptionBanDialog({
     try {
       const { body } = await composerRef.current!.prepareSubmit();
 
-      await storeContestBan(contest.id, {
+      await storeContestBan(contestId, {
         external_user_id: owner.id ?? "",
         account_id: subscription.account_id,
         reason: body,
@@ -111,7 +116,7 @@ export function ContestSubscriptionBanDialog({
             </span>{" "}
             from{" "}
             <span className="font-medium text-foreground">
-              {contest?.name}
+              {contest?.name ?? subscription?.contest?.name ?? "this contest"}
             </span>{" "}
             and remove their active subscription without refunding the entry
             fee.

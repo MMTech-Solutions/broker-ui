@@ -79,9 +79,17 @@ export type ContestUserOwner = {
   name: string;
 };
 
+export type ContestSubscriptionContest = {
+  id: string;
+  name: string;
+  status: ContestStatus;
+};
+
 export type ContestSubscription = {
   id: string;
   contest_id: string;
+  /** Present for admin participants list. */
+  contest?: ContestSubscriptionContest | null;
   user: ContestUserOwner;
   account_id: string;
   /** Present for admin; omitted on public client payloads. */
@@ -106,11 +114,17 @@ export type ContestParticipantSortBy =
   | "updated_at"
   | "user.id"
   | "user.name"
-  | "user.email";
+  | "user.email"
+  | "contest.id"
+  | "contest.name"
+  | "contest.status";
 
 export type ContestParticipantSortDirection = "asc" | "desc";
 
 export type ContestParticipantListFilters = {
+  contest_id?: string;
+  contest_name?: string;
+  contest_status?: ContestStatus;
   user_id?: string;
   user_name?: string;
   user_email?: string;
@@ -125,6 +139,9 @@ export type ContestParticipantListFilters = {
 };
 
 export type ContestParticipantFilterFormState = {
+  contest_id: string;
+  contest_name: string;
+  contest_status: ContestStatus | "";
   user_id: string;
   user_name: string;
   user_email: string;
@@ -136,6 +153,9 @@ export type ContestParticipantFilterFormState = {
 
 export const EMPTY_CONTEST_PARTICIPANT_FILTERS: ContestParticipantFilterFormState =
   {
+    contest_id: "",
+    contest_name: "",
+    contest_status: "",
     user_id: "",
     user_name: "",
     user_email: "",
