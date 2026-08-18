@@ -17,6 +17,7 @@ export type AccountPosition = {
   comment: string | null;
   opened_at: string | number | null;
   closed_at: string | number | null;
+  status?: "open" | "closed";
   snapshot_at?: string | null;
   is_live?: boolean;
 };

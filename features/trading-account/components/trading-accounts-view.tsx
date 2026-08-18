@@ -6,13 +6,8 @@ import {
   ArrowUpDownIcon,
   ArrowUpIcon,
   FilterXIcon,
-  LockIcon,
-  PauseCircleIcon,
-  PlayCircleIcon,
-  UnlockIcon,
 } from "lucide-react";
 
-import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +36,8 @@ import {
   TradingAccountAccessDialog,
   type TradingAccountAccessAction,
 } from "@/features/trading-account/components/trading-account-access-dialog";
+import { TradingAccountActionsMenu } from "@/features/trading-account/components/trading-account-actions-menu";
+import { TradingAccountPositionsDialog } from "@/features/trading-account/components/trading-account-positions-dialog";
 import {
   EMPTY_TRADING_ACCOUNT_FILTERS,
   resolveAccountOwner,
@@ -279,6 +276,10 @@ export function TradingAccountsView() {
   const [accessAction, setAccessAction] =
     useState<TradingAccountAccessAction | null>(null);
   const [accessDialogOpen, setAccessDialogOpen] = useState(false);
+  const [positionsAccount, setPositionsAccount] = useState<TradingAccount | null>(
+    null,
+  );
+  const [positionsDialogOpen, setPositionsDialogOpen] = useState(false);
 
   const loadServerGroupOptions = useCallback(async () => {
     setServerGroupsLoading(true);
@@ -423,6 +424,11 @@ export function TradingAccountsView() {
       event.preventDefault();
       applyFiltersFromDraft();
     }
+  }
+
+  function openPositionsDialog(account: TradingAccount) {
+    setPositionsAccount(account);
+    setPositionsDialogOpen(true);
   }
 
   function openAccessDialog(
@@ -825,7 +831,7 @@ export function TradingAccountsView() {
                 </Select>
               </TableHead>
 
-              <TableHead className="w-[120px] text-right align-bottom">
+              <TableHead className="w-[72px] text-right align-bottom">
                 Actions
               </TableHead>
             </TableRow>
@@ -922,57 +928,11 @@ export function TradingAccountsView() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          {account.is_trading_enabled ? (
-                            <ActionTooltipButton
-                              variant="ghost"
-                              size="icon-sm"
-                              tooltip="Disable trading"
-                              disabled={!account.is_active}
-                              onClick={() =>
-                                openAccessDialog(account, "disable_trading")
-                              }
-                            >
-                              <PauseCircleIcon />
-                            </ActionTooltipButton>
-                          ) : (
-                            <ActionTooltipButton
-                              variant="ghost"
-                              size="icon-sm"
-                              tooltip="Enable trading"
-                              disabled={!account.is_active}
-                              onClick={() =>
-                                openAccessDialog(account, "enable_trading")
-                              }
-                            >
-                              <PlayCircleIcon />
-                            </ActionTooltipButton>
-                          )}
-
-                          {account.is_active ? (
-                            <ActionTooltipButton
-                              variant="ghost"
-                              size="icon-sm"
-                              tooltip="Deactivate account"
-                              onClick={() =>
-                                openAccessDialog(account, "deactivate_account")
-                              }
-                            >
-                              <LockIcon />
-                            </ActionTooltipButton>
-                          ) : (
-                            <ActionTooltipButton
-                              variant="ghost"
-                              size="icon-sm"
-                              tooltip="Reactivate account"
-                              onClick={() =>
-                                openAccessDialog(account, "reactivate_account")
-                              }
-                            >
-                              <UnlockIcon />
-                            </ActionTooltipButton>
-                          )}
-                        </div>
+                        <TradingAccountActionsMenu
+                          account={account}
+                          onViewPositions={openPositionsDialog}
+                          onAccessAction={openAccessDialog}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -1026,6 +986,17 @@ export function TradingAccountsView() {
         }}
         onSuccess={() => {
           void loadTradingAccounts(page, appliedFilters);
+        }}
+      />
+
+      <TradingAccountPositionsDialog
+        account={positionsAccount}
+        open={positionsDialogOpen}
+        onOpenChange={(open) => {
+          setPositionsDialogOpen(open);
+          if (!open) {
+            setPositionsAccount(null);
+          }
         }}
       />
     </div>
