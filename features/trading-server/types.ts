@@ -33,6 +33,8 @@ export type TradingServerConfigSchema = {
 export type TradingServer = {
   id: string;
   platform_id: string;
+  name: string;
+  code: string;
   config_schema_id: string;
   config: Record<string, string | number>;
   connection_signature: string;
@@ -213,12 +215,16 @@ export type SymbolListFilters = {
 
 export type CreateTradingServerInput = {
   platform_id: string;
+  name: string;
+  code?: string | null;
   config_schema_id?: string;
   config: Record<string, string | number>;
   is_active?: boolean;
 };
 
 export type UpdateTradingServerInput = {
+  name?: string;
+  code?: string | null;
   config_schema_id?: string;
   config?: Record<string, string | number>;
   is_active?: boolean;

@@ -210,6 +210,8 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Code</TableHead>
               <TableHead>Host</TableHead>
               <TableHead>Schema</TableHead>
               <TableHead>Connection</TableHead>
@@ -221,7 +223,7 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={5}>
+                    <TableCell colSpan={7}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -231,7 +233,7 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
             {!loading && tradingServers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No trading servers found for this platform.
@@ -246,7 +248,13 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
 
                   return (
                     <TableRow key={server.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium">{server.name}</TableCell>
+                      <TableCell>
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {server.code}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-[180px] truncate">
                         {String(server.config.host ?? "—")}
                       </TableCell>
                       <TableCell>

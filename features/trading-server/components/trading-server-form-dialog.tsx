@@ -57,6 +57,8 @@ export function TradingServerFormDialog({
   onSuccess,
 }: TradingServerFormDialogProps) {
   const [schemas, setSchemas] = useState<TradingServerConfigSchema[]>([]);
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [schemaId, setSchemaId] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [config, setConfig] = useState<Record<string, string>>({});
@@ -110,6 +112,12 @@ export function TradingServerFormDialog({
 
         setSchemas(nextSchemas);
         setSchemaId(initialSchema?.id ?? "");
+        setName(
+          mode === "edit" && tradingServer ? tradingServer.name : "",
+        );
+        setCode(
+          mode === "edit" && tradingServer ? tradingServer.code : "",
+        );
         setIsActive(
           mode === "edit" && tradingServer ? tradingServer.is_active : true,
         );
@@ -167,6 +175,11 @@ export function TradingServerFormDialog({
       return;
     }
 
+    if (!name.trim()) {
+      setError("Enter a trading server name.");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -180,12 +193,16 @@ export function TradingServerFormDialog({
       if (mode === "create") {
         await createTradingServer({
           platform_id: platformId,
+          name: name.trim(),
+          code: code.trim() || null,
           config_schema_id: schemaId || undefined,
           config: serializedConfig,
           is_active: isActive,
         });
       } else if (tradingServer) {
         await updateTradingServer(tradingServer.id, {
+          name: name.trim(),
+          code: code.trim() || null,
           config: serializedConfig,
           is_active: isActive,
         });
@@ -227,6 +244,34 @@ export function TradingServerFormDialog({
               message={error}
             />
           ) : null}
+
+          <div className="space-y-2">
+            <Label htmlFor="trading-server-name">Name *</Label>
+            <Input
+              id="trading-server-name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              disabled={submitting}
+              required
+              maxLength={255}
+              placeholder="Commercial name shown to integrations"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="trading-server-code">Code</Label>
+            <Input
+              id="trading-server-code"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              disabled={submitting}
+              maxLength={255}
+              placeholder="Internal reference (generated from name if empty)"
+            />
+            <p className="text-xs text-muted-foreground">
+              Must be unique per platform. Leave empty to generate from the name.
+            </p>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="trading-server-schema">Config schema</Label>
