@@ -3,11 +3,14 @@ export {
   deleteIbPlan,
   listIbPlanPrograms,
   listIbPlans,
+  seedIbDemoCatalog,
   syncIbPlanPrograms,
   updateIbPlan,
 } from "@/features/ib-plan/api";
 export type {
   CreateIbPlanInput,
+  IbDemoCatalog,
+  IbDemoCatalogNamedEntity,
   IbPlan,
   IbPlanListFilters,
   IbPlanProgram,

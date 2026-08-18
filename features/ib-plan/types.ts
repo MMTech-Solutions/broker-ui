@@ -90,3 +90,15 @@ export type PlanProgramAssignment = {
   progressionMinVolume: string;
   progressionMaxVolume: string | null;
 };
+
+export type IbDemoCatalogNamedEntity = {
+  id: string;
+  name: string;
+};
+
+export type IbDemoCatalog = {
+  already_seeded: boolean;
+  plan: IbDemoCatalogNamedEntity & { is_active: boolean };
+  programs: IbDemoCatalogNamedEntity[];
+  payment_templates: IbDemoCatalogNamedEntity[];
+};

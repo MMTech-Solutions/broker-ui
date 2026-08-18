@@ -1,5 +1,6 @@
 import type {
   CreateIbPlanInput,
+  IbDemoCatalog,
   IbPlan,
   IbPlanListFilters,
   IbPlanProgram,
@@ -163,4 +164,12 @@ export async function syncIbPlanPrograms(
     ...response,
     data: response.data.map(withProxyPlanProgramAssignment),
   };
+}
+
+export async function seedIbDemoCatalog(): Promise<
+  BrokerSuccessResponse<IbDemoCatalog>
+> {
+  return browserBrokerRequest<IbDemoCatalog>("v1/admin/ib-demo-catalog", {
+    method: "POST",
+  });
 }

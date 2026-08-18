@@ -7,12 +7,14 @@ import {
   LayersIcon,
   PencilIcon,
   PlusIcon,
+  SparklesIcon,
   Trash2Icon,
 } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,10 +27,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listIbPlans } from "@/features/ib-plan/api";
+import { IbDemoCatalogSeedDialog } from "@/features/ib-plan/components/ib-demo-catalog-seed-dialog";
 import { IbPlanDeleteDialog } from "@/features/ib-plan/components/ib-plan-delete-dialog";
 import { IbPlanFormDialog } from "@/features/ib-plan/components/ib-plan-form-dialog";
 import {
   IB_PLAN_SUBSCRIPTION_TYPES,
+  type IbDemoCatalog,
   type IbPlan,
 } from "@/features/ib-plan/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
@@ -59,6 +63,8 @@ export function IbPlansView() {
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [planToDelete, setPlanToDelete] = useState<IbPlan | null>(null);
+  const [seedOpen, setSeedOpen] = useState(false);
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
 
   const loadIbPlans = useCallback(async (requestedPage: number) => {
     setLoading(true);
@@ -106,6 +112,15 @@ export function IbPlansView() {
     void loadIbPlans(page);
   }
 
+  function handleSeedSuccess(catalog: IbDemoCatalog) {
+    setSeedMessage(
+      catalog.already_seeded
+        ? `${catalog.plan.name} is already loaded. Nothing was duplicated.`
+        : `${catalog.plan.name} was created as inactive. Assign symbols before activating it.`,
+    );
+    void loadIbPlans(page);
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar
@@ -113,14 +128,27 @@ export function IbPlansView() {
         backHref="/"
         backLabel="Ir atrás"
       >
-        <Button onClick={openCreateDialog}>
-          <PlusIcon />
-          New IB plan
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setSeedOpen(true)}>
+            <SparklesIcon />
+            Load starter catalog
+          </Button>
+          <Button onClick={openCreateDialog}>
+            <PlusIcon />
+            New IB plan
+          </Button>
+        </div>
       </PageContentToolbar>
 
       {error ? (
         <ApiErrorAlert title="Could not load IB plans" message={error} />
+      ) : null}
+
+      {seedMessage ? (
+        <Alert>
+          <AlertTitle>Starter catalog</AlertTitle>
+          <AlertDescription>{seedMessage}</AlertDescription>
+        </Alert>
       ) : null}
 
       <div className="rounded-xl border">
@@ -284,6 +312,12 @@ export function IbPlansView() {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         onSuccess={handleMutationSuccess}
+      />
+
+      <IbDemoCatalogSeedDialog
+        open={seedOpen}
+        onOpenChange={setSeedOpen}
+        onSuccess={handleSeedSuccess}
       />
     </div>
   );
