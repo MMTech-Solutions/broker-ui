@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import {
   getContestLeaderboardTop,
+  getContestSubscription,
   getPublicContest,
   listContestLeaderboard,
   listPublicContestConditions,
@@ -80,6 +81,12 @@ function sortConditions(conditions: ContestCondition[]) {
 
     return leftOrder - rightOrder;
   });
+}
+
+function contestUserDisplayName(entry: ContestSubscription): string {
+  const name = entry.user?.name?.trim();
+
+  return name ? name : "—";
 }
 
 export function ClientContestDetailView({ contestId }: ClientContestDetailViewProps) {
@@ -153,6 +160,15 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
     }
   }, [contestId]);
 
+  const loadSubscription = useCallback(async () => {
+    try {
+      const response = await getContestSubscription(contestId);
+      setActiveSubscription(response.data);
+    } catch {
+      setActiveSubscription(null);
+    }
+  }, [contestId]);
+
   useEffect(() => {
     void loadContest();
   }, [loadContest]);
@@ -160,6 +176,10 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
   useEffect(() => {
     void loadLeaderboard();
   }, [loadLeaderboard]);
+
+  useEffect(() => {
+    void loadSubscription();
+  }, [loadSubscription]);
 
   async function handleUnsubscribe() {
     setUnsubscribing(true);
@@ -311,7 +331,7 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
             </Button>
             <Button
               variant="outline"
-              disabled={unsubscribing}
+              disabled={unsubscribing || !activeSubscription}
               onClick={() => void handleUnsubscribe()}
             >
               <LogOutIcon />
@@ -424,7 +444,7 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
                           Puesto {entry.rank ?? "—"}
                         </p>
                         <p className="text-sm font-medium">
-                          {entry.account?.external_trader_id ?? entry.account_id}
+                          {contestUserDisplayName(entry)}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           ROI {formatPerformanceIndex(entry.performance_index)}
@@ -440,7 +460,7 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
                   <TableHeader>
                     <TableRow>
                       <TableHead>#</TableHead>
-                      <TableHead>Cuenta</TableHead>
+                      <TableHead>User</TableHead>
                       <TableHead>ROI</TableHead>
                       <TableHead>Balance</TableHead>
                     </TableRow>
@@ -464,7 +484,7 @@ export function ClientContestDetailView({ contestId }: ClientContestDetailViewPr
                             {showNonRanked ? "—" : (entry.rank ?? "—")}
                           </TableCell>
                           <TableCell>
-                            {entry.account?.external_trader_id ?? entry.account_id}
+                            {contestUserDisplayName(entry)}
                           </TableCell>
                           <TableCell>
                             {formatPerformanceIndex(entry.performance_index)}

@@ -69,7 +69,7 @@ export function ContestSubscriptionBanDialog({
       const { body } = await composerRef.current!.prepareSubmit();
 
       await storeContestBan(contest.id, {
-        external_user_id: owner.id,
+        external_user_id: owner.id ?? "",
         account_id: subscription.account_id,
         reason: body,
       });
@@ -86,7 +86,7 @@ export function ContestSubscriptionBanDialog({
   const ownerLabel = subscription
     ? (() => {
         const owner = resolveContestSubscriptionOwner(subscription);
-        return owner.name || owner.id;
+        return owner.name || owner.id || "—";
       })()
     : "";
 

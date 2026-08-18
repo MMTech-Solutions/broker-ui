@@ -98,6 +98,14 @@ export async function unsubscribeFromContest(
   );
 }
 
+export async function getContestSubscription(
+  contestId: string,
+): Promise<BrokerSuccessResponse<ContestSubscription | null>> {
+  return browserBrokerRequest<ContestSubscription | null>(
+    `${CONTESTS_PATH}/${contestId}/subscription`,
+  );
+}
+
 export async function listContestLeaderboard(
   contestId: string,
   filters: ClientContestLeaderboardFilters = {},

@@ -72,8 +72,10 @@ export type ContestSubscriptionAccount = {
 
 /** Owner payload from broker API (post user-enrichment). */
 export type ContestUserOwner = {
-  id: string;
-  email: string | null;
+  /** Present for admin; omitted on public client payloads. */
+  id?: string | null;
+  /** Present for admin; omitted on public client payloads. */
+  email?: string | null;
   name: string;
 };
 
@@ -82,11 +84,13 @@ export type ContestSubscription = {
   contest_id: string;
   user: ContestUserOwner;
   account_id: string;
-  entry_fee_charged: number;
+  /** Present for admin; omitted on public client payloads. */
+  entry_fee_charged?: number;
   balance_snapshot: number;
   performance_index: number | null;
   subscribed_at: string | null;
-  unsubscribed_at: string | null;
+  /** Present for admin; omitted on public client payloads. */
+  unsubscribed_at?: string | null;
   rank?: number;
   account?: ContestSubscriptionAccount | null;
   created_at?: string | null;
