@@ -51,6 +51,8 @@ export type TradingAccount = {
   margin: number;
   free_margin: number;
   pnl: number;
+  /** External paid withdrawals (admin list only). */
+  withdrawals?: number;
   is_active: boolean;
   is_trading_enabled: boolean;
   comments: string | null;
@@ -70,11 +72,20 @@ export type TradingAccountSortBy =
   | "margin"
   | "free_margin"
   | "pnl"
+  | "withdrawals"
   | "initial_deposit"
   | "server_group_id"
   | "user.id"
   | "user.name"
   | "user.email";
+
+export type TradingAccountListTotals = {
+  current_balance: number;
+  current_credit: number;
+  current_equity: number;
+  pnl: number;
+  withdrawals: number;
+};
 
 export type TradingAccountSortDirection = "asc" | "desc";
 

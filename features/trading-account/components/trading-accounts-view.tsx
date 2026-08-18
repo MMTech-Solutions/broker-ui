@@ -25,6 +25,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -45,6 +46,7 @@ import {
   type TradingAccount,
   type TradingAccountFilterFormState,
   type TradingAccountListFilters,
+  type TradingAccountListTotals,
   type TradingAccountSortBy,
   type TradingAccountSortDirection,
 } from "@/features/trading-account/types";
@@ -64,7 +66,8 @@ const tradingAccountsBreadcrumbs: BreadcrumbItem[] = [
   { label: "Trading accounts", current: true },
 ];
 
-const TABLE_COLUMN_COUNT = 14;
+const TABLE_COLUMN_COUNT = 16;
+const TABLE_LEADING_COLUMN_COUNT = 8;
 
 type ServerGroupOption = {
   id: string;
@@ -80,6 +83,18 @@ const moneyFormatter = new Intl.NumberFormat(undefined, {
 
 function formatMoney(value: number): string {
   return moneyFormatter.format(value);
+}
+
+function pnlClassName(value: number): string {
+  if (value > 0) {
+    return "text-emerald-600 dark:text-emerald-400";
+  }
+
+  if (value < 0) {
+    return "text-destructive";
+  }
+
+  return "";
 }
 
 function parseOptionalNumber(value: string): number | undefined {
@@ -246,6 +261,7 @@ export function TradingAccountsView() {
   const [pagination, setPagination] = useState<BrokerPaginationMeta | null>(
     null,
   );
+  const [totals, setTotals] = useState<TradingAccountListTotals | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -361,10 +377,12 @@ export function TradingAccountsView() {
 
         setAccounts(response.data);
         setPagination(response.meta.pagination ?? null);
+        setTotals(response.meta.totals ?? null);
       } catch (loadError) {
         setError(formatBrokerApiError(loadError));
         setAccounts([]);
         setPagination(null);
+        setTotals(null);
       } finally {
         setLoading(false);
       }
@@ -775,6 +793,30 @@ export function TradingAccountsView() {
                 />
               </TableHead>
 
+              <TableHead className="min-w-[100px] align-bottom text-right">
+                <ColumnSortHead
+                  label="PnL"
+                  sortKey="pnl"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                  align="right"
+                />
+              </TableHead>
+
+              <TableHead className="min-w-[110px] align-bottom text-right">
+                <ColumnSortHead
+                  label="Withdrawals"
+                  sortKey="withdrawals"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                  align="right"
+                />
+              </TableHead>
+
               <TableHead className="min-w-[120px] align-bottom">
                 <ColumnSortHead
                   label="Trading"
@@ -919,6 +961,17 @@ export function TradingAccountsView() {
                       <TableCell className="text-right tabular-nums">
                         {formatMoney(account.current_credit)}
                       </TableCell>
+                      <TableCell
+                        className={cn(
+                          "text-right tabular-nums",
+                          pnlClassName(account.pnl),
+                        )}
+                      >
+                        {formatMoney(account.pnl)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatMoney(account.withdrawals ?? 0)}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={
@@ -948,6 +1001,42 @@ export function TradingAccountsView() {
                 })
               : null}
           </TableBody>
+          {!loading && totals ? (
+            <TableFooter>
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  colSpan={TABLE_LEADING_COLUMN_COUNT}
+                  className="text-muted-foreground"
+                  title="Totals for the current filters, across all pages"
+                >
+                  Totals
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatMoney(totals.current_balance)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatMoney(totals.current_equity)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatMoney(totals.current_credit)}
+                </TableCell>
+                <TableCell
+                  className={cn(
+                    "text-right tabular-nums",
+                    pnlClassName(totals.pnl),
+                  )}
+                >
+                  {formatMoney(totals.pnl)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatMoney(totals.withdrawals)}
+                </TableCell>
+                <TableCell />
+                <TableCell />
+                <TableCell />
+              </TableRow>
+            </TableFooter>
+          ) : null}
         </Table>
       </div>
 

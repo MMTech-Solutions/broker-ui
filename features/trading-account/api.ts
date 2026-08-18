@@ -1,13 +1,22 @@
 import type {
   TradingAccount,
   TradingAccountListFilters,
+  TradingAccountListTotals,
   UpdateTradingAccountInput,
 } from "@/features/trading-account/types";
 import type { AccountPosition } from "@/features/client-positions/types";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
-import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
+import type { BrokerSuccessMeta, BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
 const TRADING_ACCOUNTS_PATH = "v1/admin/accounts";
+
+export type TradingAccountListMeta = BrokerSuccessMeta & {
+  totals?: TradingAccountListTotals;
+};
+
+export type TradingAccountListResponse = BrokerSuccessResponse<TradingAccount[]> & {
+  meta: TradingAccountListMeta;
+};
 
 function toSearchParams(
   filters: TradingAccountListFilters,
@@ -21,10 +30,15 @@ function toSearchParams(
 
 export async function listTradingAccounts(
   filters: TradingAccountListFilters = {},
-): Promise<BrokerSuccessResponse<TradingAccount[]>> {
-  return browserBrokerRequest<TradingAccount[]>(TRADING_ACCOUNTS_PATH, {
-    searchParams: toSearchParams(filters),
-  });
+): Promise<TradingAccountListResponse> {
+  const response = await browserBrokerRequest<TradingAccount[]>(
+    TRADING_ACCOUNTS_PATH,
+    {
+      searchParams: toSearchParams(filters),
+    },
+  );
+
+  return response as TradingAccountListResponse;
 }
 
 export async function updateTradingAccount(

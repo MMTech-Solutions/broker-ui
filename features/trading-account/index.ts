@@ -3,11 +3,12 @@ export {
   resetTradingAccountCredentials,
   updateTradingAccount,
 } from "@/features/trading-account/api";
-export type { ResetTradingAccountCredentialsInput } from "@/features/trading-account/api";
+export type { ResetTradingAccountCredentialsInput, TradingAccountListResponse } from "@/features/trading-account/api";
 export type {
   TradingAccount,
   TradingAccountFilterFormState,
   TradingAccountListFilters,
+  TradingAccountListTotals,
   TradingAccountOwner,
   TradingAccountSortBy,
   TradingAccountSortDirection,
