@@ -445,7 +445,7 @@ export function TradingServerGroupsView({
                           tooltip={`Securities for ${serverGroup.name}`}
                           render={
                             <Link
-                              href={`/platforms/${platformId}/trading-servers/${tradingServerId}/server-groups/${serverGroup.id}/securities?groupName=${encodeURIComponent(serverGroup.name)}`}
+                              href={`/platforms/${platformId}/trading-servers/${tradingServerId}/server-groups/${serverGroup.id}/securities?groupName=${encodeURIComponent(serverGroup?.name ?? "")}`}
                             />
                           }
                         >

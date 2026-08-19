@@ -59,7 +59,7 @@ export function ClientBonusAssignmentDetailDialog({
       setError(null);
 
       try {
-        const response = await getClientBonusAssignment(assignmentId);
+        const response = await getClientBonusAssignment(assignmentId ?? "");
         if (!cancelled) {
           setAssignment(response.data);
         }

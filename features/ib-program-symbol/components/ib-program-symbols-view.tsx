@@ -232,7 +232,7 @@ export function IbProgramSymbolsView() {
     try {
       const response = await listServerGroupsForAdmin(tradingServerId, { per_page: 100 });
       const groups = [...response.data].sort((left, right) =>
-        left.name.localeCompare(right.name),
+        left?.name?.localeCompare(right?.name ?? "") ?? 0,
       );
       setServerGroups(groups);
       setSelectedServerGroupId((current) => {

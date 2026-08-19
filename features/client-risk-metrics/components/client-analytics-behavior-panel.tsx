@@ -572,7 +572,7 @@ function DayTradesDialog({
       setError(null);
 
       try {
-        const response = await getAccountAnalyticsDailyDayTrades(accountId, dateUtc, {
+        const response = await getAccountAnalyticsDailyDayTrades(accountId, dateUtc ?? "", {
           from_utc: fromUtc,
           to_utc: toUtc,
           symbol,

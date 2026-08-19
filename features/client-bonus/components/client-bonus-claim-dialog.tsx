@@ -82,7 +82,7 @@ export function ClientBonusClaimDialog({
       setSelectedAccountId("");
 
       try {
-        const response = await listEligibleAccountsForBonusOffer(offer.id);
+        const response = await listEligibleAccountsForBonusOffer(offer?.id ?? "");
         if (!cancelled) {
           setAccounts(response.data);
           const firstEligible = response.data.find(
@@ -188,7 +188,7 @@ export function ClientBonusClaimDialog({
               <Label htmlFor="bonus-eligible-account">Cuenta de trading</Label>
               <Select
                 value={selectedAccountId}
-                onValueChange={setSelectedAccountId}
+                onValueChange={(value) => setSelectedAccountId(value ?? "")}
                 disabled={submitting}
               >
                 <SelectTrigger id="bonus-eligible-account">

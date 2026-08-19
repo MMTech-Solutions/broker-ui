@@ -548,8 +548,8 @@ export function ContestSubscriptionsView({
                           ...draftFilters,
                           contest_status: nextStatus,
                         };
-                        setDraftFilters(nextForm);
-                        commitFilters(nextForm);
+                        setDraftFilters(nextForm as ContestParticipantFilterFormState);
+                        commitFilters(nextForm as ContestParticipantFilterFormState);
                       }}
                       disabled={loading}
                     >

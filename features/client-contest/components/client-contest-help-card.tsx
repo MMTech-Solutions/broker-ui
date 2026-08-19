@@ -72,7 +72,6 @@ export function ClientContestHelpCard({ compact = false }: ClientContestHelpCard
     return <ApiErrorAlert message={error} />;
   }
 
-  const hasBanner = Boolean(settings?.banner_image_url);
   const hasHelp = Boolean(settings?.help_html?.trim());
 
   return (
@@ -84,14 +83,6 @@ export function ClientContestHelpCard({ compact = false }: ClientContestHelpCard
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {hasBanner ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={settings?.banner_image_url ?? ""}
-            alt="Banner de concursos"
-            className="max-h-40 w-full rounded-lg border object-cover"
-          />
-        ) : null}
         {hasHelp ? (
           <div
             className="prose prose-sm dark:prose-invert max-w-none text-sm"

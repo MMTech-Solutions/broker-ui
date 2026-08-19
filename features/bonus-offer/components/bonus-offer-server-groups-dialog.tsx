@@ -51,7 +51,7 @@ function toServerGroupOption(
   return {
     id: group.id,
     label: formatServerGroupOptionLabel(
-      group.name,
+      group.name ?? "",
       group.currency,
       server.connection_signature,
     ),

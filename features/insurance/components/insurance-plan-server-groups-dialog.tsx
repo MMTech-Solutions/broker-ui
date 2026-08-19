@@ -72,7 +72,7 @@ export function InsurancePlanServerGroupsDialog({
 
       try {
         const [planResponse, serversResponse] = await Promise.all([
-          getInsurancePlan(insurancePlan.id),
+          getInsurancePlan(insurancePlan?.id ?? ""),
           listTradingServersForAdmin({ per_page: 100, is_active: true }),
         ]);
 

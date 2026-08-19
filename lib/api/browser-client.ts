@@ -10,6 +10,7 @@ type BrowserBrokerRequestOptions = {
   headers?: HeadersInit;
   searchParams?: URLSearchParams | Record<string, string | number | boolean>;
   signal?: AbortSignal;
+  basePath?: string;
   /**
    * When false, a 401 does not force a full-page login redirect.
    * Use for optional secondary fetches (e.g. admin catalogs from client UI).
@@ -67,9 +68,11 @@ export async function browserBrokerRequest<T>(
     headers.set("Content-Type", "application/json");
     body = JSON.stringify(options.body);
   }
+  
+  let url = `${options.basePath ?? BFF_BASE_PATH}/${normalizedPath}${search}`;
 
   const response = await fetch(
-    `${BFF_BASE_PATH}/${normalizedPath}${search}`,
+    url,
     {
       method: options.method ?? "GET",
       headers,
@@ -124,9 +127,11 @@ export async function browserBrokerRequest<T>(
     }
   }
 
-  if (!response.ok || !isBrokerSuccessResponse<T>(payload)) {
-    throw BrokerApiError.fromResponse(response.status, payload);
+  if(options.basePath == undefined) {
+    if (!response.ok || !isBrokerSuccessResponse<T>(payload)) {
+      throw BrokerApiError.fromResponse(response.status, payload);
+    }
   }
 
-  return payload;
+  return payload as BrokerSuccessResponse<T>;
 }

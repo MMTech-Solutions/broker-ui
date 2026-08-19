@@ -284,7 +284,7 @@ export function IbRewardLogsView() {
           <Label htmlFor="ib-reward-logs-program">IB program</Label>
           <Select
             value={programFilter}
-            onValueChange={setProgramFilter}
+            onValueChange={(value) => setProgramFilter(value ?? "")}
             disabled={programsLoading}
           >
             <SelectTrigger id="ib-reward-logs-program" className="w-full">
@@ -350,7 +350,7 @@ export function IbRewardLogsView() {
               <Label htmlFor="ib-reward-logs-rule-type">Payment rule type</Label>
               <Select
                 value={paymentRuleTypeFilter}
-                onValueChange={setPaymentRuleTypeFilter}
+                onValueChange={(value) => setPaymentRuleTypeFilter(value ?? "")}
               >
                 <SelectTrigger id="ib-reward-logs-rule-type" className="w-full">
                   <SelectValue placeholder="All rule types" />

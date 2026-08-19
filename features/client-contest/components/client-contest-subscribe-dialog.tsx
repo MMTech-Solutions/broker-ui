@@ -143,7 +143,7 @@ export function ClientContestSubscribeDialog({
               <Label htmlFor="eligible-account">Cuenta de trading</Label>
               <Select
                 value={selectedAccountId}
-                onValueChange={setSelectedAccountId}
+                onValueChange={(value) => setSelectedAccountId(value ?? "")}
               >
                 <SelectTrigger id="eligible-account">
                   <SelectValue placeholder="Selecciona una cuenta">

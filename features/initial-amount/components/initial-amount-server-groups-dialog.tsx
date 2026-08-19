@@ -74,7 +74,7 @@ export function InitialAmountServerGroupsDialog({
 
       try {
         const [amountResponse, serversResponse] = await Promise.all([
-          getInitialAmount(initialAmount.id),
+          getInitialAmount(initialAmount?.id ?? ""),
           listTradingServersForAdmin({
             per_page: 100,
             is_active: true,

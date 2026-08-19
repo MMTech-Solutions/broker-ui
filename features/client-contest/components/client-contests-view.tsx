@@ -65,7 +65,7 @@ const statusLabelsEs: Record<ContestStatus, string> = {
   cancelled: "Cancelado",
 };
 
-export function ClientContestsView() {
+export function ClientContestsView({ bannerUrl }: { bannerUrl: string | null }) {
   const [contests, setContests] = useState<Contest[]>([]);
   const [pagination, setPagination] = useState<BrokerPaginationMeta | null>(
     null,
@@ -133,7 +133,6 @@ export function ClientContestsView() {
     };
   }, []);
 
-  const bannerUrl = globalSettings?.banner_image_url ?? null;
   const helpHtml = globalSettings?.help_html?.trim() || null;
   const hasHelp = Boolean(helpHtml);
 

@@ -25,7 +25,6 @@ import type {
   ContestBan,
   ContestBanListFilters,
 } from "@/features/contest/types";
-import { contestBannerImageUrl } from "@/features/contest/image";
 import { listServerGroupsForAdmin, listTradingServersForAdmin } from "@/features/trading-server/api";
 import { getServerGroupCurrency } from "@/features/trading-server/format";
 import type { ServerGroup } from "@/features/trading-server/types";
@@ -335,8 +334,7 @@ function withProxyBannerUrl(
   settings: ContestGlobalSettings,
 ): ContestGlobalSettings {
   return {
-    ...settings,
-    banner_image_url: contestBannerImageUrl(settings.banner_image_url),
+    ...settings
   };
 }
 
@@ -363,14 +361,6 @@ export async function updateContestGlobalSettings(
   input: UpdateContestGlobalSettingsInput,
 ): Promise<BrokerSuccessResponse<ContestGlobalSettings>> {
   const formData = new FormData();
-
-  if (input.banner instanceof File) {
-    formData.append("banner", input.banner);
-  }
-
-  if (input.remove_banner) {
-    formData.append("remove_banner", "1");
-  }
 
   if (input.help_html !== undefined) {
     formData.append("help_html", input.help_html ?? "");
@@ -452,7 +442,7 @@ export async function loadContestFormCatalog(): Promise<{
   );
 
   cachedFormCatalog = {
-    serverGroups,
+    serverGroups: serverGroups as ContestFormCatalogServerGroup[],
     eligibleIntroducingBrokers: eligibleIbsResponse.data,
   };
 

@@ -16,7 +16,7 @@ function compactFilters<T extends Record<string, unknown>>(filters: T) {
     Object.entries(filters).filter(
       ([, value]) => value !== undefined && value !== "",
     ),
-  );
+  ) as URLSearchParams | Record<string, string | number | boolean>;
 }
 
 export async function listAvailableBonusOffers(): Promise<

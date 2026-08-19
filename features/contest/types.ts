@@ -253,7 +253,6 @@ export function resolveContestBanOwner(ban: ContestBan): ContestUserOwner {
 }
 
 export type ContestGlobalSettings = {
-  banner_image_url: string | null;
   help_html: string | null;
   start_reminder_days: number | null;
   closing_alert_days: number | null;
@@ -357,8 +356,6 @@ export type UpdateContestConditionAssignmentInput = {
 };
 
 export type UpdateContestGlobalSettingsInput = {
-  banner?: File | null;
-  remove_banner?: boolean;
   help_html?: string | null;
   start_reminder_days?: number | null;
   closing_alert_days?: number | null;

@@ -276,6 +276,10 @@ export function AccountInsurancesAdminView() {
     void loadAssignments(page, appliedFilters);
   }
 
+  async function approveAccountInsuranceClaimEvent (value:string): Promise<void> {
+    approveAccountInsuranceClaim(value ?? "")
+  }
+
   const totalPages = pagination?.last_page ?? 1;
 
   return (
@@ -625,7 +629,7 @@ export function AccountInsurancesAdminView() {
         accountInsurance={selectedAssignment}
         open={approveOpen}
         onOpenChange={setApproveOpen}
-        onApprove={approveAccountInsuranceClaim}
+        onApprove={(value) => approveAccountInsuranceClaimEvent(value)}
         onSuccess={() => void loadAssignments(page, appliedFilters)}
       />
 

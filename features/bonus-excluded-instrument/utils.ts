@@ -36,7 +36,7 @@ export function excludedInstrumentFromTradingSymbol(
   return {
     key: excludedInstrumentKey(serverGroup.id, symbol.id),
     server_group_id: serverGroup.id,
-    server_group_name: serverGroup.name,
+    server_group_name: serverGroup.name ?? "",
     symbol_id: symbol.id,
     symbol_name: symbol.name,
     symbol_alpha: symbol.alpha,

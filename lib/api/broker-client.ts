@@ -18,6 +18,7 @@ type BrokerRequestOptions = {
   body?: BodyInit | null;
   headers?: HeadersInit;
   search?: string;
+  withoutAuth?: boolean;
 };
 
 export async function brokerRequest<T>(
@@ -27,7 +28,7 @@ export async function brokerRequest<T>(
   const method = options.method ?? "GET";
   const surface = resolveRbacSurfaceFromApiPath(path);
   const auth =
-    surface === null
+    surface === null || options.withoutAuth
       ? null
       : await resolveBrokerAuthCredentials(rbacSurfaceToAuthArea(surface));
 
@@ -67,7 +68,7 @@ export async function brokerRequest<T>(
     body: options.body,
     cache: "no-store",
   });
-
+console.log(response, headers);
   if (response.status === 204) {
     return {
       success: true,

@@ -293,7 +293,7 @@ export function BonusExcludedInstrumentsView({
           allowedGroupIds == null ? null : new Set(allowedGroupIds);
         const groups = [...response.data]
           .filter((group) => allowedSet == null || allowedSet.has(group.id))
-          .sort((left, right) => left.name.localeCompare(right.name));
+          .sort((left, right) => left?.name?.localeCompare(right?.name ?? "") ?? 0);
         setServerGroups(groups);
         setSelectedServerGroupId((current) => {
           if (current && groups.some((group) => group.id === current)) {

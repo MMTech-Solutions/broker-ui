@@ -154,8 +154,8 @@ export function ClientRiskMetricsView({
         const response = await getAccountAnalyticsSymbols(accountId, {
           from_utc: analyticsWindow.from_utc,
           to_utc: analyticsWindow.to_utc,
-          side: side === "both" ? undefined : side,
-          session: session === "all" ? undefined : session,
+          side: side === "both" ? undefined : side as "buy" | "sell" | undefined,
+          session: session === "all" ? undefined : session as "sydney" | "tokyo" | "london" | "ny" | undefined,
         });
 
         if (cancelled) {
@@ -296,8 +296,8 @@ export function ClientRiskMetricsView({
               refreshToken={analyticsRefreshToken}
               active
               symbol={symbol === "all" ? undefined : symbol}
-              side={side === "both" ? undefined : side}
-              session={session === "all" ? undefined : session}
+              side={side === "both" ? undefined : side as "buy" | "sell" | undefined}
+              session={session === "all" ? undefined : session as "sydney" | "tokyo" | "london" | "ny" | undefined}
             />
           ) : activeTab === "profitability" ? (
             <ClientAnalyticsProfitabilityPanel
@@ -307,8 +307,8 @@ export function ClientRiskMetricsView({
               refreshToken={analyticsRefreshToken}
               active
               symbol={symbol === "all" ? undefined : symbol}
-              side={side === "both" ? undefined : side}
-              session={session === "all" ? undefined : session}
+              side={side === "both" ? undefined : side as "buy" | "sell" | undefined}
+              session={session === "all" ? undefined : session as "sydney" | "tokyo" | "london" | "ny" | undefined}
             />
           ) : activeTab === "behavior" ? (
             <ClientAnalyticsBehaviorPanel
@@ -318,8 +318,8 @@ export function ClientRiskMetricsView({
               refreshToken={analyticsRefreshToken}
               active
               symbol={symbol === "all" ? undefined : symbol}
-              side={side === "both" ? undefined : side}
-              session={session === "all" ? undefined : session}
+              side={side === "both" ? undefined : side as "buy" | "sell" | undefined}
+              session={session === "all" ? undefined : session as "sydney" | "tokyo" | "london" | "ny" | undefined}
             />
           ) : activeTab === "risk" ? (
             <ClientAnalyticsRiskDrawdownPanel
@@ -329,8 +329,8 @@ export function ClientRiskMetricsView({
               refreshToken={analyticsRefreshToken}
               active
               symbol={symbol === "all" ? undefined : symbol}
-              side={side === "both" ? undefined : side}
-              session={session === "all" ? undefined : session}
+              side={side === "both" ? undefined : side as "buy" | "sell" | undefined}
+              session={session === "all" ? undefined : session as "sydney" | "tokyo" | "london" | "ny" | undefined}
             />
           ) : activeTab === "symbol" ? (
             <ClientAnalyticsSymbolPanel
@@ -340,8 +340,8 @@ export function ClientRiskMetricsView({
               refreshToken={analyticsRefreshToken}
               active
               symbol={symbol === "all" ? undefined : symbol}
-              side={side === "both" ? undefined : side}
-              session={session === "all" ? undefined : session}
+              side={side === "both" ? undefined : side as "buy" | "sell" | undefined}
+              session={session === "all" ? undefined : session as "sydney" | "tokyo" | "london" | "ny" | undefined}
             />
           ) : activeTab === "temporal" ? (
             <ClientAnalyticsTemporalPanel
@@ -351,8 +351,8 @@ export function ClientRiskMetricsView({
               refreshToken={analyticsRefreshToken}
               active
               symbol={symbol === "all" ? undefined : symbol}
-              side={side === "both" ? undefined : side}
-              session={session === "all" ? undefined : session}
+              side={side === "both" ? undefined : side as "buy" | "sell" | undefined}
+              session={session === "all" ? undefined : session as "sydney" | "tokyo" | "london" | "ny" | undefined}
             />
           ) : (
             <AnalyticsTabPlaceholder
@@ -382,7 +382,7 @@ function AnalyticsFilterSelect({
       <span className="px-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
         {label}
       </span>
-      <Select value={value} onValueChange={onValueChange}>
+      <Select value={value} onValueChange={(value) => onValueChange(value ?? "")}>
         <SelectTrigger className="h-10 rounded-full bg-background px-4">
           <SelectValue />
         </SelectTrigger>

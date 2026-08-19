@@ -9,7 +9,7 @@ import type {
   ContestSubscription,
   SubscribeToContestInput,
 } from "@/features/client-contest/types";
-import { contestBannerImageUrl } from "@/features/contest/image";
+import { brokerRequest } from "@/lib/api/broker-client";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
@@ -20,7 +20,7 @@ function compactFilters<T extends Record<string, unknown>>(filters: T) {
     Object.entries(filters).filter(
       ([, value]) => value !== undefined && value !== "",
     ),
-  );
+  ) as URLSearchParams | Record<string, string | number | boolean>;
 }
 
 export async function listPublicContests(
@@ -63,7 +63,6 @@ export async function getPublicContestGlobalSettings(): Promise<
     ...response,
     data: {
       ...response.data,
-      banner_image_url: contestBannerImageUrl(response.data.banner_image_url),
     },
   };
 }
@@ -132,4 +131,8 @@ export async function getContestLeaderboardTop(
   return browserBrokerRequest<ContestSubscription[]>(
     `${CONTESTS_PATH}/${contestId}/leaderboard/top`,
   );
+}
+
+export async function getContestBannerUrl(): Promise<BrokerSuccessResponse<unknown>> {
+  return browserBrokerRequest("api/settings/v1/front/banners/slides?placement=broker-contest", { basePath: process.env.BROKER_SERVICE_URL });
 }

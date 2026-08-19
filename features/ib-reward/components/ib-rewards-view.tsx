@@ -195,7 +195,7 @@ export function IbRewardsView() {
           <Label htmlFor="ib-rewards-program">IB program</Label>
           <Select
             value={programFilter}
-            onValueChange={setProgramFilter}
+            onValueChange={(value) => setProgramFilter(value ?? "")}
             disabled={programsLoading}
           >
             <SelectTrigger id="ib-rewards-program" className="w-full">
@@ -216,7 +216,7 @@ export function IbRewardsView() {
           <Label htmlFor="ib-rewards-rule-type">Payment rule type</Label>
           <Select
             value={paymentRuleTypeFilter}
-            onValueChange={setPaymentRuleTypeFilter}
+            onValueChange={(value) => setPaymentRuleTypeFilter(value ?? "")}
           >
             <SelectTrigger id="ib-rewards-rule-type" className="w-full">
               <SelectValue placeholder="All rule types" />
@@ -236,7 +236,7 @@ export function IbRewardsView() {
           <Label htmlFor="ib-rewards-payment-status">Payment status</Label>
           <Select
             value={paymentStatusFilter}
-            onValueChange={setPaymentStatusFilter}
+            onValueChange={(value) => setPaymentStatusFilter(value ?? "")}
           >
             <SelectTrigger id="ib-rewards-payment-status" className="w-full">
               <SelectValue placeholder="All statuses" />
@@ -254,7 +254,7 @@ export function IbRewardsView() {
 
         <div className="space-y-2">
           <Label htmlFor="ib-rewards-source-type">Source type</Label>
-          <Select value={sourceTypeFilter} onValueChange={setSourceTypeFilter}>
+          <Select value={sourceTypeFilter} onValueChange={(value) => setSourceTypeFilter(value ?? "")}>
             <SelectTrigger id="ib-rewards-source-type" className="w-full">
               <SelectValue placeholder="All source types" />
             </SelectTrigger>

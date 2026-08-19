@@ -398,7 +398,7 @@ function OverviewEquityChart({
       });
       drawdownSeriesRef.current = chart.addSeries(LineSeries, {
         color: drawdownColor,
-        lineWidth: 1.5,
+        lineWidth: 1,
         title: "Drawdown",
         priceScaleId: "drawdown-scale",
         priceLineVisible: false,
@@ -532,10 +532,10 @@ function OverviewEquityChart({
       });
     };
 
-    chart.subscribeCrosshairMove(handleCrosshairMove);
+    chart.subscribeCrosshairMove((param) => handleCrosshairMove(param as unknown as { point?: { x: number; y: number }; time?: Time; seriesData: Map<ISeriesApi<"Area" | "Line", Time>, unknown> }));
 
     return () => {
-      chart.unsubscribeCrosshairMove(handleCrosshairMove);
+      chart.unsubscribeCrosshairMove((param) => handleCrosshairMove(param as unknown as { point?: { x: number; y: number }; time?: Time; seriesData: Map<ISeriesApi<"Area" | "Line", Time>, unknown> }));
     };
   }, [markerLookup, showDrawdown, showPeak]);
 

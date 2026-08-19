@@ -65,7 +65,7 @@ export async function updateClientTradingAccountCredentials(
 function toClientServerGroup(group: ServerGroup): ClientServerGroup {
   return {
     ...group,
-    environment: group.environment,
+    environment: group.environment as number | undefined,
   };
 }
 
