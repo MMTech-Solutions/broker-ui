@@ -3,6 +3,7 @@
 import {
   KeyRoundIcon,
   LineChartIcon,
+  MessageSquareTextIcon,
   LockIcon,
   MoreHorizontalIcon,
   PauseCircleIcon,
@@ -25,6 +26,7 @@ type TradingAccountActionsMenuProps = {
   account: TradingAccount;
   onViewPositions: (account: TradingAccount) => void;
   onResetPassword: (account: TradingAccount) => void;
+  onViewNotes: (account: TradingAccount) => void;
   onAccessAction: (
     account: TradingAccount,
     action: TradingAccountAccessAction,
@@ -35,6 +37,7 @@ export function TradingAccountActionsMenu({
   account,
   onViewPositions,
   onResetPassword,
+  onViewNotes,
   onAccessAction,
 }: TradingAccountActionsMenuProps) {
   return (
@@ -59,6 +62,11 @@ export function TradingAccountActionsMenu({
         <DropdownMenuItem onClick={() => onResetPassword(account)}>
           <KeyRoundIcon />
           Reset password
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={() => onViewNotes(account)}>
+          <MessageSquareTextIcon />
+          View comments and reasons
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

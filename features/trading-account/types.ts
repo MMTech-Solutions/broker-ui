@@ -56,6 +56,8 @@ export type TradingAccount = {
   is_active: boolean;
   is_trading_enabled: boolean;
   comments: string | null;
+  cancellation_reason: string | null;
+  trading_disabled_reason: string | null;
 };
 
 /** Sort keys accepted by broker GET /admin/accounts (see ListTradingAccountsSort). */

@@ -39,6 +39,7 @@ import {
 } from "@/features/trading-account/components/trading-account-access-dialog";
 import { TradingAccountActionsMenu } from "@/features/trading-account/components/trading-account-actions-menu";
 import { TradingAccountPositionsDialog } from "@/features/trading-account/components/trading-account-positions-dialog";
+import { TradingAccountNotesDialog } from "@/features/trading-account/components/trading-account-notes-dialog";
 import { TradingAccountResetCredentialsDialog } from "@/features/trading-account/components/trading-account-reset-credentials-dialog";
 import {
   EMPTY_TRADING_ACCOUNT_FILTERS,
@@ -299,6 +300,8 @@ export function TradingAccountsView() {
   const [positionsDialogOpen, setPositionsDialogOpen] = useState(false);
   const [resetAccount, setResetAccount] = useState<TradingAccount | null>(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [notesAccount, setNotesAccount] = useState<TradingAccount | null>(null);
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
 
   const loadServerGroupOptions = useCallback(async () => {
     setServerGroupsLoading(true);
@@ -464,6 +467,11 @@ export function TradingAccountsView() {
   function openResetPasswordDialog(account: TradingAccount) {
     setResetAccount(account);
     setResetDialogOpen(true);
+  }
+
+  function openNotesDialog(account: TradingAccount) {
+    setNotesAccount(account);
+    setNotesDialogOpen(true);
   }
 
   const serverGroupById = useMemo(
@@ -993,6 +1001,7 @@ export function TradingAccountsView() {
                           account={account}
                           onViewPositions={openPositionsDialog}
                           onResetPassword={openResetPasswordDialog}
+                          onViewNotes={openNotesDialog}
                           onAccessAction={openAccessDialog}
                         />
                       </TableCell>
@@ -1109,6 +1118,17 @@ export function TradingAccountsView() {
         }}
         onSuccess={() => {
           void loadTradingAccounts(page, appliedFilters);
+        }}
+      />
+
+      <TradingAccountNotesDialog
+        account={notesAccount}
+        open={notesDialogOpen}
+        onOpenChange={(open) => {
+          setNotesDialogOpen(open);
+          if (!open) {
+            setNotesAccount(null);
+          }
         }}
       />
     </div>
