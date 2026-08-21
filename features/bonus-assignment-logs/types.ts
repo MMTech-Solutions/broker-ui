@@ -51,6 +51,8 @@ export type BonusAssignment = {
   /** 0–1 conversion progress from API. */
   progress_ratio?: number | null;
   pending_removal?: boolean;
+  cancellation_reason?: string | null;
+  cancellation_reason_code?: string | null;
   source_external_transaction_id?: string | null;
   /** Snapshot: offer name frozen at grant time. */
   offer_name?: string | null;
@@ -88,6 +90,11 @@ export type DepositBonusIntent = {
   last_evaluated_at?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+};
+
+export type CancelBonusAssignmentInput = {
+  rejection_reason: string;
+  publish_notification?: boolean;
 };
 
 export type BonusAssignmentSortBy =

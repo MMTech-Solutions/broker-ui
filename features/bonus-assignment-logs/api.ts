@@ -3,6 +3,7 @@ import type {
   BonusAssignmentListFilters,
   DepositBonusIntent,
   DepositBonusIntentListFilters,
+  CancelBonusAssignmentInput,
 } from "@/features/bonus-assignment-logs/types";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
@@ -31,6 +32,16 @@ export async function getBonusAssignment(
 ): Promise<BrokerSuccessResponse<BonusAssignment>> {
   return browserBrokerRequest<BonusAssignment>(
     `${BONUS_ASSIGNMENTS_PATH}/${bonusAssignmentId}`,
+  );
+}
+
+export async function cancelBonusAssignment(
+  bonusAssignmentId: string,
+  input: CancelBonusAssignmentInput,
+): Promise<BrokerSuccessResponse<BonusAssignment>> {
+  return browserBrokerRequest<BonusAssignment>(
+    `${BONUS_ASSIGNMENTS_PATH}/${bonusAssignmentId}/cancel`,
+    { method: "PATCH", body: input },
   );
 }
 

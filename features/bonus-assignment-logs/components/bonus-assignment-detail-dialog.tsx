@@ -213,6 +213,14 @@ export function BonusAssignmentDetailDialog({
                   label="Conversion deadline"
                   value={formatDateTimeValue(assignment.conversion_deadline_at)}
                 />
+                <DetailRow
+                  label="Cancellation reason"
+                  value={assignment.cancellation_reason ?? "—"}
+                />
+                <DetailRow
+                  label="Cancellation reason code"
+                  value={assignment.cancellation_reason_code ?? "—"}
+                />
               </dl>
 
               <div className="space-y-3 rounded-lg border p-3">

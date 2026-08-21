@@ -67,6 +67,7 @@ import {
   type DepositBonusIntentStatus,
 } from "@/features/bonus-assignment-logs";
 import { BonusAssignmentDetailDialog } from "@/features/bonus-assignment-logs/components/bonus-assignment-detail-dialog";
+import { CancelBonusAssignmentDialog } from "@/features/bonus-assignment-logs/components/cancel-bonus-assignment-dialog";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
@@ -291,6 +292,8 @@ export function BonusAssignmentLogsView() {
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<
     string | null
   >(null);
+  const [cancelAssignment, setCancelAssignment] = useState<BonusAssignment | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const [assignmentDraft, setAssignmentDraft] =
     useState<BonusAssignmentFilterFormState>(EMPTY_BONUS_ASSIGNMENT_FILTERS);
@@ -506,6 +509,11 @@ export function BonusAssignmentLogsView() {
     setDetailOpen(true);
   }
 
+  function openCancelAssignment(assignment: BonusAssignment) {
+    setCancelAssignment(assignment);
+    setCancelDialogOpen(true);
+  }
+
   const totalPages = pagination?.last_page ?? 1;
 
   return (
@@ -563,6 +571,7 @@ export function BonusAssignmentLogsView() {
           onFilterEnter={onAssignmentFilterEnter}
           onSort={toggleAssignmentSort}
           onOpenDetail={openAssignmentDetail}
+          onCancel={openCancelAssignment}
         />
       ) : (
         <DepositIntentsTable
@@ -614,6 +623,15 @@ export function BonusAssignmentLogsView() {
           }
         }}
       />
+      <CancelBonusAssignmentDialog
+        assignment={cancelAssignment}
+        open={cancelDialogOpen}
+        onOpenChange={(open) => {
+          setCancelDialogOpen(open);
+          if (!open) setCancelAssignment(null);
+        }}
+        onSuccess={refresh}
+      />
     </div>
   );
 }
@@ -628,6 +646,7 @@ function AssignmentsTable({
   onFilterEnter,
   onSort,
   onOpenDetail,
+  onCancel,
 }: {
   loading: boolean;
   assignments: BonusAssignment[];
@@ -641,6 +660,7 @@ function AssignmentsTable({
   onFilterEnter: (event: KeyboardEvent<HTMLInputElement>) => void;
   onSort: (sortKey: BonusAssignmentSortBy) => void;
   onOpenDetail: (assignmentId: string) => void;
+  onCancel: (assignment: BonusAssignment) => void;
 }) {
   return (
     <div className="rounded-lg border">
@@ -995,14 +1015,12 @@ function AssignmentsTable({
                     {assignment.pending_removal ? "Yes" : "No"}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onOpenDetail(assignment.id)}
-                    >
-                      View
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => onOpenDetail(assignment.id)}>View</Button>
+                      {(["queued", "active", "pending_removal"] as BonusAssignmentStatus[]).includes(assignment.status) ? (
+                        <Button type="button" variant="destructive" size="sm" onClick={() => onCancel(assignment)}>Cancel</Button>
+                      ) : null}
+                    </div>
                   </TableCell>
                 </TableRow>
                 );
