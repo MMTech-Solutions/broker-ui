@@ -69,6 +69,7 @@ const tradingAccountsBreadcrumbs: BreadcrumbItem[] = [
 
 const TABLE_COLUMN_COUNT = 16;
 const TABLE_LEADING_COLUMN_COUNT = 8;
+const PAGE_SIZE_OPTIONS = [15, 25, 50, 100] as const;
 
 type ServerGroupOption = {
   id: string;
@@ -264,6 +265,10 @@ export function TradingAccountsView() {
   );
   const [totals, setTotals] = useState<TradingAccountListTotals | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(
+    15,
+  );
+  const [pageInput, setPageInput] = useState("1");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -367,7 +372,11 @@ export function TradingAccountsView() {
   }, []);
 
   const loadTradingAccounts = useCallback(
-    async (requestedPage: number, filters: TradingAccountListFilters) => {
+    async (
+      requestedPage: number,
+      requestedPageSize: number,
+      filters: TradingAccountListFilters,
+    ) => {
       setLoading(true);
       setError(null);
 
@@ -375,7 +384,7 @@ export function TradingAccountsView() {
         const response = await listTradingAccounts({
           ...filters,
           page: requestedPage,
-          per_page: 15,
+          per_page: requestedPageSize,
         });
 
         setAccounts(response.data);
@@ -398,15 +407,15 @@ export function TradingAccountsView() {
   }, [loadServerGroupOptions]);
 
   useEffect(() => {
-    void loadTradingAccounts(page, appliedFilters);
-  }, [appliedFilters, loadTradingAccounts, page]);
+    void loadTradingAccounts(page, pageSize, appliedFilters);
+  }, [appliedFilters, loadTradingAccounts, page, pageSize]);
 
   function commitFilters(
     form: TradingAccountFilterFormState,
     nextSortBy = sortBy,
     nextDirection = sortDirection,
   ) {
-    setPage(1);
+    changePage(1);
     setAppliedFilters(formToAppliedFilters(form, nextSortBy, nextDirection));
   }
 
@@ -448,6 +457,32 @@ export function TradingAccountsView() {
       event.preventDefault();
       applyFiltersFromDraft();
     }
+  }
+
+  function goToPage() {
+    const lastPage = pagination?.last_page ?? 1;
+    const requestedPage = Number.parseInt(pageInput, 10);
+    const nextPage = Number.isFinite(requestedPage)
+      ? Math.min(Math.max(requestedPage, 1), lastPage)
+      : page;
+
+    changePage(nextPage);
+  }
+
+  function changePage(nextPage: number) {
+    setPage(nextPage);
+    setPageInput(String(nextPage));
+  }
+
+  function changePageSize(value: string | null) {
+    const nextPageSize = Number.parseInt(value ?? "", 10);
+
+    if (!PAGE_SIZE_OPTIONS.includes(nextPageSize as (typeof PAGE_SIZE_OPTIONS)[number])) {
+      return;
+    }
+
+    setPageSize(nextPageSize as (typeof PAGE_SIZE_OPTIONS)[number]);
+    changePage(1);
   }
 
   function openPositionsDialog(account: TradingAccount) {
@@ -1049,18 +1084,57 @@ export function TradingAccountsView() {
         </Table>
       </div>
 
-      {pagination && pagination.last_page > 1 ? (
-        <div className="flex items-center justify-between">
+      {pagination ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             Page {pagination.current_page} of {pagination.last_page} (
             {pagination.total} total)
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              Per page
+              <Select
+                value={String(pageSize)}
+                onValueChange={changePageSize}
+                disabled={loading}
+              >
+                <SelectTrigger className="h-8 w-[76px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={String(option)}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              Go to page
+              <Input
+                className="h-8 w-16 text-center"
+                type="number"
+                min={1}
+                max={pagination.last_page}
+                value={pageInput}
+                onChange={(event) => setPageInput(event.target.value)}
+                onBlur={goToPage}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    goToPage();
+                  }
+                }}
+                disabled={loading}
+                aria-label={`Go to page, from 1 to ${pagination.last_page}`}
+              />
+            </label>
             <Button
               variant="outline"
               size="sm"
               disabled={page <= 1 || loading}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              onClick={() => changePage(Math.max(1, page - 1))}
             >
               Previous
             </Button>
@@ -1068,11 +1142,7 @@ export function TradingAccountsView() {
               variant="outline"
               size="sm"
               disabled={page >= pagination.last_page || loading}
-              onClick={() =>
-                setPage((current) =>
-                  Math.min(pagination.last_page, current + 1),
-                )
-              }
+              onClick={() => changePage(Math.min(pagination.last_page, page + 1))}
             >
               Next
             </Button>
@@ -1092,7 +1162,7 @@ export function TradingAccountsView() {
           }
         }}
         onSuccess={() => {
-          void loadTradingAccounts(page, appliedFilters);
+          void loadTradingAccounts(page, pageSize, appliedFilters);
         }}
       />
 
@@ -1117,7 +1187,7 @@ export function TradingAccountsView() {
           }
         }}
         onSuccess={() => {
-          void loadTradingAccounts(page, appliedFilters);
+          void loadTradingAccounts(page, pageSize, appliedFilters);
         }}
       />
 
