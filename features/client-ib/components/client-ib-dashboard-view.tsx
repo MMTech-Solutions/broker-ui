@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCwIcon } from "lucide-react";
+import Link from "next/link";
+import { BarChart3Icon, RefreshCwIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
@@ -137,10 +138,18 @@ export function ClientIbDashboardView() {
       ) : null}
 
       {!loading && activeContext && activePlan ? (
-        <ClientIbProgressionPanel
-          plan={activePlan as ClientIbPlan}
-          activeContext={activeContext}
-        />
+        <>
+          <ClientIbProgressionPanel
+            plan={activePlan as ClientIbPlan}
+            activeContext={activeContext}
+          />
+          <div>
+            <Button render={<Link href="/client/ib/analytics" />}>
+              <BarChart3Icon />
+              Mis métricas
+            </Button>
+          </div>
+        </>
       ) : null}
 
       {!loading ? (

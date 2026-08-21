@@ -7,24 +7,33 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowDownIcon,
   ArrowRightLeftIcon,
   ArrowUpDownIcon,
   ArrowUpIcon,
+  BarChart3Icon,
   CheckIcon,
   EyeIcon,
   FilterXIcon,
   PencilIcon,
+  MoreHorizontalIcon,
   PlusIcon,
   XIcon,
 } from "lucide-react";
 
-import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -215,6 +224,7 @@ function ColumnSortHead({
 export function IbPlanSubscriptionsView({
   ibPlanId: fixedIbPlanId,
 }: IbPlanSubscriptionsViewProps) {
+  const router = useRouter();
   const [plans, setPlans] = useState<IbPlan[]>([]);
   const [plansLoading, setPlansLoading] = useState(!fixedIbPlanId);
   const [selectedPlanId, setSelectedPlanId] = useState(fixedIbPlanId ?? "");
@@ -838,68 +848,16 @@ export function IbPlanSubscriptionsView({
                           {subscription.comments ?? "—"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <ActionTooltipButton
-                              variant="ghost"
-                              size="icon-sm"
-                              tooltip="View details"
-                              onClick={() => openDetailDialog(subscription)}
-                            >
-                              <EyeIcon />
-                            </ActionTooltipButton>
-
-                            {subscription.status === "pending" ||
-                            subscription.status === "active" ? (
-                              <ActionTooltipButton
-                                variant="ghost"
-                                size="icon-sm"
-                                tooltip="Edit subscription parameters"
-                                onClick={() =>
-                                  openParametersDialog(subscription)
-                                }
-                              >
-                                <PencilIcon />
-                              </ActionTooltipButton>
-                            ) : null}
-
-                            {subscription.status === "pending" ? (
-                              <>
-                                <ActionTooltipButton
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  tooltip="Approve subscription"
-                                  onClick={() =>
-                                    openReviewDialog(subscription, "approve")
-                                  }
-                                >
-                                  <CheckIcon />
-                                </ActionTooltipButton>
-                                <ActionTooltipButton
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  tooltip="Reject subscription"
-                                  onClick={() =>
-                                    openReviewDialog(subscription, "reject")
-                                  }
-                                >
-                                  <XIcon />
-                                </ActionTooltipButton>
-                              </>
-                            ) : null}
-
-                            {subscription.status === "active" ? (
-                              <ActionTooltipButton
-                                variant="ghost"
-                                size="icon-sm"
-                                tooltip="Move program or pin placement"
-                                onClick={() =>
-                                  openPlacementDialog(subscription)
-                                }
-                              >
-                                <ArrowRightLeftIcon />
-                              </ActionTooltipButton>
-                            ) : null}
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" aria-label={`Acciones para ${owner.name || owner.id}`} />}><MoreHorizontalIcon /></DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openDetailDialog(subscription)}><EyeIcon />Ver detalles</DropdownMenuItem>
+                              <DropdownMenuItem disabled={!owner.id} onClick={() => owner.id && router.push(`/ib-analytics/${owner.id}`)}><BarChart3Icon />Ver métricas IB</DropdownMenuItem>
+                              {subscription.status === "pending" || subscription.status === "active" ? <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => openParametersDialog(subscription)}><PencilIcon />Editar parámetros</DropdownMenuItem></> : null}
+                              {subscription.status === "pending" ? <><DropdownMenuItem onClick={() => openReviewDialog(subscription, "approve")}><CheckIcon />Aprobar</DropdownMenuItem><DropdownMenuItem variant="destructive" onClick={() => openReviewDialog(subscription, "reject")}><XIcon />Rechazar</DropdownMenuItem></> : null}
+                              {subscription.status === "active" ? <DropdownMenuItem onClick={() => openPlacementDialog(subscription)}><ArrowRightLeftIcon />Mover programa o fijar</DropdownMenuItem> : null}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
