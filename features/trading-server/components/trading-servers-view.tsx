@@ -35,7 +35,10 @@ import {
 } from "@/features/trading-server/api";
 import { TradingServerDeleteDialog } from "@/features/trading-server/components/trading-server-delete-dialog";
 import { TradingServerFormDialog } from "@/features/trading-server/components/trading-server-form-dialog";
-import { TradingServerSyncDialog } from "@/features/trading-server/components/trading-server-sync-dialog";
+import {
+  TradingServerSyncDialog,
+  type TradingServerSyncNotice,
+} from "@/features/trading-server/components/trading-server-sync-dialog";
 import { formatConfigurationWarning } from "@/features/trading-server/format";
 import type { TradingServer } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
@@ -61,7 +64,9 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [syncNotice, setSyncNotice] = useState<TradingServerSyncNotice | null>(
+    null,
+  );
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -81,7 +86,7 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
     setPage(1);
     setTradingServers([]);
     setPlatform(null);
-    setSuccessMessage(null);
+    setSyncNotice(null);
   }, [platformId]);
 
   const breadcrumbs = useMemo<BreadcrumbItem[]>(
@@ -152,8 +157,8 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
     void loadServers(page);
   }
 
-  function handleSyncSuccess(message: string) {
-    setSuccessMessage(message);
+  function handleSyncSuccess(notice: TradingServerSyncNotice) {
+    setSyncNotice(notice);
     void loadServers(page);
   }
 
@@ -182,10 +187,10 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
         </Button>
       </PageContentToolbar>
 
-      {successMessage ? (
+      {syncNotice ? (
         <Alert>
-          <AlertTitle>Synchronization complete</AlertTitle>
-          <AlertDescription>{successMessage}</AlertDescription>
+          <AlertTitle>{syncNotice.title}</AlertTitle>
+          <AlertDescription>{syncNotice.message}</AlertDescription>
         </Alert>
       ) : null}
 

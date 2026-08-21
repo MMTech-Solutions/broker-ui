@@ -13,15 +13,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { syncTradingServer } from "@/features/trading-server/api";
 import type { TradingServer } from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
+
+export type TradingServerSyncNotice = {
+  title: string;
+  message: string;
+};
 
 type TradingServerSyncDialogProps = {
   tradingServer: TradingServer | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: (message: string) => void;
+  onSuccess: (notice: TradingServerSyncNotice) => void;
 };
 
 export function TradingServerSyncDialog({
@@ -32,6 +39,7 @@ export function TradingServerSyncDialog({
 }: TradingServerSyncDialogProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [asyncSync, setAsyncSync] = useState(true);
 
   async function handleSync() {
     if (!tradingServer) {
@@ -42,9 +50,20 @@ export function TradingServerSyncDialog({
     setError(null);
 
     try {
-      await syncTradingServer(tradingServer.id);
+      await syncTradingServer(tradingServer.id, { async: asyncSync });
       onOpenChange(false);
-      onSuccess("Trading server synchronized successfully.");
+      onSuccess(
+        asyncSync
+          ? {
+              title: "Synchronization queued",
+              message:
+                "The synchronization was accepted and is running in the background. This UI does not receive an alert when it finishes; verify the TRADING_SERVER_SYNC_DONE event in the Kafka UI.",
+            }
+          : {
+              title: "Synchronization complete",
+              message: "Trading server synchronized successfully.",
+            },
+      );
     } catch (syncError) {
       setError(formatBrokerApiError(syncError));
     } finally {
@@ -66,6 +85,7 @@ export function TradingServerSyncDialog({
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
           setError(null);
+          setAsyncSync(true);
         }
 
         onOpenChange(nextOpen);
@@ -80,6 +100,32 @@ export function TradingServerSyncDialog({
             broker-service.
           </AlertDialogDescription>
         </AlertDialogHeader>
+
+        <div className="space-y-3 rounded-lg border p-4">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="trading-server-sync-async"
+              checked={asyncSync}
+              disabled={submitting}
+              onCheckedChange={setAsyncSync}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="trading-server-sync-async">
+                Run asynchronously
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {asyncSync
+                  ? "The request will be queued and this dialog will close after broker-service accepts it."
+                  : "The request will remain open until broker-service finishes the synchronization."}
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Completion notifications are not available in this UI. To verify an
+            asynchronous E2E run, check the Kafka UI for the
+            TRADING_SERVER_SYNC_DONE event.
+          </p>
+        </div>
 
         {error ? (
           <ApiErrorAlert
@@ -97,7 +143,13 @@ export function TradingServerSyncDialog({
               void handleSync();
             }}
           >
-            {submitting ? "Synchronizing..." : "Synchronize"}
+            {submitting
+              ? asyncSync
+                ? "Queueing..."
+                : "Synchronizing..."
+              : asyncSync
+                ? "Start asynchronously"
+                : "Synchronize now"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

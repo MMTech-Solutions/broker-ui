@@ -129,6 +129,11 @@ export async function proxyBrokerRequest(
     headers.set("Content-Type", contentType);
   }
 
+  const asyncHeader = request.headers.get("X-Async");
+  if (asyncHeader) {
+    headers.set("X-Async", asyncHeader);
+  }
+
   // Use arrayBuffer so multipart uploads (and any binary body) are not corrupted.
   const body = MUTATING_METHODS.has(request.method)
     ? await request.arrayBuffer()
