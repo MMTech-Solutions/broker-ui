@@ -189,6 +189,8 @@ export type UpdateBonusOfferInput = {
   is_active?: boolean;
   /** Required by API when deactivating (`is_active` false on an active offer). */
   invalidate_assignments?: boolean;
+  rejection_reason?: string;
+  publish_notification?: boolean;
   credit_amount?: number | null;
   deposit_percent?: number | null;
   max_credit_amount?: number | null;
@@ -205,6 +207,8 @@ export type UpdateBonusOfferInput = {
 
 export type DeleteBonusOfferInput = {
   invalidate_assignments: boolean;
+  rejection_reason?: string;
+  publish_notification?: boolean;
 };
 
 export type SyncBonusExcludedInstrumentsInput = {

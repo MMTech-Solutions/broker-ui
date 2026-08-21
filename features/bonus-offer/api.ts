@@ -86,9 +86,7 @@ export async function deleteBonusOffer(
     `${BONUS_OFFERS_PATH}/${bonusOfferId}`,
     {
       method: "DELETE",
-      searchParams: {
-        invalidate_assignments: input.invalidate_assignments,
-      },
+      body: input,
     },
   );
 }

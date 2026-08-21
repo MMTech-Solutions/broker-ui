@@ -5,7 +5,9 @@
 export type RejectionTemplateCategory =
   | "ib_plans"
   | "insurance"
-  | "contests";
+  | "contests"
+  | "trading_accounts"
+  | "bonuses";
 
 export type RejectionTemplate = {
   id: string;
@@ -43,6 +45,8 @@ export const REJECTION_TEMPLATE_CATEGORIES: {
   { value: "ib_plans", label: "IB plans" },
   { value: "insurance", label: "Insurance" },
   { value: "contests", label: "Contests" },
+  { value: "trading_accounts", label: "Trading accounts" },
+  { value: "bonuses", label: "Bonuses" },
 ];
 
 export function rejectionTemplateCategoryLabel(

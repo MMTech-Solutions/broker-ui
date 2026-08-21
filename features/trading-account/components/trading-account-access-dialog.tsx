@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import {
@@ -16,6 +16,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { updateTradingAccount } from "@/features/trading-account/api";
+import {
+  RejectionReasonComposer,
+  type RejectionReasonComposerHandle,
+} from "@/features/rejection-templates";
 import type {
   TradingAccount,
   UpdateTradingAccountInput,
@@ -90,6 +94,9 @@ export function TradingAccountAccessDialog({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [closeOpenPositions, setCloseOpenPositions] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [publishNotification, setPublishNotification] = useState(true);
+  const composerRef = useRef<RejectionReasonComposerHandle>(null);
 
   const copy = action ? ACTION_COPY[action] : null;
   const showClosePositionsOption =
@@ -111,6 +118,12 @@ export function TradingAccountAccessDialog({
           : {}),
       };
 
+      if (showClosePositionsOption) {
+        const { body } = await composerRef.current!.prepareSubmit();
+        payload.rejection_reason = body;
+        payload.publish_notification = publishNotification;
+      }
+
       await updateTradingAccount(account.id, payload);
       onOpenChange(false);
       onSuccess();
@@ -128,6 +141,9 @@ export function TradingAccountAccessDialog({
         if (!nextOpen) {
           setError(null);
           setCloseOpenPositions(false);
+          setRejectionReason("");
+          setPublishNotification(true);
+          composerRef.current?.reset();
         }
 
         onOpenChange(nextOpen);
@@ -144,6 +160,7 @@ export function TradingAccountAccessDialog({
         </AlertDialogHeader>
 
         {showClosePositionsOption ? (
+          <div className="space-y-4">
           <div className="flex items-start gap-2 rounded-lg border border-border px-3 py-2.5">
             <Checkbox
               id="close-open-positions"
@@ -162,6 +179,32 @@ export function TradingAccountAccessDialog({
                 remain and keep being affected by the market.
               </p>
             </div>
+          </div>
+          <RejectionReasonComposer
+            ref={composerRef}
+            category="trading_accounts"
+            value={rejectionReason}
+            onChange={setRejectionReason}
+            disabled={submitting}
+            bodyLabel="Rejection reason"
+            bodyRequired
+            bodyMaxLength={1000}
+            open={open}
+            idPrefix="trading-account-rejection"
+          />
+          <div className="flex items-start gap-2 rounded-lg border border-border px-3 py-2.5">
+            <Checkbox
+              id="send-account-rejection-notification"
+              checked={publishNotification}
+              onCheckedChange={(checked) => setPublishNotification(checked === true)}
+              disabled={submitting}
+              className="mt-0.5"
+            />
+            <div className="space-y-1">
+              <Label htmlFor="send-account-rejection-notification">Send email notification</Label>
+              <p className="text-xs leading-snug text-muted-foreground">Publish the event for Notification Center to notify the user.</p>
+            </div>
+          </div>
           </div>
         ) : null}
 

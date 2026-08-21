@@ -117,6 +117,8 @@ export type UpdateTradingAccountInput = {
   custom_name?: string | null;
   /** When restricting access, close all open positions on the platform. Defaults to false. */
   close_open_positions?: boolean;
+  rejection_reason?: string;
+  publish_notification?: boolean;
 };
 
 export type TradingAccountFilterFormState = {

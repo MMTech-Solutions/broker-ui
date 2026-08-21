@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import {
@@ -16,6 +16,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { deleteBonusOffer } from "@/features/bonus-offer/api";
+import {
+  RejectionReasonComposer,
+  type RejectionReasonComposerHandle,
+} from "@/features/rejection-templates";
 import type { BonusOffer } from "@/features/bonus-offer/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
@@ -35,6 +39,9 @@ export function BonusOfferDeleteDialog({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invalidateAssignments, setInvalidateAssignments] = useState(true);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [publishNotification, setPublishNotification] = useState(true);
+  const composerRef = useRef<RejectionReasonComposerHandle>(null);
 
   async function handleDelete() {
     if (!bonusOffer) {
@@ -45,8 +52,13 @@ export function BonusOfferDeleteDialog({
     setError(null);
 
     try {
+      const rejection = invalidateAssignments
+        ? await composerRef.current!.prepareSubmit()
+        : null;
+
       await deleteBonusOffer(bonusOffer.id, {
         invalidate_assignments: invalidateAssignments,
+        ...(rejection ? { rejection_reason: rejection.body, publish_notification: publishNotification } : {}),
       });
       onOpenChange(false);
       onSuccess();
@@ -64,6 +76,9 @@ export function BonusOfferDeleteDialog({
         if (!nextOpen) {
           setError(null);
           setInvalidateAssignments(true);
+          setRejectionReason("");
+          setPublishNotification(true);
+          composerRef.current?.reset();
         }
 
         onOpenChange(nextOpen);
@@ -103,6 +118,30 @@ export function BonusOfferDeleteDialog({
             </p>
           </div>
         </div>
+
+        {invalidateAssignments ? (
+          <div className="space-y-4">
+            <RejectionReasonComposer
+              ref={composerRef}
+              category="bonuses"
+              value={rejectionReason}
+              onChange={setRejectionReason}
+              disabled={submitting}
+              bodyLabel="Cancellation reason"
+              bodyRequired
+              bodyMaxLength={1000}
+              open={open}
+              idPrefix="bonus-offer-delete-rejection"
+            />
+            <div className="flex items-start gap-2 rounded-lg border border-border px-3 py-2.5">
+              <Checkbox id="bonus-delete-send-notification" checked={publishNotification} onCheckedChange={(checked) => setPublishNotification(checked === true)} disabled={submitting} className="mt-0.5" />
+              <div className="space-y-1">
+                <Label htmlFor="bonus-delete-send-notification">Send email notification</Label>
+                <p className="text-xs leading-snug text-muted-foreground">Publish the cancellation event for Notification Center.</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {error ? (
           <ApiErrorAlert title="Could not delete bonus offer" message={error} />

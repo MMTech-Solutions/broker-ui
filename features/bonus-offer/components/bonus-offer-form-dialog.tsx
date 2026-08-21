@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -61,6 +62,10 @@ import {
 } from "@/features/trading-server/format";
 import type { ServerGroup } from "@/features/trading-server/types";
 import { parseMajorAmountToMinorUnits } from "@/features/initial-amount/format";
+import {
+  RejectionReasonComposer,
+  type RejectionReasonComposerHandle,
+} from "@/features/rejection-templates";
 
 type BonusOfferFormDialogProps = {
   open: boolean;
@@ -477,6 +482,9 @@ export function BonusOfferFormDialog({
   const [loadingIbs, setLoadingIbs] = useState(false);
   const [ibSearch, setIbSearch] = useState("");
   const [initialIbSignature, setInitialIbSignature] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [publishNotification, setPublishNotification] = useState(true);
+  const composerRef = useRef<RejectionReasonComposerHandle>(null);
 
   const usesTemplate = mode === "create" && form.bonus_offer_template_id !== "";
   const bonusOfferId = bonusOffer?.id;
@@ -848,11 +856,20 @@ export function BonusOfferFormDialog({
 
         await createBonusOffer(buildCreatePayload(form, lockedPrecision));
       } else if (bonusOfferId) {
+        const rejection = showInvalidateAssignments && form.invalidate_assignments
+          ? await composerRef.current!.prepareSubmit()
+          : null;
+        const payload = buildUpdatePayload(form, lockedPrecision, {
+          initialIsActive,
+        });
+        if (rejection) {
+          payload.rejection_reason = rejection.body;
+          payload.publish_notification = publishNotification;
+        }
+
         await updateBonusOffer(
           bonusOfferId,
-          buildUpdatePayload(form, lockedPrecision, {
-            initialIsActive,
-          }),
+          payload,
         );
 
         if (showIntroducingBrokers && ibsDirty) {
@@ -1546,6 +1563,7 @@ export function BonusOfferFormDialog({
                 </div>
 
                 {showInvalidateAssignments ? (
+                  <div className="space-y-4">
                   <div className="flex items-start gap-2 rounded-lg border border-border px-3 py-2.5">
                     <Checkbox
                       id="bonus-offer-invalidate-assignments"
@@ -1572,6 +1590,30 @@ export function BonusOfferFormDialog({
                         frozen rules snapshot.
                       </p>
                     </div>
+                  </div>
+                  {form.invalidate_assignments ? (
+                    <>
+                      <RejectionReasonComposer
+                        ref={composerRef}
+                        category="bonuses"
+                        value={rejectionReason}
+                        onChange={setRejectionReason}
+                        disabled={submitting}
+                        bodyLabel="Cancellation reason"
+                        bodyRequired
+                        bodyMaxLength={1000}
+                        open={open}
+                        idPrefix="bonus-offer-rejection"
+                      />
+                      <div className="flex items-start gap-2 rounded-lg border border-border px-3 py-2.5">
+                        <Checkbox id="bonus-send-cancellation-notification" checked={publishNotification} onCheckedChange={(checked) => setPublishNotification(checked === true)} disabled={submitting} className="mt-0.5" />
+                        <div className="space-y-1">
+                          <Label htmlFor="bonus-send-cancellation-notification">Send email notification</Label>
+                          <p className="text-xs leading-snug text-muted-foreground">Publish the cancellation event for Notification Center.</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
                   </div>
                 ) : null}
               </>
