@@ -351,6 +351,14 @@ function validateForm(
     return "Name is required.";
   }
 
+  if (form.claim_expires_at) {
+    const expiresAt = new Date(form.claim_expires_at);
+
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) {
+      return "Claim expiration must be in the future.";
+    }
+  }
+
   if (mode === "create" && !form.bonus_offer_template_id) {
     if (!form.platform_id) {
       return "Platform is required when no template is selected.";
