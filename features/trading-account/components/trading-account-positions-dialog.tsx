@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCwIcon } from "lucide-react";
+import { RefreshCwIcon, WifiIcon, WifiOffIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AccountPosition } from "@/features/client-positions/types";
+import { applyOpenPositionsSnapshot } from "@/features/client-positions/apply-position-snapshot";
+import { useTradingStreamPositionsChannel } from "@/features/client-positions/hooks/use-trading-stream-positions-channel";
+import type { OpenPositionsSnapshotPayload } from "@/features/client-positions/types";
 import {
   formatNumber,
   formatOpenedAt,
@@ -39,7 +42,7 @@ type TradingAccountPositionsDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-type PositionsFilter = "open" | "closed";
+type PositionsTab = "open" | "closed" | "live";
 
 const TABLE_COLUMN_COUNT = 12;
 
@@ -48,8 +51,10 @@ export function TradingAccountPositionsDialog({
   open,
   onOpenChange,
 }: TradingAccountPositionsDialogProps) {
-  const [filter, setFilter] = useState<PositionsFilter>("open");
+  const [tab, setTab] = useState<PositionsTab>("open");
   const [rows, setRows] = useState<AccountPosition[]>([]);
+  const [latestSnapshot, setLatestSnapshot] =
+    useState<OpenPositionsSnapshotPayload | null>(null);
   const [pagination, setPagination] = useState<BrokerPaginationMeta | null>(
     null,
   );
@@ -59,6 +64,7 @@ export function TradingAccountPositionsDialog({
   const [error, setError] = useState<string | null>(null);
 
   const accountId = account?.id ?? null;
+  const isHistoryTab = tab === "open" || tab === "closed";
   const traderLabel =
     account?.custom_name?.trim() ||
     account?.external_trader_id ||
@@ -66,7 +72,7 @@ export function TradingAccountPositionsDialog({
 
   const fetchPositions = useCallback(
     async (showLoader: boolean, pageToLoad: number) => {
-      if (!accountId) {
+      if (!accountId || tab === "live") {
         return;
       }
 
@@ -79,10 +85,10 @@ export function TradingAccountPositionsDialog({
 
       try {
         const response = await listTradingAccountPositions(accountId, {
-          status: filter,
+          status: tab,
           page: pageToLoad,
           per_page: 15,
-          sort_by: filter === "closed" ? "closed_at" : "opened_at",
+          sort_by: tab === "closed" ? "closed_at" : "opened_at",
           sort_direction: "desc",
         });
 
@@ -97,11 +103,25 @@ export function TradingAccountPositionsDialog({
         setRefreshing(false);
       }
     },
-    [accountId, filter],
+    [accountId, tab],
   );
 
+  const handleSnapshot = useCallback((payload: OpenPositionsSnapshotPayload) => {
+    setLatestSnapshot(payload);
+  }, []);
+
+  const liveStatus = useTradingStreamPositionsChannel({
+    accountId: accountId ?? "",
+    enabled: open && Boolean(accountId) && tab === "live",
+    onSnapshot: handleSnapshot,
+  });
+
+  const liveRows = latestSnapshot
+    ? applyOpenPositionsSnapshot([], latestSnapshot).liveRows
+    : [];
+
   useEffect(() => {
-    if (!open || !accountId) {
+    if (!open || !accountId || !isHistoryTab) {
       return;
     }
 
@@ -117,28 +137,30 @@ export function TradingAccountPositionsDialog({
     return () => {
       cancelled = true;
     };
-  }, [accountId, fetchPositions, open, page]);
+  }, [accountId, fetchPositions, isHistoryTab, open, page]);
 
   function handleOpenChange(nextOpen: boolean) {
     onOpenChange(nextOpen);
 
     if (!nextOpen) {
-      setFilter("open");
+      setTab("open");
       setPage(1);
       setRows([]);
+      setLatestSnapshot(null);
       setPagination(null);
       setError(null);
     }
   }
 
-  function changeFilter(next: PositionsFilter) {
-    if (next === filter) {
+  function changeTab(next: PositionsTab) {
+    if (next === tab) {
       return;
     }
 
-    setFilter(next);
+    setTab(next);
     setPage(1);
     setRows([]);
+    setLatestSnapshot(null);
     setPagination(null);
     setError(null);
   }
@@ -162,9 +184,9 @@ export function TradingAccountPositionsDialog({
             <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
               <button
                 type="button"
-                onClick={() => changeFilter("open")}
+                onClick={() => changeTab("open")}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  filter === "open"
+                  tab === "open"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
@@ -173,34 +195,65 @@ export function TradingAccountPositionsDialog({
               </button>
               <button
                 type="button"
-                onClick={() => changeFilter("closed")}
+                onClick={() => changeTab("closed")}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  filter === "closed"
+                  tab === "closed"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Closed
               </button>
+              <button
+                type="button"
+                onClick={() => changeTab("live")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  tab === "live"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Live
+              </button>
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={loading || refreshing || !accountId}
-              onClick={() => void fetchPositions(false, page)}
-            >
-              <RefreshCwIcon
-                className={refreshing ? "animate-spin" : undefined}
-                data-icon="inline-start"
-              />
-              Refresh
-            </Button>
+            {tab === "live" ? (
+              <LiveStatusBadge status={liveStatus} />
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={loading || refreshing || !accountId}
+                onClick={() => void fetchPositions(false, page)}
+              >
+                <RefreshCwIcon
+                  className={refreshing ? "animate-spin" : undefined}
+                  data-icon="inline-start"
+                />
+                Refresh
+              </Button>
+            )}
           </div>
 
-          {error ? (
+          {isHistoryTab && error ? (
             <ApiErrorAlert title="Could not load positions" message={error} />
+          ) : null}
+
+          {tab === "live" && latestSnapshot ? (
+            <p className="text-sm text-muted-foreground">
+              {latestSnapshot.positions_count} live positions · P&amp;L{" "}
+              <span
+                className={
+                  latestSnapshot.total_profit >= 0
+                    ? "text-emerald-600"
+                    : "text-destructive"
+                }
+              >
+                {formatNumber(latestSnapshot.total_profit, 2)}
+              </span>
+              {" · "}snapshot {formatOpenedAt(latestSnapshot.snapshot_at)}
+            </p>
           ) : null}
 
           <div className="min-h-0 overflow-auto rounded-xl border">
@@ -213,8 +266,11 @@ export function TradingAccountPositionsDialog({
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Volume</TableHead>
                   <TableHead className="text-right">Open</TableHead>
-                  {filter === "closed" ? (
+                  {tab === "closed" ? (
                     <TableHead className="text-right">Close</TableHead>
+                  ) : null}
+                  {tab === "live" ? (
+                    <TableHead className="text-right">Current</TableHead>
                   ) : null}
                   <TableHead className="text-right">SL</TableHead>
                   <TableHead className="text-right">TP</TableHead>
@@ -224,7 +280,7 @@ export function TradingAccountPositionsDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading
+                {isHistoryTab && loading
                   ? Array.from({ length: 5 }).map((_, index) => (
                       <TableRow key={`skeleton-${index}`}>
                         <TableCell colSpan={TABLE_COLUMN_COUNT}>
@@ -234,18 +290,29 @@ export function TradingAccountPositionsDialog({
                     ))
                   : null}
 
-                {!loading && rows.length === 0 ? (
+                {isHistoryTab && !loading && rows.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={TABLE_COLUMN_COUNT}
                       className="h-24 text-center text-muted-foreground"
                     >
-                      No {filter} positions found.
+                      No {tab} positions found.
                     </TableCell>
                   </TableRow>
                 ) : null}
 
-                {!loading
+                {tab === "live" && liveRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={TABLE_COLUMN_COUNT}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      Waiting for the live positions snapshot.
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+
+                {!loading && isHistoryTab
                   ? rows.map((position) => (
                       <TableRow key={position.id}>
                         <TableCell className="font-mono text-xs">
@@ -256,12 +323,12 @@ export function TradingAccountPositionsDialog({
                         <TableCell>
                           <Badge
                             variant={
-                              (position.status ?? filter) === "open"
+                              (position.status ?? tab) === "open"
                                 ? "default"
                                 : "secondary"
                             }
                           >
-                            {position.status ?? filter}
+                            {position.status ?? tab}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
@@ -270,7 +337,7 @@ export function TradingAccountPositionsDialog({
                         <TableCell className="text-right tabular-nums">
                           {formatNumber(position.open_price)}
                         </TableCell>
-                        {filter === "closed" ? (
+                        {tab === "closed" ? (
                           <TableCell className="text-right tabular-nums">
                             {formatNumber(position.close_price)}
                           </TableCell>
@@ -293,11 +360,49 @@ export function TradingAccountPositionsDialog({
                       </TableRow>
                     ))
                   : null}
+                {tab === "live"
+                  ? liveRows.map((position) => (
+                      <TableRow key={position.id}>
+                        <TableCell className="font-mono text-xs">
+                          {position.order_id ?? position.id}
+                        </TableCell>
+                        <TableCell>{position.symbol}</TableCell>
+                        <TableCell>{formatSide(position.side)}</TableCell>
+                        <TableCell>
+                          <Badge variant="default">open</Badge>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatNumber(position.volume)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatNumber(position.open_price)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatNumber(position.current_price)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatNumber(position.sl)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatNumber(position.tp)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatNumber(position.swap)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatNumber(position.profit)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatOpenedAt(position.opened_at)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : null}
               </TableBody>
             </Table>
           </div>
 
-          {pagination && pagination.last_page > 1 ? (
+          {isHistoryTab && pagination && pagination.last_page > 1 ? (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Page {pagination.current_page} of {pagination.last_page} (
@@ -330,5 +435,36 @@ export function TradingAccountPositionsDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function LiveStatusBadge({
+  status,
+}: {
+  status: "idle" | "connecting" | "connected" | "unavailable" | "error";
+}) {
+  if (status === "connected") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-700">
+        <WifiIcon className="size-3" />
+        Live
+      </span>
+    );
+  }
+
+  if (status === "connecting" || status === "idle") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-700">
+        <WifiIcon className="size-3 animate-pulse" />
+        Connecting…
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+      <WifiOffIcon className="size-3" />
+      Live unavailable
+    </span>
   );
 }

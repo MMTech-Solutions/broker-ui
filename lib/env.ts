@@ -2,6 +2,8 @@ export const env = {
   brokerServiceUrl: () =>
     process.env.BROKER_SERVICE_URL ?? "http://localhost:8000",
   brokerApiPrefix: () => process.env.BROKER_API_PREFIX ?? "/api/broker",
+  tradingStreamUrl: () =>
+    process.env.TRADING_STREAM_URL?.trim() || "http://localhost:8081",
   iamApiBase: () =>
     process.env.IAM_API_BASE?.trim() ||
     process.env.AUTH_SERVICE_URL?.trim() ||
