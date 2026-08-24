@@ -14,11 +14,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { runScheduledCommand } from "@/features/scheduling/api";
 import {
   parametersFromAllowed,
+  parameterListText,
+  parameterType,
   selectedParameters,
+  setParameterList,
   toggleParameterFlag,
 } from "@/features/scheduling/parameters";
 import type {
@@ -54,6 +58,7 @@ export function ScheduledCommandRunDialog({
       parametersFromAllowed(
         scheduledCommand.allowed_parameters,
         scheduledCommand.parameters,
+        scheduledCommand.parameter_types,
       ),
     );
   }, [open, scheduledCommand]);
@@ -122,26 +127,40 @@ export function ScheduledCommandRunDialog({
             <p className="text-xs text-muted-foreground">
               These apply only to this run and are not saved on the command.
             </p>
-            {scheduledCommand.allowed_parameters.map((flag) => (
-              <div key={flag} className="flex items-center gap-2">
-                <Checkbox
-                  id={`scheduled-command-run-param-${flag}`}
-                  checked={parameters[flag] === true}
-                  onCheckedChange={(checked) =>
-                    setParameters((current) =>
-                      toggleParameterFlag(current, flag, checked === true),
-                    )
-                  }
-                  disabled={submitting}
-                />
-                <Label
-                  htmlFor={`scheduled-command-run-param-${flag}`}
-                  className="font-mono text-xs"
-                >
-                  {flag}
-                </Label>
-              </div>
-            ))}
+            {scheduledCommand.allowed_parameters.map((flag) =>
+              parameterType(scheduledCommand.parameter_types, flag) === "string-list" ? (
+                <div key={flag} className="space-y-1.5">
+                  <Label htmlFor={`scheduled-command-run-param-${flag}`} className="font-mono text-xs">
+                    {flag}
+                  </Label>
+                  <Input
+                    id={`scheduled-command-run-param-${flag}`}
+                    value={parameterListText(parameters[flag])}
+                    placeholder="Comma or space separated IDs"
+                    onChange={(event) => setParameters((current) =>
+                      setParameterList(current, flag, event.target.value),
+                    )}
+                    disabled={submitting}
+                  />
+                </div>
+              ) : (
+                <div key={flag} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`scheduled-command-run-param-${flag}`}
+                    checked={parameters[flag] === true}
+                    onCheckedChange={(checked) =>
+                      setParameters((current) =>
+                        toggleParameterFlag(current, flag, checked === true),
+                      )
+                    }
+                    disabled={submitting}
+                  />
+                  <Label htmlFor={`scheduled-command-run-param-${flag}`} className="font-mono text-xs">
+                    {flag}
+                  </Label>
+                </div>
+              ),
+            )}
           </div>
         ) : null}
 

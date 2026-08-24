@@ -51,6 +51,7 @@ export type TradingAccount = {
   margin: number;
   free_margin: number;
   pnl: number;
+  realized_profit: number;
   /** External paid withdrawals (admin list only). */
   withdrawals?: number;
   is_active: boolean;
@@ -74,6 +75,7 @@ export type TradingAccountSortBy =
   | "margin"
   | "free_margin"
   | "pnl"
+  | "realized_profit"
   | "withdrawals"
   | "initial_deposit"
   | "server_group_id"
@@ -86,6 +88,7 @@ export type TradingAccountListTotals = {
   current_credit: number;
   current_equity: number;
   pnl: number;
+  realized_profit: number;
   withdrawals: number;
 };
 
@@ -103,6 +106,7 @@ export type TradingAccountListFilters = {
   current_balance?: number;
   current_equity?: number;
   current_credit?: number;
+  realized_profit?: number;
   user_id?: string;
   user_name?: string;
   user_email?: string;
@@ -135,6 +139,7 @@ export type TradingAccountFilterFormState = {
   current_balance: string;
   current_equity: string;
   current_credit: string;
+  realized_profit: string;
   is_trading_enabled: "" | "true" | "false";
   is_active: "" | "true" | "false";
 };
@@ -151,6 +156,7 @@ export const EMPTY_TRADING_ACCOUNT_FILTERS: TradingAccountFilterFormState = {
   current_balance: "",
   current_equity: "",
   current_credit: "",
+  realized_profit: "",
   is_trading_enabled: "",
   is_active: "",
 };

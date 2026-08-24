@@ -19,7 +19,14 @@ export type ScheduledCommandRunStatus =
   | "failed"
   | "cancelled";
 
-export type ScheduledCommandParameters = Record<string, boolean>;
+export type ScheduledCommandParameterValue = boolean | string[];
+
+export type ScheduledCommandParameters = Record<
+  string,
+  ScheduledCommandParameterValue
+>;
+
+export type ScheduledCommandParameterType = "flag" | "string-list";
 
 export type ScheduledCommand = {
   id: string;
@@ -30,6 +37,7 @@ export type ScheduledCommand = {
   is_automatic: boolean;
   parameters: ScheduledCommandParameters | null;
   allowed_parameters: string[];
+  parameter_types?: Record<string, ScheduledCommandParameterType>;
   last_automatic_run_at?: string | null;
   last_automatic_run_status?: ScheduledCommandRunStatus | null;
   created_at?: string;

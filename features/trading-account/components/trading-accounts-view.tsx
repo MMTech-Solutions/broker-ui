@@ -67,7 +67,7 @@ const tradingAccountsBreadcrumbs: BreadcrumbItem[] = [
   { label: "Trading accounts", current: true },
 ];
 
-const TABLE_COLUMN_COUNT = 16;
+const TABLE_COLUMN_COUNT = 17;
 const TABLE_LEADING_COLUMN_COUNT = 8;
 const PAGE_SIZE_OPTIONS = [15, 25, 50, 100] as const;
 
@@ -186,6 +186,11 @@ function formToAppliedFilters(
   const credit = parseOptionalNumber(form.current_credit);
   if (credit !== undefined) {
     filters.current_credit = credit;
+  }
+
+  const realizedProfit = parseOptionalNumber(form.realized_profit);
+  if (realizedProfit !== undefined) {
+    filters.realized_profit = realizedProfit;
   }
 
   return filters;
@@ -850,6 +855,29 @@ export function TradingAccountsView() {
 
               <TableHead className="min-w-[110px] align-bottom text-right">
                 <ColumnSortHead
+                  label="Profit"
+                  sortKey="realized_profit"
+                  activeSortBy={sortBy}
+                  activeDirection={sortDirection}
+                  onSort={toggleSort}
+                  disabled={loading}
+                  align="right"
+                />
+                <Input
+                  className="mt-1.5 h-8 text-right"
+                  inputMode="decimal"
+                  placeholder="Exact… (Enter)"
+                  title="Exact match. Press Enter to apply."
+                  value={draftFilters.realized_profit}
+                  onChange={(event) =>
+                    patchDraft({ realized_profit: event.target.value })
+                  }
+                  onKeyDown={onFilterEnter}
+                />
+              </TableHead>
+
+              <TableHead className="min-w-[110px] align-bottom text-right">
+                <ColumnSortHead
                   label="Withdrawals"
                   sortKey="withdrawals"
                   activeSortBy={sortBy}
@@ -1012,6 +1040,14 @@ export function TradingAccountsView() {
                       >
                         {formatMoney(account.pnl)}
                       </TableCell>
+                      <TableCell
+                        className={cn(
+                          "text-right tabular-nums",
+                          pnlClassName(account.realized_profit),
+                        )}
+                      >
+                        {formatMoney(account.realized_profit)}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatMoney(account.withdrawals ?? 0)}
                       </TableCell>
@@ -1071,6 +1107,14 @@ export function TradingAccountsView() {
                   )}
                 >
                   {formatMoney(totals.pnl)}
+                </TableCell>
+                <TableCell
+                  className={cn(
+                    "text-right tabular-nums",
+                    pnlClassName(totals.realized_profit),
+                  )}
+                >
+                  {formatMoney(totals.realized_profit)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatMoney(totals.withdrawals)}

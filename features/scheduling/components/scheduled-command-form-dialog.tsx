@@ -18,7 +18,10 @@ import { Label } from "@/components/ui/label";
 import { updateScheduledCommand } from "@/features/scheduling/api";
 import {
   parametersFromAllowed,
+  parameterListText,
+  parameterType,
   selectedParameters,
+  setParameterList,
   toggleParameterFlag,
 } from "@/features/scheduling/parameters";
 import type {
@@ -72,6 +75,7 @@ export function ScheduledCommandFormDialog({
       parameters: parametersFromAllowed(
         scheduledCommand.allowed_parameters,
         scheduledCommand.parameters,
+        scheduledCommand.parameter_types,
       ),
     });
   }, [open, scheduledCommand]);
@@ -198,31 +202,42 @@ export function ScheduledCommandFormDialog({
             scheduledCommand.allowed_parameters.length > 0 ? (
               <div className="space-y-3">
                 <Label>Default parameters</Label>
-                {scheduledCommand.allowed_parameters.map((flag) => (
-                  <div key={flag} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`scheduled-command-param-${flag}`}
-                      checked={form.parameters[flag] === true}
-                      onCheckedChange={(checked) =>
-                        setForm((current) => ({
+                {scheduledCommand.allowed_parameters.map((flag) =>
+                  parameterType(scheduledCommand.parameter_types, flag) === "string-list" ? (
+                    <div key={flag} className="space-y-1.5">
+                      <Label htmlFor={`scheduled-command-param-${flag}`} className="font-mono text-xs">
+                        {flag}
+                      </Label>
+                      <Input
+                        id={`scheduled-command-param-${flag}`}
+                        value={parameterListText(form.parameters[flag])}
+                        placeholder="Comma or space separated IDs"
+                        onChange={(event) => setForm((current) => ({
                           ...current,
-                          parameters: toggleParameterFlag(
-                            current.parameters,
-                            flag,
-                            checked === true,
-                          ),
-                        }))
-                      }
-                      disabled={submitting}
-                    />
-                    <Label
-                      htmlFor={`scheduled-command-param-${flag}`}
-                      className="font-mono text-xs"
-                    >
-                      {flag}
-                    </Label>
-                  </div>
-                ))}
+                          parameters: setParameterList(current.parameters, flag, event.target.value),
+                        }))}
+                        disabled={submitting}
+                      />
+                    </div>
+                  ) : (
+                    <div key={flag} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`scheduled-command-param-${flag}`}
+                        checked={form.parameters[flag] === true}
+                        onCheckedChange={(checked) =>
+                          setForm((current) => ({
+                            ...current,
+                            parameters: toggleParameterFlag(current.parameters, flag, checked === true),
+                          }))
+                        }
+                        disabled={submitting}
+                      />
+                      <Label htmlFor={`scheduled-command-param-${flag}`} className="font-mono text-xs">
+                        {flag}
+                      </Label>
+                    </div>
+                  ),
+                )}
               </div>
             ) : null}
           </div>
