@@ -114,7 +114,10 @@ export function ClientBonusesView() {
     }
 
     return (
-      accountLabels.get(assignment.account_id) ?? assignment.account_id
+      accountLabels.get(assignment.trading_account?.id ?? assignment.account_id ?? "") ??
+      assignment.trading_account?.id ??
+      assignment.account_id ??
+      "\u2014"
     );
   }, [accountLabels, assignments, selectedAssignmentId]);
 
@@ -358,8 +361,12 @@ export function ClientBonusesView() {
                   ? assignments.map((assignment) => {
                       const progress = getConversionProgress(assignment);
                       const accountLabel =
-                        accountLabels.get(assignment.account_id) ??
-                        assignment.account_id;
+                        accountLabels.get(
+                          assignment.trading_account?.id ?? assignment.account_id ?? "",
+                        ) ??
+                        assignment.trading_account?.id ??
+                        assignment.account_id ??
+                        "\u2014";
 
                       return (
                         <TableRow key={assignment.id}>

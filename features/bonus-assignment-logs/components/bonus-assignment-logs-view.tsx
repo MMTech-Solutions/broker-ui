@@ -125,6 +125,16 @@ function assignmentFormToFilters(
     filters.account_id = accountId;
   }
 
+  const platform = form.platform.trim();
+  if (platform) {
+    filters.platform = platform;
+  }
+
+  const externalTraderId = form.external_trader_id.trim();
+  if (externalTraderId) {
+    filters.external_trader_id = externalTraderId;
+  }
+
   const userId = form.user_id.trim();
   if (userId) {
     filters.user_id = userId;
@@ -724,6 +734,40 @@ function AssignmentsTable({
                 onKeyDown={onFilterEnter}
               />
             </TableHead>
+            <TableHead className="min-w-[120px] align-bottom">
+              <ColumnSortHead
+                label="Platform"
+                sortKey="platform"
+                activeSortBy={sortBy}
+                activeDirection={sortDirection}
+                onSort={onSort}
+                disabled={loading}
+              />
+              <Input
+                className="mt-1.5 h-8"
+                placeholder="Platform… (Enter)"
+                value={draft.platform}
+                onChange={(event) => onPatchDraft({ platform: event.target.value })}
+                onKeyDown={onFilterEnter}
+              />
+            </TableHead>
+            <TableHead className="min-w-[150px] align-bottom">
+              <ColumnSortHead
+                label="External trader ID"
+                sortKey="external_trader_id"
+                activeSortBy={sortBy}
+                activeDirection={sortDirection}
+                onSort={onSort}
+                disabled={loading}
+              />
+              <Input
+                className="mt-1.5 h-8 font-mono text-xs"
+                placeholder="Trader ID… (Enter)"
+                value={draft.external_trader_id}
+                onChange={(event) => onPatchDraft({ external_trader_id: event.target.value })}
+                onKeyDown={onFilterEnter}
+              />
+            </TableHead>
             <TableHead className="min-w-[150px] align-bottom">
               <ColumnSortHead
                 label="User ID"
@@ -935,7 +979,7 @@ function AssignmentsTable({
           {loading
             ? Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={`assignment-skeleton-${index}`}>
-                  {Array.from({ length: 14 }).map((__, cellIndex) => (
+                  {Array.from({ length: 16 }).map((__, cellIndex) => (
                     <TableCell
                       key={`assignment-skeleton-${index}-${cellIndex}`}
                     >
@@ -949,7 +993,7 @@ function AssignmentsTable({
           {!loading && assignments.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={14}
+                colSpan={16}
                 className="text-center text-muted-foreground"
               >
                 No bonus assignments found.
@@ -960,6 +1004,7 @@ function AssignmentsTable({
           {!loading
             ? assignments.map((assignment) => {
                 const owner = resolveBonusOwner(assignment);
+                const tradingAccount = assignment.trading_account;
 
                 return (
                 <TableRow key={assignment.id}>
@@ -970,7 +1015,13 @@ function AssignmentsTable({
                     {bonusAssignmentOfferLabel(assignment)}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
-                    {truncateId(assignment.account_id)}
+                    {tradingAccount?.id
+                      ? truncateId(tradingAccount.id)
+                      : assignment.account_id ?? "\u2014"}
+                  </TableCell>
+                  <TableCell>{tradingAccount?.platform.name ?? "\u2014"}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {tradingAccount?.external_trader_id ?? "\u2014"}
                   </TableCell>
                   <TableCell>
                     <span

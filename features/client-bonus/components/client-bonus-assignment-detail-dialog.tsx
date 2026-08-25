@@ -131,7 +131,9 @@ export function ClientBonusAssignmentDetailDialog({
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Cuenta</dt>
-                  <dd className="font-medium">{accountLabel ?? assignment.account_id}</dd>
+                  <dd className="font-medium">
+                    {accountLabel ?? assignment.trading_account?.id ?? assignment.account_id ?? "\u2014"}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Crédito acreditado</dt>

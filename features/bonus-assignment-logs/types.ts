@@ -27,10 +27,23 @@ export type BonusUserOwner = {
   name: string;
 };
 
+export type BonusAssignmentTradingAccount = {
+  id: string;
+  platform: {
+    id: string | null;
+    name: string | null;
+  };
+  external_trader_id: string | null;
+  custom_name: string | null;
+};
+
 export type BonusAssignment = {
   id: string;
   bonus_offer_id: string;
-  account_id: string;
+  /** Current API projection. */
+  trading_account?: BonusAssignmentTradingAccount;
+  /** Kept during the API rollout for responses from an older broker service. */
+  account_id?: string;
   /**
    * Legacy field while production broker still returns external_user_id.
    * Prefer `user.id` when present.
@@ -108,6 +121,8 @@ export type BonusAssignmentSortBy =
   | "burn_on_withdrawal"
   | "burn_on_negative_balance"
   | "account_id"
+  | "platform"
+  | "external_trader_id"
   | "credited_amount"
   | "status"
   | "activated_at"
@@ -147,6 +162,8 @@ export type BonusAssignmentListFilters = {
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
   account_id?: string;
+  platform?: string;
+  external_trader_id?: string;
   user_id?: string;
   user_name?: string;
   user_email?: string;
@@ -187,6 +204,8 @@ export type BonusAssignmentFilterFormState = {
   created_at: string;
   offer_name: string;
   account_id: string;
+  platform: string;
+  external_trader_id: string;
   user_id: string;
   user_name: string;
   user_email: string;
@@ -202,6 +221,8 @@ export const EMPTY_BONUS_ASSIGNMENT_FILTERS: BonusAssignmentFilterFormState = {
   created_at: "",
   offer_name: "",
   account_id: "",
+  platform: "",
+  external_trader_id: "",
   user_id: "",
   user_name: "",
   user_email: "",

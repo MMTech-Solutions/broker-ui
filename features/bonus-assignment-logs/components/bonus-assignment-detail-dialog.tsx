@@ -153,7 +153,7 @@ export function BonusAssignmentDetailDialog({
                   label="Account"
                   value={
                     <span className="font-mono text-xs">
-                      {assignment.account_id}
+                      {assignment.trading_account?.id ?? assignment.account_id ?? "\u2014"}
                     </span>
                   }
                 />
