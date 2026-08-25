@@ -76,8 +76,8 @@ export type GetRiskMetricsHistoryParams = {
 
 export type RiskMetricChangeDelta = {
   key: string;
-  old_value_json: string | null;
-  new_value_json: string | null;
+  old_value_json: unknown;
+  new_value_json: unknown;
 };
 
 export type RiskMetricChangedPayload = {

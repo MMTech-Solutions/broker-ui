@@ -5,8 +5,20 @@ import type {
   RiskMetricsSummary,
 } from "@/features/client-risk-metrics/types";
 
-function parseMetricJsonValue(raw: string | null): number | null {
-  if (raw === null || raw === "") {
+function parseMetricJsonValue(raw: unknown): number | null {
+  if (raw === null || raw === undefined || raw === "") {
+    return null;
+  }
+
+  if (typeof raw === "number") {
+    return Number.isFinite(raw) ? raw : null;
+  }
+
+  if (typeof raw === "boolean") {
+    return raw ? 1 : 0;
+  }
+
+  if (typeof raw !== "string") {
     return null;
   }
 
@@ -22,9 +34,7 @@ function parseMetricJsonValue(raw: string | null): number | null {
       return Number.isFinite(asNumber) ? asNumber : null;
     }
 
-    if (typeof parsed === "boolean") {
-      return parsed ? 1 : 0;
-    }
+    if (typeof parsed === "boolean") return parsed ? 1 : 0;
   } catch {
     const asNumber = Number(raw);
     if (Number.isFinite(asNumber)) {

@@ -1,20 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BarChart2Icon, RefreshCwIcon } from "lucide-react";
+import { RefreshCwIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Button } from "@/components/ui/button";
-import {
-  getPublicRiskMetricsHistory,
-  getPublicRiskMetricsSummary,
-} from "@/features/client-risk-metrics/api";
-import { RiskMetricsEquityChart } from "@/features/client-risk-metrics/components/risk-metrics-equity-chart";
+import { getPublicRiskMetricsSummary } from "@/features/client-risk-metrics/api";
 import { RiskMetricsSummaryCards } from "@/features/client-risk-metrics/components/risk-metrics-summary-cards";
-import type {
-  RiskMetricsHistory,
-  RiskMetricsSummary,
-} from "@/features/client-risk-metrics/types";
+import { TradingStreamLiveStatus } from "@/features/client-risk-metrics/components/trading-stream-live-status";
+import { applyRiskMetricChanges } from "@/features/client-risk-metrics/apply-metric-changes";
+import { useTradingStreamPhaseMetricsChannel } from "@/features/client-risk-metrics/hooks/use-trading-stream-phase-metrics-channel";
+import type { RiskMetricsSummary } from "@/features/client-risk-metrics/types";
 import { BrokerApiError, formatBrokerApiError } from "@/lib/api/errors";
 
 const DAYS_OPTIONS = [
@@ -24,8 +20,6 @@ const DAYS_OPTIONS = [
   { value: 60, label: "60 días" },
   { value: 90, label: "90 días" },
 ];
-
-type Tab = "summary" | "chart";
 
 type PublicRiskMetricsViewProps = {
   shareUuid: string;
@@ -37,17 +31,20 @@ function isInactiveShareError(err: unknown): boolean {
 
 export function PublicRiskMetricsView({ shareUuid }: PublicRiskMetricsViewProps) {
   const [summary, setSummary] = useState<RiskMetricsSummary | null>(null);
-  const [equityHistory, setEquityHistory] =
-    useState<RiskMetricsHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyRefreshing, setHistoryRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [historyError, setHistoryError] = useState<string | null>(null);
   const [inactive, setInactive] = useState(false);
   const [days, setDays] = useState(30);
-  const [activeTab, setActiveTab] = useState<Tab>("summary");
+  const [isLive, setIsLive] = useState(true);
+
+  const streamStatus = useTradingStreamPhaseMetricsChannel({
+    shareUuid,
+    enabled: isLive && !inactive,
+    onMetrics: (payload) => {
+      setSummary((current) => current ? applyRiskMetricChanges(current, payload) : current);
+    },
+  });
 
   const fetchSummary = useCallback(
     async (showLoader: boolean) => {
@@ -75,53 +72,22 @@ export function PublicRiskMetricsView({ shareUuid }: PublicRiskMetricsViewProps)
     [shareUuid, days],
   );
 
-  const fetchEquityHistory = useCallback(
-    async (showLoader: boolean) => {
-      if (showLoader) setHistoryLoading(true);
-      else setHistoryRefreshing(true);
-      setHistoryError(null);
-
-      const to = new Date();
-      const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
-
-      try {
-        const response = await getPublicRiskMetricsHistory(shareUuid, {
-          metric_key: "equity",
-          from_utc: from.toISOString(),
-          to_utc: to.toISOString(),
-          granularity: "hour",
-          sort: "time_asc",
-          limit: 5000,
-        });
-        setEquityHistory(response.data);
-      } catch (err) {
-        if (isInactiveShareError(err)) {
-          setInactive(true);
-          setEquityHistory(null);
-          setHistoryError(null);
-        } else {
-          setHistoryError(formatBrokerApiError(err));
-        }
-      } finally {
-        setHistoryLoading(false);
-        setHistoryRefreshing(false);
-      }
-    },
-    [shareUuid, days],
-  );
-
   useEffect(() => {
-    void fetchSummary(true);
-    if (activeTab === "chart") {
-      void fetchEquityHistory(true);
-    }
-  }, [fetchSummary, fetchEquityHistory, activeTab]);
+    queueMicrotask(() => void fetchSummary(true));
+  }, [fetchSummary]);
 
   function handleManualRefresh() {
     void fetchSummary(false);
-    if (activeTab === "chart") {
-      void fetchEquityHistory(false);
-    }
+  }
+
+  function handleDaysChange(value: number) {
+    setDays(value);
+    setIsLive(false);
+  }
+
+  function goLive() {
+    setDays(30);
+    setIsLive(true);
   }
 
   if (inactive) {
@@ -158,12 +124,12 @@ export function PublicRiskMetricsView({ shareUuid }: PublicRiskMetricsViewProps)
           variant="ghost"
           size="icon-sm"
           onClick={handleManualRefresh}
-          disabled={loading || refreshing || historyLoading || historyRefreshing}
+          disabled={loading || refreshing}
           aria-label="Actualizar métricas"
         >
           <RefreshCwIcon
             className={`h-4 w-4 ${
-              refreshing || historyRefreshing ? "animate-spin" : ""
+              refreshing ? "animate-spin" : ""
             }`}
           />
         </Button>
@@ -176,62 +142,27 @@ export function PublicRiskMetricsView({ shareUuid }: PublicRiskMetricsViewProps)
         />
       ) : null}
 
-      {historyError && activeTab === "chart" ? (
-        <ApiErrorAlert
-          title="No se pudo cargar el historial de equity"
-          message={historyError}
-        />
-      ) : null}
-
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab("summary")}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeTab === "summary"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <BarChart2Icon className="h-3.5 w-3.5" />
-              Resumen
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("chart")}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeTab === "chart"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <svg
-                className="h-3.5 w-3.5"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path
-                  d="M1 12 L5 7 L8 9 L11 4 L15 6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Curva de equity
-            </button>
-          </div>
+          <span className="rounded-md border bg-muted/40 px-3 py-1.5 text-sm font-medium">
+            Overview
+          </span>
 
           <div className="flex items-center gap-2">
+            {isLive ? (
+              <TradingStreamLiveStatus status={streamStatus} />
+            ) : (
+              <Button variant="outline" size="sm" onClick={goLive}>
+                Go Live
+              </Button>
+            )}
             <span className="text-xs text-muted-foreground">Período:</span>
             <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
               {DAYS_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => setDays(option.value)}
+                  onClick={() => handleDaysChange(option.value)}
                   className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                     days === option.value
                       ? "bg-background text-foreground shadow-sm"
@@ -245,14 +176,7 @@ export function PublicRiskMetricsView({ shareUuid }: PublicRiskMetricsViewProps)
           </div>
         </div>
 
-        {activeTab === "summary" ? (
-          <RiskMetricsSummaryCards summary={summary} loading={loading} />
-        ) : (
-          <RiskMetricsEquityChart
-            history={equityHistory}
-            loading={historyLoading}
-          />
-        )}
+        <RiskMetricsSummaryCards summary={summary} loading={loading} />
 
         {summary ? (
           <p className="text-xs text-muted-foreground">
@@ -266,7 +190,7 @@ export function PublicRiskMetricsView({ shareUuid }: PublicRiskMetricsViewProps)
                 year: "numeric",
               })}
             </span>
-            {refreshing || historyRefreshing ? (
+            {refreshing ? (
               <span className="ml-2 text-muted-foreground/60">
                 Actualizando…
               </span>

@@ -14,12 +14,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getAccountAnalyticsSymbols } from "@/features/client-risk-metrics/api";
+import { RiskMetricsShareDialog } from "@/features/client-risk-metrics/components/risk-metrics-share-dialog";
 import { ClientAnalyticsBehaviorPanel } from "@/features/client-risk-metrics/components/client-analytics-behavior-panel";
 import { ClientAnalyticsProfitabilityPanel } from "@/features/client-risk-metrics/components/client-analytics-profitability-panel";
 import { ClientAnalyticsRiskDrawdownPanel } from "@/features/client-risk-metrics/components/client-analytics-risk-drawdown-panel";
 import { ClientAnalyticsSymbolPanel } from "@/features/client-risk-metrics/components/client-analytics-symbol-panel";
 import { ClientAnalyticsTemporalPanel } from "@/features/client-risk-metrics/components/client-analytics-temporal-panel";
 import { ClientAnalyticsDashboardPanel } from "@/features/client-risk-metrics/components/client-analytics-dashboard-panel";
+import { TradingStreamLiveStatus } from "@/features/client-risk-metrics/components/trading-stream-live-status";
+import { useTradingStreamAnalyticsChannel } from "@/features/client-risk-metrics/hooks/use-trading-stream-analytics-channel";
 import { cn } from "@/lib/utils";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
 
@@ -118,6 +121,7 @@ export function ClientRiskMetricsView({
   const [symbol, setSymbol] = useState("all");
   const [side, setSide] = useState("both");
   const [session, setSession] = useState("all");
+  const [isLive, setIsLive] = useState(true);
   const [analyticsRefreshToken, setAnalyticsRefreshToken] = useState(0);
   const [symbolOptions, setSymbolOptions] = useState([DEFAULT_SYMBOL_OPTION]);
 
@@ -132,6 +136,38 @@ export function ClientRiskMetricsView({
       to_utc: to.toISOString(),
     };
   }, [days]);
+
+  const analyticsFilters = useMemo(
+    () => ({
+      from_utc: analyticsWindow.from_utc,
+      to_utc: analyticsWindow.to_utc,
+      symbol: symbol === "all" ? undefined : symbol,
+      side: side === "both" ? undefined : side as "buy" | "sell",
+      session: session === "all" ? undefined : session as "sydney" | "tokyo" | "london" | "ny",
+    }),
+    [analyticsWindow.from_utc, analyticsWindow.to_utc, symbol, side, session],
+  );
+
+  const analyticsStreamStatus = useTradingStreamAnalyticsChannel({
+    accountId,
+    filters: analyticsFilters,
+    enabled: isLive,
+    onUpdate: () => setAnalyticsRefreshToken((current) => current + 1),
+  });
+
+  function changeFilter(setter: (value: string) => void, value: string) {
+    setter(value);
+    setIsLive(false);
+  }
+
+  function goLive() {
+    setDays("30");
+    setSymbol("all");
+    setSide("both");
+    setSession("all");
+    setIsLive(true);
+    setAnalyticsRefreshToken((current) => current + 1);
+  }
 
   const breadcrumbs: BreadcrumbItem[] = [
     { label: "Inicio", href: "/client" },
@@ -200,6 +236,7 @@ export function ClientRiskMetricsView({
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar breadcrumbs={breadcrumbs}>
+        <RiskMetricsShareDialog accountId={accountId} />
         <Button
           variant="ghost"
           size="icon-sm"
@@ -257,32 +294,36 @@ export function ClientRiskMetricsView({
             </div>
 
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-end">
-              <div className="inline-flex h-9 items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700">
-                Live
-              </div>
+              {isLive ? (
+                <TradingStreamLiveStatus status={analyticsStreamStatus} />
+              ) : (
+                <Button type="button" variant="outline" size="sm" onClick={goLive}>
+                  Go Live
+                </Button>
+              )}
 
               <AnalyticsFilterSelect
                 label="Date range"
                 value={days}
-                onValueChange={setDays}
+                onValueChange={(value) => changeFilter(setDays, value)}
                 options={DATE_RANGE_OPTIONS}
               />
               <AnalyticsFilterSelect
                 label="Symbol"
                 value={symbol}
-                onValueChange={setSymbol}
+                onValueChange={(value) => changeFilter(setSymbol, value)}
                 options={symbolOptions}
               />
               <AnalyticsFilterSelect
                 label="Side"
                 value={side}
-                onValueChange={setSide}
+                onValueChange={(value) => changeFilter(setSide, value)}
                 options={SIDE_OPTIONS}
               />
               <AnalyticsFilterSelect
                 label="Session"
                 value={session}
-                onValueChange={setSession}
+                onValueChange={(value) => changeFilter(setSession, value)}
                 options={SESSION_OPTIONS}
               />
             </div>
