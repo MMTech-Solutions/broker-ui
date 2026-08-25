@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCwIcon } from "lucide-react";
 
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
@@ -20,9 +20,13 @@ import { ClientAnalyticsProfitabilityPanel } from "@/features/client-risk-metric
 import { ClientAnalyticsRiskDrawdownPanel } from "@/features/client-risk-metrics/components/client-analytics-risk-drawdown-panel";
 import { ClientAnalyticsSymbolPanel } from "@/features/client-risk-metrics/components/client-analytics-symbol-panel";
 import { ClientAnalyticsTemporalPanel } from "@/features/client-risk-metrics/components/client-analytics-temporal-panel";
-import { ClientAnalyticsDashboardPanel } from "@/features/client-risk-metrics/components/client-analytics-dashboard-panel";
+import {
+  ClientAnalyticsDashboardPanel,
+  type AnalyticsDashboardSnapshot,
+} from "@/features/client-risk-metrics/components/client-analytics-dashboard-panel";
 import { TradingStreamLiveStatus } from "@/features/client-risk-metrics/components/trading-stream-live-status";
 import { useTradingStreamAnalyticsChannel } from "@/features/client-risk-metrics/hooks/use-trading-stream-analytics-channel";
+import type { RiskMetricChangedPayload } from "@/features/client-risk-metrics/types";
 import { cn } from "@/lib/utils";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
 
@@ -123,6 +127,8 @@ export function ClientRiskMetricsView({
   const [session, setSession] = useState("all");
   const [isLive, setIsLive] = useState(true);
   const [analyticsRefreshToken, setAnalyticsRefreshToken] = useState(0);
+  const [liveDashboard, setLiveDashboard] =
+    useState<AnalyticsDashboardSnapshot | null>(null);
   const [symbolOptions, setSymbolOptions] = useState([DEFAULT_SYMBOL_OPTION]);
 
   const analyticsWindow = useMemo(() => {
@@ -148,16 +154,39 @@ export function ClientRiskMetricsView({
     [analyticsWindow.from_utc, analyticsWindow.to_utc, symbol, side, session],
   );
 
+  const handleLiveDashboard = useCallback((dashboard: unknown) => {
+    if (isAnalyticsDashboardSnapshot(dashboard)) {
+      setLiveDashboard(dashboard);
+    }
+  }, []);
+
+  const handleLiveUpdate = useCallback((update: unknown) => {
+    setLiveDashboard((current) => applyAnalyticsUpdate(current, update));
+  }, []);
+
+  const handlePhaseMetrics = useCallback((payload: RiskMetricChangedPayload) => {
+    setLiveDashboard((current) => applyPhaseMetricsUpdate(current, payload));
+  }, []);
+
+  const handleAnalyticsResync = useCallback(() => {
+    setLiveDashboard(null);
+    setAnalyticsRefreshToken((current) => current + 1);
+  }, []);
+
   const analyticsStreamStatus = useTradingStreamAnalyticsChannel({
     accountId,
     filters: analyticsFilters,
     enabled: isLive,
-    onUpdate: () => setAnalyticsRefreshToken((current) => current + 1),
+    onDashboard: handleLiveDashboard,
+    onUpdate: handleLiveUpdate,
+    onPhaseMetrics: handlePhaseMetrics,
+    onResync: handleAnalyticsResync,
   });
 
   function changeFilter(setter: (value: string) => void, value: string) {
     setter(value);
     setIsLive(false);
+    setLiveDashboard(null);
   }
 
   function goLive() {
@@ -166,6 +195,12 @@ export function ClientRiskMetricsView({
     setSide("both");
     setSession("all");
     setIsLive(true);
+    setLiveDashboard(null);
+    setAnalyticsRefreshToken((current) => current + 1);
+  }
+
+  function refreshAnalytics() {
+    setLiveDashboard(null);
     setAnalyticsRefreshToken((current) => current + 1);
   }
 
@@ -226,7 +261,6 @@ export function ClientRiskMetricsView({
     };
   }, [
     accountId,
-    analyticsRefreshToken,
     analyticsWindow.from_utc,
     analyticsWindow.to_utc,
     side,
@@ -240,7 +274,7 @@ export function ClientRiskMetricsView({
         <Button
           variant="ghost"
           size="icon-sm"
-          onClick={() => setAnalyticsRefreshToken((current) => current + 1)}
+          onClick={refreshAnalytics}
           aria-label="Actualizar analytics"
         >
           <RefreshCwIcon className="h-4 w-4" />
@@ -335,6 +369,7 @@ export function ClientRiskMetricsView({
               fromUtc={analyticsWindow.from_utc}
               toUtc={analyticsWindow.to_utc}
               refreshToken={analyticsRefreshToken}
+              liveDashboard={liveDashboard}
               active
               symbol={symbol === "all" ? undefined : symbol}
               side={side === "both" ? undefined : side as "buy" | "sell" | undefined}
@@ -405,6 +440,98 @@ export function ClientRiskMetricsView({
       </section>
     </div>
   );
+}
+
+function isAnalyticsDashboardSnapshot(
+  value: unknown,
+): value is AnalyticsDashboardSnapshot {
+  if (typeof value !== "object" || value === null) return false;
+
+  const dashboard = value as Record<string, unknown>;
+  return (
+    (typeof dashboard.overview === "object" && dashboard.overview !== null) ||
+    (typeof dashboard.equity_curve === "object" && dashboard.equity_curve !== null)
+  );
+}
+
+function applyAnalyticsUpdate(
+  dashboard: AnalyticsDashboardSnapshot | null,
+  update: unknown,
+): AnalyticsDashboardSnapshot | null {
+  if (!dashboard?.overview || typeof update !== "object" || update === null) {
+    return dashboard;
+  }
+
+  const kpis = (update as Record<string, unknown>).kpis;
+  if (typeof kpis !== "object" || kpis === null) return dashboard;
+
+  const changedAt = (update as Record<string, unknown>).changed_at;
+  return applyDashboardMetrics(
+    dashboard,
+    kpis as Record<string, unknown>,
+    typeof changedAt === "string" ? changedAt : undefined,
+  );
+}
+
+function applyPhaseMetricsUpdate(
+  dashboard: AnalyticsDashboardSnapshot | null,
+  payload: RiskMetricChangedPayload,
+): AnalyticsDashboardSnapshot | null {
+  const metrics = Object.fromEntries(
+    payload.changes.map((change) => [
+      change.key,
+      parseStreamMetricValue(change.new_value_json),
+    ]),
+  );
+
+  return applyDashboardMetrics(dashboard, metrics, payload.changed_at);
+}
+
+function applyDashboardMetrics(
+  dashboard: AnalyticsDashboardSnapshot | null,
+  metrics: Record<string, unknown>,
+  changedAt?: string,
+): AnalyticsDashboardSnapshot | null {
+  if (!dashboard?.overview) return dashboard;
+
+  const nextOverview = structuredClone(dashboard.overview);
+  const groups: Array<Record<string, unknown>> = [
+    nextOverview.kpis,
+    nextOverview.costs,
+    nextOverview.equity,
+    nextOverview.risk,
+    nextOverview.days,
+    nextOverview.streaks,
+    nextOverview.live,
+    nextOverview.health,
+  ];
+
+  for (const [key, value] of Object.entries(metrics)) {
+    if (typeof value !== "number") continue;
+
+    const group = groups.find(
+      (candidate) =>
+        Object.hasOwn(candidate, key) && typeof candidate[key] === "number",
+    );
+    if (group) group[key] = value;
+  }
+
+  if (changedAt) {
+    nextOverview.generated_at = changedAt;
+  }
+
+  return { ...dashboard, overview: nextOverview };
+}
+
+function parseStreamMetricValue(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : value;
+  }
 }
 
 function AnalyticsFilterSelect({

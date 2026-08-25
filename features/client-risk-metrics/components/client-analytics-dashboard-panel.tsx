@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   getAccountAnalyticsEquityCurve,
   getAccountAnalyticsOverview,
+  getPublicSharedAnalyticsOverview,
 } from "@/features/client-risk-metrics/api";
 import type {
   AnalyticsEquityCurve,
@@ -35,7 +36,8 @@ import { formatBrokerApiError } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
 
 type ClientAnalyticsDashboardPanelProps = {
-  accountId: string;
+  accountId?: string;
+  shareUuid?: string;
   fromUtc: string;
   toUtc: string;
   refreshToken: number;
@@ -43,25 +45,50 @@ type ClientAnalyticsDashboardPanelProps = {
   symbol?: string;
   side?: "buy" | "sell";
   session?: "sydney" | "tokyo" | "london" | "ny";
+  liveDashboard?: AnalyticsDashboardSnapshot | null;
 };
 
-function formatNumber(value: number, digits = 2): string {
+export type AnalyticsDashboardSnapshot = {
+  overview?: AnalyticsOverview;
+  equity_curve?: AnalyticsEquityCurve;
+};
+
+function formatNumber(value: number | null | undefined, digits = 2): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "—";
+  }
+
   return value.toLocaleString("en-US", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   });
 }
 
-function formatPercent(value: number, digits = 2): string {
+function formatPercent(value: number | null | undefined, digits = 2): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "—";
+  }
+
   const pct = Math.abs(value) <= 1 ? value * 100 : value;
   return `${formatNumber(pct, digits)}%`;
 }
 
-function formatCurrency(value: number, digits = 2): string {
+function formatCurrency(value: number | null | undefined, digits = 2): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "—";
+  }
+
   return `${formatNumber(value, digits)} US$`;
 }
 
-function formatSignedCurrency(value: number, digits = 2): string {
+function formatSignedCurrency(
+  value: number | null | undefined,
+  digits = 2,
+): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "—";
+  }
+
   return `${value >= 0 ? "+" : ""}${formatCurrency(value, digits)}`;
 }
 
@@ -783,6 +810,8 @@ export function ClientAnalyticsDashboardPanel({
   symbol,
   side,
   session,
+  liveDashboard,
+  shareUuid,
 }: ClientAnalyticsDashboardPanelProps) {
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [equityCurve, setEquityCurve] = useState<AnalyticsEquityCurve | null>(
@@ -803,6 +832,27 @@ export function ClientAnalyticsDashboardPanel({
       setError(null);
 
       try {
+        if (shareUuid) {
+          const response = await getPublicSharedAnalyticsOverview(shareUuid, {
+            from_utc: fromUtc,
+            to_utc: toUtc,
+            symbol,
+            side,
+            session,
+          });
+
+          if (!cancelled) {
+            setOverview(response.data.overview);
+            setEquityCurve(response.data.equity_curve);
+          }
+
+          return;
+        }
+
+        if (!accountId) {
+          throw new Error("An account or shared metrics link is required.");
+        }
+
         const [overviewResponse, curveResponse] = await Promise.all([
           getAccountAnalyticsOverview(accountId, {
             from_utc: fromUtc,
@@ -843,7 +893,7 @@ export function ClientAnalyticsDashboardPanel({
     return () => {
       cancelled = true;
     };
-  }, [accountId, fromUtc, toUtc, refreshToken, active, symbol, side, session]);
+  }, [accountId, fromUtc, toUtc, refreshToken, active, symbol, side, session, shareUuid]);
 
   if (loading && !overview) {
     return (
@@ -886,18 +936,20 @@ export function ClientAnalyticsDashboardPanel({
     );
   }
 
-  const kpis = overview.kpis;
-  const costs = overview.costs;
-  const equity = overview.equity;
-  const risk = overview.risk;
-  const live = overview.live;
-  const health = overview.health;
-  const days = overview.days;
-  const streaks = overview.streaks;
+  const displayedOverview = liveDashboard?.overview ?? overview;
+  const displayedCurve = liveDashboard?.equity_curve ?? equityCurve;
+  const kpis = displayedOverview.kpis;
+  const costs = displayedOverview.costs;
+  const equity = displayedOverview.equity;
+  const risk = displayedOverview.risk;
+  const live = displayedOverview.live;
+  const health = displayedOverview.health;
+  const days = displayedOverview.days;
+  const streaks = displayedOverview.streaks;
   const hasTrades = kpis.trades > 0;
   const lastCurvePoint =
-    equityCurve && equityCurve.points.length > 0
-      ? equityCurve.points[equityCurve.points.length - 1]
+    displayedCurve && displayedCurve.points.length > 0
+      ? displayedCurve.points[displayedCurve.points.length - 1]
       : null;
   const adjustedEquity =
     lastCurvePoint?.equity_adj ?? live.equity ?? equity.equity_last;
@@ -909,17 +961,17 @@ export function ClientAnalyticsDashboardPanel({
         <p>
           Generated:{" "}
           <span className="font-medium tabular-nums text-foreground">
-            {new Date(overview.generated_at).toLocaleString("es-ES")}
+            {new Date(displayedOverview.generated_at).toLocaleString("es-ES")}
           </span>
         </p>
         <p>
           Range:{" "}
           <span className="font-medium text-foreground">
-            {overview.range.symbol ?? "All symbols"}
+            {displayedOverview.range.symbol ?? "All symbols"}
           </span>
           {" · "}
           <span className="font-medium text-foreground">
-            {overview.range.side ?? "Both sides"}
+            {displayedOverview.range.side ?? "Both sides"}
           </span>
         </p>
       </div>
@@ -971,9 +1023,9 @@ export function ClientAnalyticsDashboardPanel({
           </div>
           <div className="text-right text-xs text-muted-foreground">
             <div>Range return · flow-adjusted</div>
-            {equityCurve ? (
+            {displayedCurve ? (
               <div className="mt-1">
-                {equityCurve.trade_markers.length} trade markers
+                {displayedCurve.trade_markers.length} trade markers
               </div>
             ) : null}
           </div>
@@ -986,7 +1038,7 @@ export function ClientAnalyticsDashboardPanel({
             <span>Trade markers</span>
             <span>Flow-adjusted</span>
           </div>
-          <OverviewEquityChart curve={equityCurve} loading={loading} />
+          <OverviewEquityChart curve={displayedCurve} loading={loading} />
         </CardContent>
       </Card>
 
@@ -1112,8 +1164,8 @@ export function ClientAnalyticsDashboardPanel({
                 Trade distribution
               </div>
               <div className="mt-10 text-center text-sm text-muted-foreground">
-                {equityCurve?.trade_markers.length
-                  ? `${equityCurve.trade_markers.length} trades marked on the curve.`
+                {displayedCurve?.trade_markers.length
+                  ? `${displayedCurve.trade_markers.length} trades marked on the curve.`
                   : "No trades in the selected range."}
               </div>
             </div>

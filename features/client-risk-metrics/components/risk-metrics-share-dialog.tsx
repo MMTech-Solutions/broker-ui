@@ -54,9 +54,16 @@ export function RiskMetricsShareDialog({ accountId }: RiskMetricsShareDialogProp
   }, [accountId]);
 
   useEffect(() => {
-    if (open) {
-      void loadShare();
-    }
+    if (!open) return;
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void loadShare();
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, loadShare]);
 
   async function handleEnable() {
@@ -135,7 +142,7 @@ export function RiskMetricsShareDialog({ accountId }: RiskMetricsShareDialogProp
           </Button>
         }
       />
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Compartir métricas</DialogTitle>
           <DialogDescription>
@@ -143,7 +150,7 @@ export function RiskMetricsShareDialog({ accountId }: RiskMetricsShareDialogProp
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {error ? (
             <ApiErrorAlert
               title="Error al gestionar el enlace"
@@ -154,15 +161,15 @@ export function RiskMetricsShareDialog({ accountId }: RiskMetricsShareDialogProp
           {loading ? (
             <p className="text-sm text-muted-foreground">Cargando estado del enlace…</p>
           ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="space-y-0.5">
+            <div className="min-w-0 space-y-3">
+              <div className="flex min-w-0 flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 flex-1 space-y-0.5">
                   <p className="text-sm font-medium">Enlace público</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="break-words text-xs text-muted-foreground">
                     {isShared ? "Activo — cualquier persona con el enlace puede ver las métricas" : "Desactivado"}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
                   {isShared ? (
                     <Button
                       variant="outline"
@@ -185,9 +192,9 @@ export function RiskMetricsShareDialog({ accountId }: RiskMetricsShareDialogProp
               </div>
 
               {isShared && shareUrl ? (
-                <div className="space-y-2">
+                <div className="min-w-0 space-y-2">
                   <p className="text-xs font-medium text-muted-foreground">Enlace para compartir</p>
-                  <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-2">
+                  <div className="flex min-w-0 items-center gap-2 overflow-hidden rounded-md border bg-muted/40 p-2">
                     <p className="min-w-0 flex-1 truncate text-xs tabular-nums">
                       {shareUrl}
                     </p>
@@ -221,7 +228,7 @@ export function RiskMetricsShareDialog({ accountId }: RiskMetricsShareDialogProp
           )}
         </div>
 
-        <DialogFooter showCloseButton />
+        <DialogFooter className="min-w-0" showCloseButton />
       </DialogContent>
     </Dialog>
   );

@@ -38,19 +38,19 @@ export function useTradingStreamPhaseMetricsChannel({
 
     let disposed = false;
     let socket: WebSocket | null = null;
+    let startupTimer: ReturnType<typeof setTimeout> | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     let pingTimer: ReturnType<typeof setInterval> | null = null;
     let controller: AbortController | null = null;
     let reconnectAttempt = 0;
     let terminalFailure = false;
 
     const clearTimers = () => {
+      if (startupTimer) clearTimeout(startupTimer);
       if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (refreshTimer) clearTimeout(refreshTimer);
       if (pingTimer) clearInterval(pingTimer);
+      startupTimer = null;
       reconnectTimer = null;
-      refreshTimer = null;
       pingTimer = null;
     };
 
@@ -95,11 +95,6 @@ export function useTradingStreamPhaseMetricsChannel({
         }
         reconnectAttempt = 0;
         setStatus("connected");
-        const ttlSeconds = Math.max(15, payload.ttl_seconds ?? 30);
-        refreshTimer = setTimeout(
-          () => void subscribe(welcome),
-          Math.floor(ttlSeconds * 800),
-        );
       } catch {
         if (!disposed && !controller.signal.aborted) {
           setStatus("error");
@@ -166,7 +161,10 @@ export function useTradingStreamPhaseMetricsChannel({
       };
     };
 
-    connect();
+    startupTimer = setTimeout(() => {
+      startupTimer = null;
+      connect();
+    }, 0);
     return () => {
       disposed = true;
       clearTimers();

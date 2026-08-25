@@ -3,8 +3,8 @@ import { env } from "@/lib/env";
 export async function POST(request: Request): Promise<Response> {
   const body = await request.text();
   const upstreamUrl = new URL(
-    "/api/broker/v1/stream/public/subscribe",
-    env.tradingStreamUrl(),
+    "/api/broker/v1/internal/risk-metrics/shares/stream/authorize",
+    env.brokerServiceUrl(),
   );
 
   let upstream: Response;

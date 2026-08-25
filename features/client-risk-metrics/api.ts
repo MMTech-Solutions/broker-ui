@@ -2,6 +2,7 @@ import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 import type {
   AnalyticsBehavior,
+  AnalyticsDashboard,
   AnalyticsDailyDayTrades,
   AnalyticsDaily,
   AnalyticsDrawdowns,
@@ -35,6 +36,16 @@ export async function getPublicRiskMetricsSummary(
   return browserBrokerRequest<RiskMetricsSummary>(
     `${PUBLIC_SHARES_PATH}/${shareUuid}/summary`,
     { searchParams: params as Record<string, string | number | boolean> },
+  );
+}
+
+export async function getPublicSharedAnalyticsOverview(
+  shareUuid: string,
+  params: GetAnalyticsOverviewParams = {},
+): Promise<BrokerSuccessResponse<AnalyticsDashboard>> {
+  return browserBrokerRequest<AnalyticsDashboard>(
+    `${PUBLIC_SHARES_PATH}/${shareUuid}/analytics/overview`,
+    { searchParams: toSearchParams(params) },
   );
 }
 

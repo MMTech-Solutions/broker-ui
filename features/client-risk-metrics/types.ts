@@ -238,6 +238,11 @@ export type AnalyticsEquityCurve = {
   max_drawdown_point_index: number | null;
 };
 
+export type AnalyticsDashboard = {
+  overview: AnalyticsOverview;
+  equity_curve: AnalyticsEquityCurve;
+};
+
 export type AnalyticsSymbolSideStats = {
   side: string;
   trades: number;
