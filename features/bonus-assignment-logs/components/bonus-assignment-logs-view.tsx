@@ -847,6 +847,9 @@ function AssignmentsTable({
                 onKeyDown={onFilterEnter}
               />
             </TableHead>
+            <TableHead className="min-w-[110px] align-bottom">
+              Deposit
+            </TableHead>
             <TableHead className="min-w-[140px] align-bottom">
               <ColumnSortHead
                 label="Status"
@@ -979,7 +982,7 @@ function AssignmentsTable({
           {loading
             ? Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={`assignment-skeleton-${index}`}>
-                  {Array.from({ length: 16 }).map((__, cellIndex) => (
+                  {Array.from({ length: 17 }).map((__, cellIndex) => (
                     <TableCell
                       key={`assignment-skeleton-${index}-${cellIndex}`}
                     >
@@ -993,7 +996,7 @@ function AssignmentsTable({
           {!loading && assignments.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={16}
+                colSpan={17}
                 className="text-center text-muted-foreground"
               >
                 No bonus assignments found.
@@ -1039,6 +1042,11 @@ function AssignmentsTable({
                   </TableCell>
                   <TableCell>
                     {formatMoneyValue(assignment.credited_amount)}
+                  </TableCell>
+                  <TableCell>
+                    {assignment.deposit_amount
+                      ? formatMoneyValue(assignment.deposit_amount.major_units)
+                      : "â€”"}
                   </TableCell>
                   <TableCell>
                     <Badge

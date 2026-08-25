@@ -37,6 +37,12 @@ export type BonusAssignmentTradingAccount = {
   custom_name: string | null;
 };
 
+/** Deposit amount that originated a deposit-triggered bonus. */
+export type BonusAssignmentDepositAmount = {
+  minor_units: number;
+  major_units: string;
+};
+
 export type BonusAssignment = {
   id: string;
   bonus_offer_id: string;
@@ -53,6 +59,8 @@ export type BonusAssignment = {
   user?: BonusUserOwner;
   /** Major currency units (API converts from stored minor units). */
   credited_amount: string | number;
+  /** Null for bonuses not granted from a deposit. */
+  deposit_amount?: BonusAssignmentDepositAmount | null;
   currency?: string | null;
   currency_precision?: number | null;
   status: BonusAssignmentStatus;

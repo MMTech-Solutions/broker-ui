@@ -185,6 +185,21 @@ export function BonusAssignmentDetailDialog({
                   }
                 />
                 <DetailRow
+                  label="Deposit amount"
+                  value={
+                    assignment.deposit_amount ? (
+                      <span className="tabular-nums font-medium">
+                        {formatMoneyValue(assignment.deposit_amount.major_units)}
+                        {assignment.currency
+                          ? ` ${assignment.currency}`
+                          : ""}
+                      </span>
+                    ) : (
+                      "â€”"
+                    )
+                  }
+                />
+                <DetailRow
                   label="Required activity"
                   value={
                     <span className="tabular-nums">
