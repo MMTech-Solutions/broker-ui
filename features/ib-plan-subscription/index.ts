@@ -1,5 +1,6 @@
 export {
   createIbPlanSubscription,
+  listIbPlanSubscriptionAdminInteractions,
   listIbPlanSubscriptions,
   updateIbPlanSubscription,
   updateIbPlanSubscriptionParameters,
@@ -14,6 +15,9 @@ export type {
   CreateIbPlanSubscriptionInput,
   IbPlanProgramPlacement,
   IbPlanSubscription,
+  IbPlanSubscriptionAdmin,
+  IbPlanSubscriptionAdminInteraction,
+  IbPlanSubscriptionAdminInteractionAction,
   IbPlanSubscriptionFilterFormState,
   IbPlanSubscriptionListFilters,
   IbPlanSubscriptionOwner,

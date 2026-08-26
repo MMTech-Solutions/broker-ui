@@ -21,6 +21,27 @@ export type IbPlanSubscriptionOwner = {
   name: string;
 };
 
+export type IbPlanSubscriptionAdmin = {
+  id: string;
+  email: string | null;
+  name: string | null;
+};
+
+export type IbPlanSubscriptionAdminInteractionAction =
+  | "created_by_admin"
+  | "approved"
+  | "denied"
+  | "parameters_updated"
+  | "placement_updated";
+
+export type IbPlanSubscriptionAdminInteraction = {
+  id: string;
+  admin: IbPlanSubscriptionAdmin;
+  action: IbPlanSubscriptionAdminInteractionAction;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+};
+
 export type IbPlanSubscription = {
   id: string;
   user: IbPlanSubscriptionOwner;
@@ -32,6 +53,7 @@ export type IbPlanSubscription = {
   status: IbPlanSubscriptionStatus;
   comments: string | null;
   rejection_reason: string | null;
+  last_admin_action_by?: IbPlanSubscriptionAdmin | null;
   plan?: IbPlan;
   placement?: IbPlanProgramPlacement | null;
   created_at?: string;

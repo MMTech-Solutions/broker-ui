@@ -15,6 +15,7 @@ import {
   ArrowUpIcon,
   BarChart3Icon,
   CheckIcon,
+  ClipboardListIcon,
   EyeIcon,
   FilterXIcon,
   PencilIcon,
@@ -69,6 +70,7 @@ import {
   type IbPlanSubscriptionSortDirection,
 } from "@/features/ib-plan-subscription";
 import { IbPlanSubscriptionDetailDialog } from "@/features/ib-plan-subscription/components/ib-plan-subscription-detail-dialog";
+import { IbPlanSubscriptionAdminInteractionsDialog } from "@/features/ib-plan-subscription/components/ib-plan-subscription-admin-interactions-dialog";
 import { IbPlanSubscriptionFormDialog } from "@/features/ib-plan-subscription/components/ib-plan-subscription-form-dialog";
 import { IbPlanSubscriptionParametersDialog } from "@/features/ib-plan-subscription/components/ib-plan-subscription-parameters-dialog";
 import { IbPlanSubscriptionPlacementDialog } from "@/features/ib-plan-subscription/components/ib-plan-subscription-placement-dialog";
@@ -264,6 +266,7 @@ export function IbPlanSubscriptionsView({
   const [reviewMode, setReviewMode] = useState<"approve" | "reject">("approve");
   const [placementOpen, setPlacementOpen] = useState(false);
   const [parametersOpen, setParametersOpen] = useState(false);
+  const [interactionLogsOpen, setInteractionLogsOpen] = useState(false);
 
   const activePlanId = fixedIbPlanId ?? selectedPlanId;
 
@@ -462,6 +465,11 @@ export function IbPlanSubscriptionsView({
   function openParametersDialog(subscription: IbPlanSubscription) {
     setSelectedSubscription(subscription);
     setParametersOpen(true);
+  }
+
+  function openInteractionLogsDialog(subscription: IbPlanSubscription) {
+    setSelectedSubscription(subscription);
+    setInteractionLogsOpen(true);
   }
 
   const showPlanSelector = !fixedIbPlanId;
@@ -852,6 +860,7 @@ export function IbPlanSubscriptionsView({
                             <DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" aria-label={`Acciones para ${owner.name || owner.id}`} />}><MoreHorizontalIcon /></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => openDetailDialog(subscription)}><EyeIcon />Ver detalles</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openInteractionLogsDialog(subscription)}><ClipboardListIcon />Interaction logs</DropdownMenuItem>
                               <DropdownMenuItem disabled={!owner.id} onClick={() => owner.id && router.push(`/ib-analytics/${owner.id}`)}><BarChart3Icon />Ver métricas IB</DropdownMenuItem>
                               {subscription.status === "pending" || subscription.status === "active" ? <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => openParametersDialog(subscription)}><PencilIcon />Editar parámetros</DropdownMenuItem></> : null}
                               {subscription.status === "pending" ? <><DropdownMenuItem onClick={() => openReviewDialog(subscription, "approve")}><CheckIcon />Aprobar</DropdownMenuItem><DropdownMenuItem variant="destructive" onClick={() => openReviewDialog(subscription, "reject")}><XIcon />Rechazar</DropdownMenuItem></> : null}
@@ -931,6 +940,13 @@ export function IbPlanSubscriptionsView({
             open={parametersOpen}
             onOpenChange={setParametersOpen}
             onSuccess={handleMutationSuccess}
+          />
+
+          <IbPlanSubscriptionAdminInteractionsDialog
+            ibPlanId={activePlanId}
+            subscription={selectedSubscription}
+            open={interactionLogsOpen}
+            onOpenChange={setInteractionLogsOpen}
           />
         </>
       ) : null}

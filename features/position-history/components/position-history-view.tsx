@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { FilterXIcon, RefreshCwIcon, WifiIcon, WifiOffIcon } from "lucide-react";
+import { CoinsIcon, FilterXIcon, RefreshCwIcon, WifiIcon, WifiOffIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
@@ -15,6 +15,7 @@ import { formatNumber, formatOpenedAt, formatSide } from "@/features/client-posi
 import { useTradingStreamPositionsChannel } from "@/features/client-positions/hooks/use-trading-stream-positions-channel";
 import type { AccountPosition, OpenPositionsSnapshotPayload } from "@/features/client-positions/types";
 import { listGlobalPositions } from "@/features/position-history/api";
+import { PositionCommissionRewardsDialog } from "@/features/position-history/components/position-commission-rewards-dialog";
 import type { GlobalPosition, PositionHistoryFilters } from "@/features/position-history/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
@@ -118,15 +119,24 @@ export function PositionHistoryView() {
         {isLive ? <LiveStatusBadge status={liveStatus} /> : <Button variant="outline" size="sm" disabled={loading} onClick={() => void load()}><RefreshCwIcon className={loading ? "animate-spin" : undefined} data-icon="inline-start" />Refresh</Button>}
       </div>
       {!selectedAccount ? <p className="text-sm text-muted-foreground">Live positions require an exact account filter. Open and Closed use the local history.</p> : null}
-      {isLive ? <LivePositionsTable rows={liveRows} snapshot={latestSnapshot} /> : <HistoryPositionsTable rows={rows} loading={loading} />}
+      {isLive ? <LivePositionsTable rows={liveRows} snapshot={latestSnapshot} /> : <HistoryPositionsTable rows={rows} loading={loading} showCommissionRewards={tab === "closed"} />}
       {!isLive && error ? <ApiErrorAlert title="Could not load positions" message={error} /> : null}
       {!isLive && pagination ? <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Page {pagination.current_page} of {pagination.last_page} ({pagination.total} total)</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={loading || pagination.current_page <= 1} onClick={() => replace({ ...filters, page: pagination.current_page - 1 })}>Previous</Button><Button size="sm" variant="outline" disabled={loading || pagination.current_page >= pagination.last_page} onClick={() => replace({ ...filters, page: pagination.current_page + 1 })}>Next</Button></div></div> : null}
     </div>
   );
 }
 
-function HistoryPositionsTable({ rows, loading }: { rows: GlobalPosition[]; loading: boolean }) {
-  return <div className="min-w-0 overflow-x-auto rounded-xl border"><Table><TableHeader><TableRow><TableHead>Order</TableHead><TableHead>User</TableHead><TableHead>Account</TableHead><TableHead>Platform</TableHead><TableHead>Server group</TableHead><TableHead>Symbol</TableHead><TableHead>Side</TableHead><TableHead className="text-right">Volume</TableHead><TableHead className="text-right">Open</TableHead><TableHead className="text-right">Close</TableHead><TableHead className="text-right">Profit</TableHead><TableHead>Opened</TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.id}><TableCell className="font-mono text-xs">{row.order_id ?? row.id}</TableCell><TableCell>{row.user.name || row.user.id}<div className="text-xs text-muted-foreground">{row.user.email}</div></TableCell><TableCell>{row.trading_account.custom_name || row.trading_account.external_trader_id}</TableCell><TableCell>{row.platform.custom_name || row.platform.name || "—"}</TableCell><TableCell>{row.server_group.meta_name || row.server_group.name || "—"}</TableCell><TableCell>{row.symbol}</TableCell><TableCell>{formatSide(row.side)}</TableCell><TableCell className="text-right">{formatNumber(row.volume)}</TableCell><TableCell className="text-right">{formatNumber(row.open_price)}</TableCell><TableCell className="text-right">{formatNumber(row.close_price)}</TableCell><TableCell className="text-right">{formatNumber(row.profit)}</TableCell><TableCell>{formatOpenedAt(row.opened_at)}</TableCell></TableRow>)}{!loading && rows.length === 0 ? <TableRow><TableCell colSpan={12} className="h-24 text-center text-muted-foreground">No positions found.</TableCell></TableRow> : null}</TableBody></Table></div>;
+function HistoryPositionsTable({ rows, loading, showCommissionRewards }: { rows: GlobalPosition[]; loading: boolean; showCommissionRewards: boolean }) {
+  const [selectedPosition, setSelectedPosition] = useState<GlobalPosition | null>(null);
+  const [rewardsOpen, setRewardsOpen] = useState(false);
+  const columnCount = showCommissionRewards ? 13 : 12;
+
+  function openRewards(position: GlobalPosition) {
+    setSelectedPosition(position);
+    setRewardsOpen(true);
+  }
+
+  return <><div className="min-w-0 overflow-x-auto rounded-xl border"><Table><TableHeader><TableRow><TableHead>Order</TableHead><TableHead>User</TableHead><TableHead>Account</TableHead><TableHead>Platform</TableHead><TableHead>Server group</TableHead><TableHead>Symbol</TableHead><TableHead>Side</TableHead><TableHead className="text-right">Volume</TableHead><TableHead className="text-right">Open</TableHead><TableHead className="text-right">Close</TableHead><TableHead className="text-right">Profit</TableHead><TableHead>Opened</TableHead>{showCommissionRewards ? <TableHead className="text-right">Actions</TableHead> : null}</TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.id}><TableCell className="font-mono text-xs">{row.order_id ?? row.id}</TableCell><TableCell>{row.user.name || row.user.id}<div className="text-xs text-muted-foreground">{row.user.email}</div></TableCell><TableCell>{row.trading_account.custom_name || row.trading_account.external_trader_id}</TableCell><TableCell>{row.platform.custom_name || row.platform.name || "—"}</TableCell><TableCell>{row.server_group.meta_name || row.server_group.name || "—"}</TableCell><TableCell>{row.symbol}</TableCell><TableCell>{formatSide(row.side)}</TableCell><TableCell className="text-right">{formatNumber(row.volume)}</TableCell><TableCell className="text-right">{formatNumber(row.open_price)}</TableCell><TableCell className="text-right">{formatNumber(row.close_price)}</TableCell><TableCell className="text-right">{formatNumber(row.profit)}</TableCell><TableCell>{formatOpenedAt(row.opened_at)}</TableCell>{showCommissionRewards ? <TableCell className="text-right">{row.has_ib_commission_reward ? <Button type="button" variant="outline" size="sm" onClick={() => openRewards(row)}><CoinsIcon data-icon="inline-start" />View rewards</Button> : <Badge variant="outline">No rewards</Badge>}</TableCell> : null}</TableRow>)}{!loading && rows.length === 0 ? <TableRow><TableCell colSpan={columnCount} className="h-24 text-center text-muted-foreground">No positions found.</TableCell></TableRow> : null}</TableBody></Table></div><PositionCommissionRewardsDialog position={selectedPosition} open={rewardsOpen} onOpenChange={setRewardsOpen} /></>;
 }
 
 function LivePositionsTable({ rows, snapshot }: { rows: AccountPosition[]; snapshot: OpenPositionsSnapshotPayload | null }) {

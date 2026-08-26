@@ -2,6 +2,7 @@ import type {
   CreateIbPlanSubscriptionInput,
   IbPlanProgramPlacement,
   IbPlanSubscription,
+  IbPlanSubscriptionAdminInteraction,
   IbPlanSubscriptionListFilters,
   UpdateIbPlanProgramPlacementInput,
   UpdateIbPlanSubscriptionInput,
@@ -36,6 +37,22 @@ export async function listIbPlanSubscriptions(
   return browserBrokerRequest<IbPlanSubscription[]>(
     adminSubscriptionsPath(ibPlanId),
     { searchParams: toSearchParams(filters) },
+  );
+}
+
+export async function listIbPlanSubscriptionAdminInteractions(
+  ibPlanId: string,
+  subscriptionId: string,
+): Promise<BrokerSuccessResponse<IbPlanSubscriptionAdminInteraction[]>> {
+  return browserBrokerRequest<IbPlanSubscriptionAdminInteraction[]>(
+    `${adminSubscriptionsPath(ibPlanId, subscriptionId)}/admin-interactions`,
+    {
+      searchParams: {
+        per_page: 50,
+        sort_by: "created_at",
+        sort_direction: "desc",
+      },
+    },
   );
 }
 

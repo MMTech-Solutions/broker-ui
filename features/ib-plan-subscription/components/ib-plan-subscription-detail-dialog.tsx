@@ -123,6 +123,26 @@ export function IbPlanSubscriptionDetailDialog({
                 label="Updated"
                 value={formatDateTime(subscription.updated_at)}
               />
+              <DetailRow
+                label="Last admin action"
+                value={
+                  subscription.last_admin_action_by ? (
+                    <div className="flex flex-col gap-0.5">
+                      <span>
+                        {subscription.last_admin_action_by.name?.trim() || "—"}
+                      </span>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {subscription.last_admin_action_by.id}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {subscription.last_admin_action_by.email?.trim() || "—"}
+                      </span>
+                    </div>
+                  ) : (
+                    "—"
+                  )
+                }
+              />
             </dl>
 
             {subscription.status === "active" && subscription.placement ? (
