@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowDownIcon,
   ArrowUpDownIcon,
@@ -38,7 +39,6 @@ import {
   type TradingAccountAccessAction,
 } from "@/features/trading-account/components/trading-account-access-dialog";
 import { TradingAccountActionsMenu } from "@/features/trading-account/components/trading-account-actions-menu";
-import { TradingAccountPositionsDialog } from "@/features/trading-account/components/trading-account-positions-dialog";
 import { TradingAccountNotesDialog } from "@/features/trading-account/components/trading-account-notes-dialog";
 import { TradingAccountResetCredentialsDialog } from "@/features/trading-account/components/trading-account-reset-credentials-dialog";
 import {
@@ -264,6 +264,7 @@ function ColumnSortHead({
 }
 
 export function TradingAccountsView() {
+  const router = useRouter();
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [pagination, setPagination] = useState<BrokerPaginationMeta | null>(
     null,
@@ -304,10 +305,6 @@ export function TradingAccountsView() {
   const [accessAction, setAccessAction] =
     useState<TradingAccountAccessAction | null>(null);
   const [accessDialogOpen, setAccessDialogOpen] = useState(false);
-  const [positionsAccount, setPositionsAccount] = useState<TradingAccount | null>(
-    null,
-  );
-  const [positionsDialogOpen, setPositionsDialogOpen] = useState(false);
   const [resetAccount, setResetAccount] = useState<TradingAccount | null>(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [notesAccount, setNotesAccount] = useState<TradingAccount | null>(null);
@@ -491,8 +488,7 @@ export function TradingAccountsView() {
   }
 
   function openPositionsDialog(account: TradingAccount) {
-    setPositionsAccount(account);
-    setPositionsDialogOpen(true);
+    router.push(`/positions?account_id=${encodeURIComponent(account.id)}`);
   }
 
   function openAccessDialog(
@@ -1207,17 +1203,6 @@ export function TradingAccountsView() {
         }}
         onSuccess={() => {
           void loadTradingAccounts(page, pageSize, appliedFilters);
-        }}
-      />
-
-      <TradingAccountPositionsDialog
-        account={positionsAccount}
-        open={positionsDialogOpen}
-        onOpenChange={(open) => {
-          setPositionsDialogOpen(open);
-          if (!open) {
-            setPositionsAccount(null);
-          }
         }}
       />
 

@@ -49,6 +49,11 @@ const tradingNavigation = [
     icon: WalletIcon,
   },
   {
+    title: "Positions",
+    href: "/positions",
+    icon: HistoryIcon,
+  },
+  {
     title: "Leverages",
     href: "/leverages",
     icon: GaugeIcon,
