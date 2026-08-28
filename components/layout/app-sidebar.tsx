@@ -15,6 +15,7 @@ import {
   LayoutTemplateIcon,
   MedalIcon,
   MessageSquareWarningIcon,
+  FilePenLineIcon,
   PercentIcon,
   ScaleIcon,
   Settings2Icon,
@@ -177,6 +178,11 @@ const systemNavigation = [
     title: "Rejection templates",
     href: "/rejection-templates",
     icon: MessageSquareWarningIcon,
+  },
+  {
+    title: "Forms",
+    href: "/forms",
+    icon: FilePenLineIcon,
   },
 ] as const;
 
