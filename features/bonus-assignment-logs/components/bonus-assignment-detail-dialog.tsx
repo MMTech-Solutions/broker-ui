@@ -236,6 +236,27 @@ export function BonusAssignmentDetailDialog({
                   label="Cancellation reason code"
                   value={assignment.cancellation_reason_code ?? "—"}
                 />
+                {assignment.negative_balance_compensation ? (
+                  <DetailRow
+                    label="Negative-balance rebalance"
+                    value={
+                      <div className="space-y-1">
+                        <div>
+                          {assignment.negative_balance_compensation.observed_balance} {assignment.negative_balance_compensation.currency} → 0
+                        </div>
+                        <div className="text-muted-foreground">
+                          Status: {assignment.negative_balance_compensation.status}
+                          {assignment.negative_balance_compensation.applied_at
+                            ? ` · ${formatDateTimeValue(assignment.negative_balance_compensation.applied_at)}`
+                            : ""}
+                        </div>
+                        {assignment.negative_balance_compensation.failure_reason ? (
+                          <div className="text-destructive">{assignment.negative_balance_compensation.failure_reason}</div>
+                        ) : null}
+                      </div>
+                    }
+                  />
+                ) : null}
               </dl>
 
               <div className="space-y-3 rounded-lg border p-3">

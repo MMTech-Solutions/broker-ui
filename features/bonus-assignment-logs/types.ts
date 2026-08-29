@@ -11,6 +11,8 @@ export type BonusAssignmentStatus =
   | "pending_removal";
 
 export type DepositBonusIntentStatus = "watching" | "applied" | "cancelled";
+export type BonusNegativeBalanceCompensationStatus = "pending" | "applied" | "failed";
+export type BonusNegativeBalanceCompensation = { id: string; bonus_assignment_id: string; bonus_offer?: { id: string; name: string; is_active: boolean } | null; trading_account: { id: string }; user: BonusUserOwner; amount_minor: number; currency: string; currency_precision: number; observed_balance: string; target_balance: string; status: BonusNegativeBalanceCompensationStatus; failure_reason?: string | null; applied_at?: string | null; created_at?: string | null; updated_at?: string | null };
 
 /** Frozen excluded instrument on the assignment snapshot at grant time. */
 export type BonusAssignmentExcludedInstrument = {
@@ -91,6 +93,7 @@ export type BonusAssignment = {
   burn_on_negative_balance?: boolean | null;
   /** Snapshot: instruments excluded from activity. */
   excluded_instruments?: BonusAssignmentExcludedInstrument[];
+  negative_balance_compensation?: BonusNegativeBalanceCompensation | null;
   bonus_offer?: BonusOffer;
   created_at?: string | null;
   updated_at?: string | null;
@@ -287,7 +290,7 @@ export const DEPOSIT_BONUS_INTENT_STATUSES: {
   { value: "cancelled", label: "Cancelled" },
 ];
 
-export type BonusLogsTab = "assignments" | "deposit-intents";
+export type BonusLogsTab = "assignments" | "deposit-intents" | "negative-balance-rebalances";
 
 export function resolveBonusOwner(record: {
   user?: BonusUserOwner;

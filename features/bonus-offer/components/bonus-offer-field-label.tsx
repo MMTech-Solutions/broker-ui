@@ -51,6 +51,8 @@ export const BONUS_OFFER_FIELD_HELP = {
     "If enabled, an active bonus is cancelled immediately when the trader withdraws funds from the account.",
   burn_on_negative_balance:
     "If enabled, an active bonus is cancelled when effective equity drops to zero or below.",
+  rebalance_negative_balance:
+    "After a negative-balance burn, credits the trading account only when its real balance is below zero, bringing it to zero. Requires negative-balance burn.",
 } as const;
 
 type BonusOfferFieldLabelProps = {

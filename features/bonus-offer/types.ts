@@ -58,6 +58,7 @@ export type BonusOffer = {
   activity_per_credit_unit?: string | number | null;
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
+  rebalance_negative_balance?: boolean;
   currency?: string | null;
   currency_precision?: number | null;
   server_groups_count?: number;
@@ -123,6 +124,7 @@ export type BonusOfferListFilters = {
   activity_per_credit_unit?: number;
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
+  rebalance_negative_balance?: boolean;
   created_at?: string;
   updated_at?: string;
   server_groups_count?: number;
@@ -177,6 +179,7 @@ export type CreateBonusOfferInput = {
   activity_per_credit_unit?: string | number;
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
+  rebalance_negative_balance?: boolean;
   server_group_ids: string[];
   /** Only for deposit_triggered. Empty = default deposit offer (no IB link). */
   introducing_broker_external_user_ids?: string[];
@@ -203,6 +206,7 @@ export type UpdateBonusOfferInput = {
   activity_per_credit_unit?: string | number;
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
+  rebalance_negative_balance?: boolean;
 };
 
 export type DeleteBonusOfferInput = {

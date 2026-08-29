@@ -1,4 +1,5 @@
 export {
+  listBonusNegativeBalanceCompensations,
   getBonusAssignment,
   listBonusAssignments,
   listDepositBonusIntents,
@@ -25,6 +26,8 @@ export type {
   BonusAssignmentStatus,
   BonusListSortDirection,
   BonusLogsTab,
+  BonusNegativeBalanceCompensation,
+  BonusNegativeBalanceCompensationStatus,
   BonusUserOwner,
   DepositBonusIntent,
   DepositBonusIntentFilterFormState,

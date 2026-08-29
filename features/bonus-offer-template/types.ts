@@ -19,6 +19,7 @@ export type BonusOfferTemplate = {
   activity_per_credit_unit: string | number;
   burn_on_withdrawal: boolean;
   burn_on_negative_balance: boolean;
+  rebalance_negative_balance: boolean;
   min_deposit_amount: string | number;
   min_position_duration_seconds: string | number;
   is_active: boolean;
@@ -55,6 +56,7 @@ export type BonusOfferTemplateListFilters = {
   activity_per_credit_unit?: number;
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
+  rebalance_negative_balance?: boolean;
   min_deposit_amount?: number;
   min_position_duration_seconds?: number;
   is_active?: boolean;
@@ -96,6 +98,7 @@ export type CreateBonusOfferTemplateInput = {
   activity_per_credit_unit: string | number;
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
+  rebalance_negative_balance?: boolean;
   min_deposit_amount?: number;
   min_position_duration_seconds?: number;
   is_active?: boolean;
@@ -108,6 +111,7 @@ export type UpdateBonusOfferTemplateInput = {
   activity_per_credit_unit?: string | number;
   burn_on_withdrawal?: boolean;
   burn_on_negative_balance?: boolean;
+  rebalance_negative_balance?: boolean;
   min_deposit_amount?: number;
   min_position_duration_seconds?: number;
   is_active?: boolean;

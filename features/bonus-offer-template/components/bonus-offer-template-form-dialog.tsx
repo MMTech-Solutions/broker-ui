@@ -57,6 +57,7 @@ type FormState = {
   min_position_duration_seconds: string;
   burn_on_withdrawal: boolean;
   burn_on_negative_balance: boolean;
+  rebalance_negative_balance: boolean;
   is_active: boolean;
 };
 
@@ -69,6 +70,7 @@ const emptyForm: FormState = {
   min_position_duration_seconds: "0",
   burn_on_withdrawal: true,
   burn_on_negative_balance: true,
+  rebalance_negative_balance: false,
   is_active: true,
 };
 
@@ -84,6 +86,7 @@ function templateToForm(template: BonusOfferTemplate): FormState {
     ),
     burn_on_withdrawal: template.burn_on_withdrawal,
     burn_on_negative_balance: template.burn_on_negative_balance,
+    rebalance_negative_balance: template.rebalance_negative_balance ?? false,
     is_active: template.is_active,
   };
 }
@@ -99,6 +102,7 @@ function buildCreatePayload(form: FormState): CreateBonusOfferTemplateInput {
       Number(form.min_position_duration_seconds) || 0,
     burn_on_withdrawal: form.burn_on_withdrawal,
     burn_on_negative_balance: form.burn_on_negative_balance,
+    rebalance_negative_balance: form.rebalance_negative_balance,
     is_active: form.is_active,
   };
 }
@@ -114,6 +118,7 @@ function buildUpdatePayload(form: FormState): UpdateBonusOfferTemplateInput {
       Number(form.min_position_duration_seconds) || 0,
     burn_on_withdrawal: form.burn_on_withdrawal,
     burn_on_negative_balance: form.burn_on_negative_balance,
+    rebalance_negative_balance: form.rebalance_negative_balance,
     is_active: form.is_active,
   };
 }
@@ -477,6 +482,8 @@ export function BonusOfferTemplateFormDialog({
                         setForm((current) => ({
                           ...current,
                           burn_on_negative_balance: checked === true,
+                          rebalance_negative_balance:
+                            checked === true ? current.rebalance_negative_balance : false,
                         }))
                       }
                       disabled={submitting}
@@ -486,6 +493,17 @@ export function BonusOfferTemplateFormDialog({
                       help={BONUS_OFFER_FIELD_HELP.burn_on_negative_balance}
                     >
                       Burn on negative balance
+                    </BonusOfferFieldLabel>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="bonus-offer-template-rebalance-negative"
+                      checked={form.rebalance_negative_balance}
+                      onCheckedChange={(checked) => setForm((current) => ({ ...current, rebalance_negative_balance: checked === true }))}
+                      disabled={submitting || !form.burn_on_negative_balance}
+                    />
+                    <BonusOfferFieldLabel htmlFor="bonus-offer-template-rebalance-negative" help={BONUS_OFFER_FIELD_HELP.rebalance_negative_balance}>
+                      Rebalance negative balance to zero
                     </BonusOfferFieldLabel>
                   </div>
                 </div>

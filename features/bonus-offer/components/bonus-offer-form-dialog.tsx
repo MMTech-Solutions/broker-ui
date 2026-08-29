@@ -95,6 +95,7 @@ type FormState = {
   activity_per_credit_unit: string;
   burn_on_withdrawal: boolean;
   burn_on_negative_balance: boolean;
+  rebalance_negative_balance: boolean;
   server_group_ids: string[];
   introducing_broker_external_user_ids: string[];
 };
@@ -129,6 +130,7 @@ const emptyForm: FormState = {
   activity_per_credit_unit: "0.1",
   burn_on_withdrawal: true,
   burn_on_negative_balance: true,
+  rebalance_negative_balance: false,
   server_group_ids: [],
   introducing_broker_external_user_ids: [],
 };
@@ -213,6 +215,7 @@ function offerToForm(offer: BonusOffer, precision: number | null): FormState {
         : "",
     burn_on_withdrawal: offer.burn_on_withdrawal ?? true,
     burn_on_negative_balance: offer.burn_on_negative_balance ?? true,
+    rebalance_negative_balance: offer.rebalance_negative_balance ?? false,
     server_group_ids: (offer.server_groups ?? []).map(
       (entry) => entry.server_group_id,
     ),
@@ -232,6 +235,7 @@ function buildCreatePayload(
     is_active: form.is_active,
     burn_on_withdrawal: form.burn_on_withdrawal,
     burn_on_negative_balance: form.burn_on_negative_balance,
+    rebalance_negative_balance: form.rebalance_negative_balance,
     server_group_ids: form.server_group_ids,
   };
 
@@ -301,6 +305,7 @@ function buildUpdatePayload(
     activity_per_credit_unit: form.activity_per_credit_unit.trim(),
     burn_on_withdrawal: form.burn_on_withdrawal,
     burn_on_negative_balance: form.burn_on_negative_balance,
+    rebalance_negative_balance: form.rebalance_negative_balance,
   };
 
   // Only send is_active when activating, staying active, or deactivating.
@@ -1557,6 +1562,8 @@ export function BonusOfferFormDialog({
                         setForm((current) => ({
                           ...current,
                           burn_on_negative_balance: checked === true,
+                          rebalance_negative_balance:
+                            checked === true ? current.rebalance_negative_balance : false,
                         }))
                       }
                       disabled={submitting}
@@ -1566,6 +1573,17 @@ export function BonusOfferFormDialog({
                       help={BONUS_OFFER_FIELD_HELP.burn_on_negative_balance}
                     >
                       Burn on negative balance
+                    </BonusOfferFieldLabel>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="bonus-offer-rebalance-negative"
+                      checked={form.rebalance_negative_balance}
+                      onCheckedChange={(checked) => setForm((current) => ({ ...current, rebalance_negative_balance: checked === true }))}
+                      disabled={submitting || !form.burn_on_negative_balance}
+                    />
+                    <BonusOfferFieldLabel htmlFor="bonus-offer-rebalance-negative" help={BONUS_OFFER_FIELD_HELP.rebalance_negative_balance}>
+                      Rebalance negative balance to zero
                     </BonusOfferFieldLabel>
                   </div>
                 </div>

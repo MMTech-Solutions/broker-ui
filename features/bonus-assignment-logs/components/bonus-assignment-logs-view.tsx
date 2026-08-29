@@ -68,6 +68,7 @@ import {
 } from "@/features/bonus-assignment-logs";
 import { BonusAssignmentDetailDialog } from "@/features/bonus-assignment-logs/components/bonus-assignment-detail-dialog";
 import { CancelBonusAssignmentDialog } from "@/features/bonus-assignment-logs/components/cancel-bonus-assignment-dialog";
+import { NegativeBalanceRebalancesDataTable } from "@/features/bonus-assignment-logs/components/negative-balance-rebalances-data-table";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
@@ -81,6 +82,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const logsTabs: { value: BonusLogsTab; label: string }[] = [
   { value: "assignments", label: "Assignments" },
   { value: "deposit-intents", label: "Deposit intents" },
+  { value: "negative-balance-rebalances", label: "Negative balance rebalances" },
 ];
 
 function abbreviateUuid(value: string): string {
@@ -392,7 +394,7 @@ export function BonusAssignmentLogsView() {
       return;
     }
 
-    void loadIntents(page, intentFilters);
+    if (activeTab === "deposit-intents") void loadIntents(page, intentFilters);
   }, [
     activeTab,
     assignmentFilters,
@@ -583,7 +585,7 @@ export function BonusAssignmentLogsView() {
           onOpenDetail={openAssignmentDetail}
           onCancel={openCancelAssignment}
         />
-      ) : (
+      ) : activeTab === "deposit-intents" ? (
         <DepositIntentsTable
           loading={loading}
           intents={intents}
@@ -594,9 +596,11 @@ export function BonusAssignmentLogsView() {
           onFilterEnter={onIntentFilterEnter}
           onSort={toggleIntentSort}
         />
+      ) : (
+        <NegativeBalanceRebalancesDataTable />
       )}
 
-      <div className="flex items-center justify-between gap-4">
+      {activeTab !== "negative-balance-rebalances" ? <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">
           Page {pagination?.current_page ?? page} of {totalPages}
           {pagination?.total != null ? ` · ${pagination.total} records` : ""}
@@ -621,7 +625,7 @@ export function BonusAssignmentLogsView() {
             Next
           </Button>
         </div>
-      </div>
+      </div> : null}
 
       <BonusAssignmentDetailDialog
         assignmentId={selectedAssignmentId}
