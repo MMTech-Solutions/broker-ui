@@ -209,10 +209,12 @@ function ColumnSortHead({
 
 type ContestSubscriptionsViewProps = {
   initialContestId?: string;
+  embedded?: boolean;
 };
 
 export function ContestSubscriptionsView({
   initialContestId,
+  embedded = false,
 }: ContestSubscriptionsViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -401,8 +403,8 @@ export function ContestSubscriptionsView({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
-      <PageContentToolbar
+    <div className={embedded ? "flex flex-1 flex-col gap-4" : "flex flex-1 flex-col gap-4 p-4"}>
+      {!embedded ? <PageContentToolbar
         breadcrumbs={subscriptionsBreadcrumbs}
         backHref="/contests"
         backLabel="Ir atrás"
@@ -417,9 +419,9 @@ export function ContestSubscriptionsView({
             View exclusions
           </Button>
         ) : null}
-      </PageContentToolbar>
+      </PageContentToolbar> : null}
 
-      <div className="grid gap-4 rounded-xl border p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+      {!embedded ? <div className="grid gap-4 rounded-xl border p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="space-y-2">
           <Label htmlFor="contest-subscription-filter">Contest</Label>
           <Select
@@ -471,7 +473,7 @@ export function ContestSubscriptionsView({
               Clear filters
             </Button>
           </div>
-      </div>
+      </div> : null}
 
       {error ? (
         <ApiErrorAlert title="Could not load subscriptions" message={error} />

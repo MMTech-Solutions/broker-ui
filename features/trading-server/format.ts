@@ -32,6 +32,12 @@ const CONFIGURATION_WARNING_LABELS: Record<string, string> = {
   demo_default: "Demo groups should not be the system default group.",
   demo_deposit_enabled: "Demo groups should not have deposits enabled.",
   demo_withdrawal_enabled: "Demo groups should not have withdrawals enabled.",
+  contest_forced_account_group_not_demo:
+    "This group is assigned to a contest with forced account creation, which requires a Demo server group.",
+  contest_forced_account_group_deposit_enabled:
+    "This group is assigned to a contest with forced account creation and should not allow deposits.",
+  contest_forced_account_group_withdrawal_enabled:
+    "This group is assigned to a contest with forced account creation and should not allow withdrawals.",
   demo_default_amount: "Demo groups should not have a default amount.",
   demo_min_deposit: "Demo groups should not have a minimum deposit.",
   demo_min_withdrawal: "Demo groups should not have a minimum withdrawal.",

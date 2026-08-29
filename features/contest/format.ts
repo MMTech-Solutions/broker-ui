@@ -1,5 +1,18 @@
 import type { ContestStatus } from "@/features/contest/types";
 
+const CONTEST_WARNING_LABELS: Record<string, string> = {
+  contest_forced_account_group_not_demo:
+    "The server group is no longer Demo. Forced contest account creation requires a Demo group.",
+  contest_forced_account_group_deposit_enabled:
+    "The selected server group allows deposits. Disable deposits before using it to create contest accounts.",
+  contest_forced_account_group_withdrawal_enabled:
+    "The selected server group allows withdrawals. Disable withdrawals before using it to create contest accounts.",
+};
+
+export function formatContestWarning(code: string): string {
+  return CONTEST_WARNING_LABELS[code] ?? code;
+}
+
 export function formatContestDateTime(value?: string | null): string {
   if (!value) {
     return "—";

@@ -25,8 +25,15 @@ export type ClientEligibleAccount = {
 };
 
 export type SubscribeToContestInput = {
-  account_id: string;
+  account_id?: string;
+  initial_amount_id?: string;
+  leverage_id?: string;
   access_code?: string | null;
+};
+
+export type ContestRegistrationOptions = {
+  initial_amounts: { id: string; amount: number }[];
+  leverages: { id: string; name: string; value: number }[];
 };
 
 export type ClientContestLeaderboardFilters = {

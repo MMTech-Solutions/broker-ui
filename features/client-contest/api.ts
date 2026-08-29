@@ -8,8 +8,8 @@ import type {
   ContestGlobalSettings,
   ContestSubscription,
   SubscribeToContestInput,
+  ContestRegistrationOptions,
 } from "@/features/client-contest/types";
-import { brokerRequest } from "@/lib/api/broker-client";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
@@ -72,6 +72,14 @@ export async function listEligibleAccountsForContest(
 ): Promise<BrokerSuccessResponse<ClientEligibleAccount[]>> {
   return browserBrokerRequest<ClientEligibleAccount[]>(
     `${CONTESTS_PATH}/${contestId}/eligible-accounts`,
+  );
+}
+
+export async function getContestRegistrationOptions(
+  contestId: string,
+): Promise<BrokerSuccessResponse<ContestRegistrationOptions>> {
+  return browserBrokerRequest<ContestRegistrationOptions>(
+    `${CONTESTS_PATH}/${contestId}/registration-options`,
   );
 }
 

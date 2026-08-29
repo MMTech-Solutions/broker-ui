@@ -433,6 +433,10 @@ export async function loadContestFormCatalog(): Promise<{
           tradingServerLabel: tradingServer.connection_signature,
           currency: currency.code,
           currency_precision: currency.precision ?? undefined,
+          environment: serverGroup.environment,
+          is_deposit_enabled: serverGroup.is_deposit_enabled,
+          is_withdrawal_enabled: serverGroup.is_withdrawal_enabled,
+          configuration_warnings: serverGroup.configuration_warnings,
           label: buildServerGroupLabel(
             serverGroup,
             tradingServer.connection_signature,

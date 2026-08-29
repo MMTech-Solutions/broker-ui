@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  BanIcon,
   ClipboardListIcon,
   PencilIcon,
-  PlayIcon,
   PlusIcon,
   SettingsIcon,
   Trash2Icon,
@@ -17,6 +15,7 @@ import {
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,13 +36,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listContests } from "@/features/contest/api";
-import { ContestAssignedConditionsDialog } from "@/features/contest/components/contest-assigned-conditions-dialog";
-import { ContestAssignedAwardsDialog } from "@/features/contest/components/contest-assigned-awards-dialog";
 import { ContestDeleteDialog } from "@/features/contest/components/contest-delete-dialog";
-import { ContestFormDialog } from "@/features/contest/components/contest-form-dialog";
-import { ContestLifecycleDialog } from "@/features/contest/components/contest-lifecycle-dialog";
 import {
   formatContestDateRange,
+  formatContestWarning,
   formatMinorUnits,
   getContestStatusBadgeVariant,
 } from "@/features/contest/format";
@@ -78,29 +74,10 @@ export function ContestsView() {
   const [statusFilter, setStatusFilter] = useState<ContestStatus | "">("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState<"create" | "edit">("create");
-  const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [contestToDelete, setContestToDelete] = useState<Contest | null>(null);
-
-  const [lifecycleOpen, setLifecycleOpen] = useState(false);
-  const [lifecycleAction, setLifecycleAction] = useState<
-    "activate" | "cancel" | null
-  >(null);
-  const [contestForLifecycle, setContestForLifecycle] =
-    useState<Contest | null>(null);
-
-  const [awardsOpen, setAwardsOpen] = useState(false);
-  const [contestForAwards, setContestForAwards] = useState<Contest | null>(
-    null,
-  );
-
-  const [conditionsOpen, setConditionsOpen] = useState(false);
-  const [contestForConditions, setContestForConditions] =
-    useState<Contest | null>(null);
 
   const loadContests = useCallback(
     async (requestedPage: number, name?: string, status?: ContestStatus) => {
@@ -117,10 +94,12 @@ export function ContestsView() {
 
         setContests(response.data);
         setPagination(response.meta.pagination ?? null);
+        setWarnings(response.meta.warnings ?? []);
       } catch (loadError) {
         setError(formatBrokerApiError(loadError));
         setContests([]);
         setPagination(null);
+        setWarnings([]);
       } finally {
         setLoading(false);
       }
@@ -142,40 +121,9 @@ export function ContestsView() {
     setAppliedNameFilter(nameFilter.trim());
   }
 
-  function openCreateDialog() {
-    setFormMode("create");
-    setSelectedContest(null);
-    setFormOpen(true);
-  }
-
-  function openEditDialog(contest: Contest) {
-    setFormMode("edit");
-    setSelectedContest(contest);
-    setFormOpen(true);
-  }
-
   function openDeleteDialog(contest: Contest) {
     setContestToDelete(contest);
     setDeleteOpen(true);
-  }
-
-  function openLifecycleDialog(
-    contest: Contest,
-    action: "activate" | "cancel",
-  ) {
-    setContestForLifecycle(contest);
-    setLifecycleAction(action);
-    setLifecycleOpen(true);
-  }
-
-  function openAwardsDialog(contest: Contest) {
-    setContestForAwards(contest);
-    setAwardsOpen(true);
-  }
-
-  function openConditionsDialog(contest: Contest) {
-    setContestForConditions(contest);
-    setConditionsOpen(true);
   }
 
   function handleMutationSuccess() {
@@ -184,14 +132,6 @@ export function ContestsView() {
       appliedNameFilter || undefined,
       statusFilter || undefined,
     );
-  }
-
-  function canActivate(contest: Contest): boolean {
-    return contest.status === "draft";
-  }
-
-  function canCancel(contest: Contest): boolean {
-    return contest.status === "draft" || contest.status === "upcoming";
   }
 
   return (
@@ -213,7 +153,7 @@ export function ContestsView() {
           <SettingsIcon />
           Global settings
         </Button>
-        <Button onClick={openCreateDialog}>
+        <Button render={<Link href="/contests/new" />}>
           <PlusIcon />
           New contest
         </Button>
@@ -277,6 +217,19 @@ export function ContestsView() {
         <ApiErrorAlert title="Could not load contests" message={error} />
       ) : null}
 
+      {!loading && warnings.length > 0 ? (
+        <Alert variant="warning">
+          <AlertTitle>System configuration warnings</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc space-y-1 pl-4">
+              {warnings.map((warning) => (
+                <li key={warning}>{formatContestWarning(warning)}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="rounded-xl border">
         <Table>
           <TableHeader>
@@ -321,6 +274,14 @@ export function ContestsView() {
                         {contest.is_protected ? (
                           <Badge variant="outline">Protected</Badge>
                         ) : null}
+                        {(contest.warnings?.length ?? 0) > 0 ? (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                          >
+                            Needs review
+                          </Badge>
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -357,37 +318,13 @@ export function ContestsView() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        {canActivate(contest) ? (
-                          <ActionTooltipButton
-                            variant="ghost"
-                            size="icon-sm"
-                            tooltip={`Activate ${contest.name}`}
-                            onClick={() =>
-                              openLifecycleDialog(contest, "activate")
-                            }
-                          >
-                            <PlayIcon />
-                          </ActionTooltipButton>
-                        ) : null}
-                        {canCancel(contest) ? (
-                          <ActionTooltipButton
-                            variant="ghost"
-                            size="icon-sm"
-                            tooltip={`Cancel ${contest.name}`}
-                            onClick={() =>
-                              openLifecycleDialog(contest, "cancel")
-                            }
-                          >
-                            <BanIcon />
-                          </ActionTooltipButton>
-                        ) : null}
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"
                           tooltip={`View subscriptions for ${contest.name}`}
                           render={
                             <Link
-                              href={`/contest-subscriptions?contestId=${contest.id}`}
+                              href={`/contests/${contest.id}?tab=subscriptions`}
                             />
                           }
                         >
@@ -396,24 +333,8 @@ export function ContestsView() {
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"
-                          tooltip={`Manage awards for ${contest.name}`}
-                          onClick={() => openAwardsDialog(contest)}
-                        >
-                          <TrophyIcon />
-                        </ActionTooltipButton>
-                        <ActionTooltipButton
-                          variant="ghost"
-                          size="icon-sm"
-                          tooltip={`Manage conditions for ${contest.name}`}
-                          onClick={() => openConditionsDialog(contest)}
-                        >
-                          <ClipboardListIcon />
-                        </ActionTooltipButton>
-                        <ActionTooltipButton
-                          variant="ghost"
-                          size="icon-sm"
                           tooltip={`Edit ${contest.name}`}
-                          onClick={() => openEditDialog(contest)}
+                          render={<Link href={`/contests/${contest.id}?tab=general`} />}
                         >
                           <PencilIcon />
                         </ActionTooltipButton>
@@ -465,14 +386,6 @@ export function ContestsView() {
         </div>
       ) : null}
 
-      <ContestFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        mode={formMode}
-        contest={selectedContest}
-        onSuccess={handleMutationSuccess}
-      />
-
       <ContestDeleteDialog
         contest={contestToDelete}
         open={deleteOpen}
@@ -480,26 +393,6 @@ export function ContestsView() {
         onSuccess={handleMutationSuccess}
       />
 
-      <ContestLifecycleDialog
-        contest={contestForLifecycle}
-        action={lifecycleAction}
-        open={lifecycleOpen}
-        onOpenChange={setLifecycleOpen}
-        onSuccess={handleMutationSuccess}
-      />
-
-      <ContestAssignedAwardsDialog
-        contest={contestForAwards}
-        open={awardsOpen}
-        onOpenChange={setAwardsOpen}
-        onSuccess={handleMutationSuccess}
-      />
-
-      <ContestAssignedConditionsDialog
-        contest={contestForConditions}
-        open={conditionsOpen}
-        onOpenChange={setConditionsOpen}
-      />
     </div>
   );
 }

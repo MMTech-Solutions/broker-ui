@@ -24,12 +24,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   listEligibleAccountsForContest,
+  getContestRegistrationOptions,
   subscribeToContest,
 } from "@/features/client-contest/api";
 import type {
   ClientEligibleAccount,
   Contest,
   ContestSubscription,
+  ContestRegistrationOptions,
 } from "@/features/client-contest/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
@@ -48,6 +50,9 @@ export function ClientContestSubscribeDialog({
 }: ClientContestSubscribeDialogProps) {
   const [accounts, setAccounts] = useState<ClientEligibleAccount[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState("");
+  const [options, setOptions] = useState<ContestRegistrationOptions | null>(null);
+  const [selectedInitialAmountId, setSelectedInitialAmountId] = useState("");
+  const [selectedLeverageId, setSelectedLeverageId] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -66,15 +71,25 @@ export function ClientContestSubscribeDialog({
       setSelectedAccountId("");
 
       try {
-        const response = await listEligibleAccountsForContest(contest.id);
+        const response = contest.force_trading_account_creation
+          ? await getContestRegistrationOptions(contest.id)
+          : await listEligibleAccountsForContest(contest.id);
         if (!cancelled) {
-          setAccounts(response.data);
-          setSelectedAccountId(response.data[0]?.id ?? "");
+          if (contest.force_trading_account_creation) {
+            const registrationOptions = response as Awaited<ReturnType<typeof getContestRegistrationOptions>>;
+            setOptions(registrationOptions.data);
+            setSelectedInitialAmountId(registrationOptions.data.initial_amounts[0]?.id ?? "");
+            setSelectedLeverageId(registrationOptions.data.leverages[0]?.id ?? "");
+          } else {
+            const eligibleAccounts = response as Awaited<ReturnType<typeof listEligibleAccountsForContest>>;
+            setAccounts(eligibleAccounts.data);
+            setSelectedAccountId(eligibleAccounts.data[0]?.id ?? "");
+          }
         }
       } catch (loadError) {
         if (!cancelled) {
           setError(formatBrokerApiError(loadError));
-          setAccounts([]);
+          setAccounts([]); setOptions(null);
         }
       } finally {
         if (!cancelled) {
@@ -88,14 +103,14 @@ export function ClientContestSubscribeDialog({
     return () => {
       cancelled = true;
     };
-  }, [contest.id, open]);
+  }, [contest.id, contest.force_trading_account_creation, open]);
 
   const selectedAccount = accounts.find(
     (account) => account.id === selectedAccountId,
   );
 
   async function handleSubmit() {
-    if (!selectedAccountId) {
+    if (!contest.force_trading_account_creation && !selectedAccountId) {
       setError("Selecciona una cuenta de trading elegible.");
       return;
     }
@@ -105,7 +120,9 @@ export function ClientContestSubscribeDialog({
 
     try {
       const response = await subscribeToContest(contest.id, {
-        account_id: selectedAccountId,
+        ...(contest.force_trading_account_creation
+          ? { initial_amount_id: selectedInitialAmountId, leverage_id: selectedLeverageId }
+          : { account_id: selectedAccountId }),
         access_code: contest.is_protected ? accessCode.trim() || null : null,
       });
       onSubscribed(response.data);
@@ -133,6 +150,11 @@ export function ClientContestSubscribeDialog({
         <div className="space-y-4">
           {loadingAccounts ? (
             <Skeleton className="h-10 w-full" />
+          ) : contest.force_trading_account_creation ? (
+            <div className="space-y-4">
+              <div className="space-y-2"><Label>Monto inicial</Label><Select value={selectedInitialAmountId} onValueChange={(value) => setSelectedInitialAmountId(value ?? "")}><SelectTrigger><SelectValue placeholder="Selecciona un monto" /></SelectTrigger><SelectContent>{options?.initial_amounts.map((amount) => <SelectItem key={amount.id} value={amount.id}>{amount.amount}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>Leverage</Label><Select value={selectedLeverageId} onValueChange={(value) => setSelectedLeverageId(value ?? "")}><SelectTrigger><SelectValue placeholder="Selecciona un leverage" /></SelectTrigger><SelectContent>{options?.leverages.map((leverage) => <SelectItem key={leverage.id} value={leverage.id}>{leverage.name}</SelectItem>)}</SelectContent></Select></div>
+            </div>
           ) : accounts.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No tienes cuentas elegibles para este concurso. Verifica el grupo
@@ -182,7 +204,7 @@ export function ClientContestSubscribeDialog({
             Cancelar
           </Button>
           <Button
-            disabled={submitting || loadingAccounts || accounts.length === 0}
+            disabled={submitting || loadingAccounts || (contest.force_trading_account_creation ? !selectedInitialAmountId || !selectedLeverageId : accounts.length === 0)}
             onClick={() => void handleSubmit()}
           >
             {submitting ? "Inscribiendo…" : "Confirmar inscripción"}

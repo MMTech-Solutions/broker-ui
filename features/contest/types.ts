@@ -28,7 +28,9 @@ export type Contest = {
   ends_at: string | null;
   linked_ib_user_id: string | null;
   server_group_id: string;
+  force_trading_account_creation: boolean;
   status: ContestStatus;
+  warnings?: string[];
   start_reminder_notified_at?: string | null;
   closing_alert_notified_at?: string | null;
   subscriptions_count?: number;
@@ -270,6 +272,10 @@ export type ContestFormCatalogServerGroup = {
   tradingServerLabel: string;
   currency?: string;
   currency_precision?: number;
+  environment?: number | null;
+  is_deposit_enabled?: boolean;
+  is_withdrawal_enabled?: boolean;
+  configuration_warnings?: string[] | null;
 };
 
 export type ContestListFilters = {
@@ -297,6 +303,7 @@ export type CreateContestInput = {
   ends_at: string;
   linked_ib_user_id?: string | null;
   server_group_id: string;
+  force_trading_account_creation?: boolean;
 };
 
 export type UpdateContestInput = {
@@ -309,6 +316,7 @@ export type UpdateContestInput = {
   ends_at?: string;
   linked_ib_user_id?: string | null;
   server_group_id?: string;
+  force_trading_account_creation?: boolean;
 };
 
 export type ContestAwardListFilters = {
