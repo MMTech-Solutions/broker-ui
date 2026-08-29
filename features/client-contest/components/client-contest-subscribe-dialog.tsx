@@ -42,6 +42,23 @@ type ClientContestSubscribeDialogProps = {
   onSubscribed: (subscription: ContestSubscription) => void;
 };
 
+function hasValidRegistrationOptions(
+  options: ContestRegistrationOptions,
+): boolean {
+  return (
+    options.initial_amounts.length > 0 &&
+    options.initial_amounts.every(
+      (option) =>
+        typeof option.amount === "number" && Number.isFinite(option.amount),
+    ) &&
+    options.leverages.length > 0 &&
+    options.leverages.every(
+      (option) =>
+        typeof option.name === "string" && typeof option.value === "number",
+    )
+  );
+}
+
 export function ClientContestSubscribeDialog({
   contest,
   open,
@@ -77,6 +94,13 @@ export function ClientContestSubscribeDialog({
         if (!cancelled) {
           if (contest.force_trading_account_creation) {
             const registrationOptions = response as Awaited<ReturnType<typeof getContestRegistrationOptions>>;
+
+            if (!hasValidRegistrationOptions(registrationOptions.data)) {
+              throw new Error(
+                "No se pudieron cargar correctamente los montos y leverages del contest.",
+              );
+            }
+
             setOptions(registrationOptions.data);
             setSelectedInitialAmountId(registrationOptions.data.initial_amounts[0]?.id ?? "");
             setSelectedLeverageId(registrationOptions.data.leverages[0]?.id ?? "");
@@ -152,8 +176,44 @@ export function ClientContestSubscribeDialog({
             <Skeleton className="h-10 w-full" />
           ) : contest.force_trading_account_creation ? (
             <div className="space-y-4">
-              <div className="space-y-2"><Label>Monto inicial</Label><Select value={selectedInitialAmountId} onValueChange={(value) => setSelectedInitialAmountId(value ?? "")}><SelectTrigger><SelectValue placeholder="Selecciona un monto" /></SelectTrigger><SelectContent>{options?.initial_amounts.map((amount) => <SelectItem key={amount.id} value={amount.id}>{amount.amount}</SelectItem>)}</SelectContent></Select></div>
-              <div className="space-y-2"><Label>Leverage</Label><Select value={selectedLeverageId} onValueChange={(value) => setSelectedLeverageId(value ?? "")}><SelectTrigger><SelectValue placeholder="Selecciona un leverage" /></SelectTrigger><SelectContent>{options?.leverages.map((leverage) => <SelectItem key={leverage.id} value={leverage.id}>{leverage.name}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2">
+                <Label>Monto inicial</Label>
+                <Select
+                  value={selectedInitialAmountId}
+                  onValueChange={(value) =>
+                    setSelectedInitialAmountId(value ?? "")
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un monto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {options?.initial_amounts.map((amount) => (
+                      <SelectItem key={amount.id} value={amount.id}>
+                        {amount.amount.toLocaleString()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Leverage</Label>
+                <Select
+                  value={selectedLeverageId}
+                  onValueChange={(value) => setSelectedLeverageId(value ?? "")}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un leverage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {options?.leverages.map((leverage) => (
+                      <SelectItem key={leverage.id} value={leverage.id}>
+                        {leverage.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           ) : accounts.length === 0 ? (
             <p className="text-sm text-muted-foreground">
