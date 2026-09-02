@@ -3,6 +3,8 @@ import type {
   IbActivePlanContext,
   IbPlanProgressionLog,
   IbPlanProgressionLogListFilters,
+  IbSubscriptionFormInput,
+  IbSubscriptionFormRuntime,
 } from "@/features/client-ib/types";
 import { ibPlanImageUrl } from "@/features/ib-plan/image";
 import type { IbPlanSubscription } from "@/features/ib-plan-subscription/types";
@@ -89,13 +91,22 @@ export async function getActiveIbPlanContext(): Promise<
 
 export async function subscribeToIbPlan(
   ibPlanId: string,
+  formSubmission?: IbSubscriptionFormInput,
 ): Promise<BrokerSuccessResponse<IbPlanSubscription>> {
   return browserBrokerRequest<IbPlanSubscription>(
     `${IB_PLANS_PATH}/${ibPlanId}/subscriptions`,
     {
       method: "POST",
-      body: {},
+      body: formSubmission ? { form_submission: formSubmission } : {},
     },
+  );
+}
+
+export async function getIbPlanSubscriptionForm(
+  ibPlanId: string,
+): Promise<BrokerSuccessResponse<IbSubscriptionFormRuntime>> {
+  return browserBrokerRequest<IbSubscriptionFormRuntime>(
+    `${IB_PLANS_PATH}/${ibPlanId}/subscription-form`,
   );
 }
 

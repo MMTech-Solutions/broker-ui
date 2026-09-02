@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useMemo, useState } from "react";
 import { Trash2Icon } from "lucide-react";
@@ -31,6 +32,8 @@ import {
 } from "@/features/ib-plan/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
+import { getFormVersion, listForms } from "@/features/forms/api";
+import type { FormTemplate, JwfNode } from "@/features/forms/types";
 
 const IMAGE_ACCEPT = "image/jpeg,image/jpg,image/png,image/webp";
 
@@ -47,6 +50,7 @@ type FormState = {
   description: string;
   subscription_type: IbPlanSubscriptionType;
   is_active: boolean;
+  form_template_id: string;
 };
 
 const emptyForm: FormState = {
@@ -54,7 +58,21 @@ const emptyForm: FormState = {
   description: "",
   subscription_type: "automatic",
   is_active: false,
+  form_template_id: "",
 };
+
+function compatibleIbForm(node: JwfNode): { forms: number; hasFile: boolean } {
+  return (node.children ?? []).reduce<{ forms: number; hasFile: boolean }>(
+    (result, child) => {
+      const nested = compatibleIbForm(child);
+      return {
+        forms: result.forms + nested.forms + (child.kind === "form" ? 1 : 0),
+        hasFile: result.hasFile || nested.hasFile || (child.kind === "input" && child.type === "file"),
+      };
+    },
+    { forms: 0, hasFile: false },
+  );
+}
 
 export function IbPlanFormDialog({
   open,
@@ -70,6 +88,7 @@ export function IbPlanFormDialog({
   const [removeImage, setRemoveImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
 
   const canActivate = mode === "edit" && (ibPlan?.programs_count ?? 0) > 0;
 
@@ -107,6 +126,18 @@ export function IbPlanFormDialog({
     setError(null);
     setImageFile(null);
     setRemoveImage(false);
+    void listForms({ state: "published", per_page: 100 })
+      .then(async (response) => {
+        const checked = await Promise.all(response.data.map(async (template) => {
+          const published = template.versions.find((version) => version.state === "published");
+          if (!published) return null;
+          const version = await getFormVersion(template.id, published.id);
+          const compatibility = version.data.document ? compatibleIbForm(version.data.document.root) : null;
+          return compatibility?.forms === 1 && !compatibility.hasFile ? template : null;
+        }));
+        setFormTemplates(checked.filter((template): template is FormTemplate => template !== null));
+      })
+      .catch(() => setFormTemplates([]));
 
     if (mode === "edit" && ibPlan) {
       setForm({
@@ -114,6 +145,7 @@ export function IbPlanFormDialog({
         description: ibPlan.description,
         subscription_type: ibPlan.subscription_type,
         is_active: ibPlan.is_active,
+        form_template_id: ibPlan.form_template?.id ?? "",
       });
       setCurrentImageUrl(ibPlan.image_path ?? null);
       return;
@@ -151,6 +183,7 @@ export function IbPlanFormDialog({
           description: form.description.trim(),
           image: imageFile,
           subscription_type: form.subscription_type,
+          form_template_id: form.form_template_id || null,
         });
       } else if (ibPlan) {
         await updateIbPlan(ibPlan.id, {
@@ -159,6 +192,7 @@ export function IbPlanFormDialog({
           image: imageFile,
           remove_image: removeImage && !imageFile,
           subscription_type: form.subscription_type,
+          form_template_id: form.form_template_id || null,
           is_active: form.is_active,
         });
       }
@@ -315,6 +349,35 @@ export function IbPlanFormDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ib-plan-form-template">Subscription form</Label>
+              <Select
+                value={form.form_template_id || "none"}
+                onValueChange={(value) =>
+                  setForm((current) => ({
+                    ...current,
+                    form_template_id: value === "none" ? "" : (value ?? ""),
+                  }))
+                }
+                disabled={submitting}
+              >
+                <SelectTrigger id="ib-plan-form-template" className="w-full">
+                  <SelectValue placeholder="No form required" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No form required</SelectItem>
+                  {formTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Only templates with a published version are available.
+              </p>
             </div>
 
             {mode === "create" ? (

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +45,18 @@ function previewVersion(template: FormTemplate) {
     template.versions.find((version) => version.state === "published") ??
     editableVersion(template)
   );
+}
+
+function formatVersionDate(value?: string) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function builderPath(
@@ -182,29 +195,39 @@ export function FormsListView() {
 
       {error ? <ApiErrorAlert title="Forms" message={error} /> : null}
 
-      <div className="rounded-xl border">
+      <div className="overflow-x-auto rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Versions</TableHead>
+              <TableHead>Total versions</TableHead>
+              <TableHead>Draft</TableHead>
               <TableHead>Published</TableHead>
+              <TableHead>Archived</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Last updated</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4}>Loading forms…</TableCell>
+                <TableCell colSpan={8}>Loading forms…</TableCell>
               </TableRow>
             ) : forms.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4}>No forms created yet.</TableCell>
+                <TableCell colSpan={8}>No forms created yet.</TableCell>
               </TableRow>
             ) : (
               forms.map((template) => {
-                const active = template.versions.find(
+                const draft = template.versions.find(
+                  (version) => version.state === "draft",
+                );
+                const published = template.versions.find(
                   (version) => version.state === "published",
+                );
+                const archived = template.versions.filter(
+                  (version) => version.state === "archived",
                 );
 
                 return (
@@ -213,7 +236,21 @@ export function FormsListView() {
                       {template.name}
                     </TableCell>
                     <TableCell>{template.versions.length}</TableCell>
-                    <TableCell>{active ? `v${active.number}` : "—"}</TableCell>
+                    <TableCell>
+                      {draft ? <Badge variant="outline">v{draft.number}</Badge> : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {published ? <Badge>v{published.number}</Badge> : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {archived.length > 0
+                        ? archived.map((version) => `v${version.number}`).join(", ")
+                        : "—"}
+                    </TableCell>
+                    <TableCell>{formatVersionDate(template.created_at)}</TableCell>
+                    <TableCell>
+                      {formatVersionDate(template.updated_at)}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button
@@ -232,7 +269,7 @@ export function FormsListView() {
                         >
                           <PencilIcon />
                         </Button>
-                        {active ? (
+                        {published ? (
                           <Button
                             size="icon-sm"
                             variant="ghost"

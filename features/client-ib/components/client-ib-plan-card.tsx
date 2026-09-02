@@ -22,12 +22,14 @@ import {
 import type { ClientIbPlan } from "@/features/client-ib/types";
 import type { IbPlanSubscription } from "@/features/ib-plan-subscription/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
+import { IbSubscriptionFormDialog } from "@/features/client-ib/components/ib-subscription-form-dialog";
+import type { IbSubscriptionFormInput } from "@/features/client-ib/types";
 
 type ClientIbPlanCardProps = {
   plan: ClientIbPlan;
   mySubscription: IbPlanSubscription | null;
   subscribingPlanId: string | null;
-  onSubscribe: (planId: string) => Promise<void>;
+  onSubscribe: (planId: string, formSubmission?: IbSubscriptionFormInput) => Promise<void>;
 };
 
 export function ClientIbPlanCard({
@@ -37,6 +39,7 @@ export function ClientIbPlanCard({
   onSubscribe,
 }: ClientIbPlanCardProps) {
   const [error, setError] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   const isThisPlan = mySubscription?.ib_plan_id === plan.id;
   const hasOpenSubscription =
@@ -73,6 +76,10 @@ export function ClientIbPlanCard({
     } catch (subscribeError) {
       setError(formatBrokerApiError(subscribeError));
     }
+  }
+
+  async function handleFormSubmit(formSubmission: IbSubscriptionFormInput) {
+    await onSubscribe(plan.id, formSubmission);
   }
 
   return (
@@ -140,7 +147,7 @@ export function ClientIbPlanCard({
           <Button
             type="button"
             disabled={subscribingPlanId === plan.id}
-            onClick={() => void handleSubscribe()}
+            onClick={() => plan.requires_subscription_form ? setFormOpen(true) : void handleSubscribe()}
           >
             {subscribingPlanId === plan.id
               ? "Procesando..."
@@ -152,6 +159,7 @@ export function ClientIbPlanCard({
           <p className="text-sm text-muted-foreground">{subscribeDisabledReason}</p>
         ) : null}
       </CardFooter>
+      {plan.requires_subscription_form ? <IbSubscriptionFormDialog planId={plan.id} planName={plan.name} open={formOpen} onOpenChange={setFormOpen} onSubmit={handleFormSubmit} /> : null}
     </Card>
   );
 }

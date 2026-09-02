@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BrokerRequestCredentials } from "@/components/auth/broker-request-credentials";
 import { SiteHeader } from "@/components/layout/site-header";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ClientContestHelpCard } from "@/features/client-contest/components/client-contest-help-card";
+import { jwtPayloadSegment } from "@/lib/auth/jwt";
+import { readSession } from "@/lib/auth/session.server";
 
-export default function ClientHomePage() {
+export default async function ClientHomePage() {
+  const session = await readSession("client");
+  const accessToken = session?.access_token ?? null;
+
   return (
     <>
       <SiteHeader
@@ -20,9 +26,12 @@ export default function ClientHomePage() {
         description="Gestiona tus cuentas de trading y participa en concursos."
       />
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <PageContentToolbar
-          breadcrumbs={[{ label: "Inicio", current: true }]}
-        />
+        <PageContentToolbar breadcrumbs={[{ label: "Inicio", current: true }]}>
+          <BrokerRequestCredentials
+            accessToken={accessToken}
+            userinfo={accessToken ? jwtPayloadSegment(accessToken) : null}
+          />
+        </PageContentToolbar>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Card>
             <CardHeader>

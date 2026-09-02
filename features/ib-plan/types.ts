@@ -6,6 +6,8 @@ export type IbPlan = {
   description: string;
   image_path: string | null;
   subscription_type: IbPlanSubscriptionType;
+  requires_subscription_form: boolean;
+  form_template?: { id: string; name: string | null } | null;
   is_active: boolean;
   programs_count?: number;
   /** Solo presente para usuarios con `broker.ib_plan.manage`. */
@@ -31,6 +33,7 @@ export type CreateIbPlanInput = {
   description: string;
   image?: File | null;
   subscription_type?: IbPlanSubscriptionType;
+  form_template_id?: string | null;
   is_active?: boolean;
 };
 
@@ -40,6 +43,7 @@ export type UpdateIbPlanInput = {
   image?: File | null;
   remove_image?: boolean;
   subscription_type?: IbPlanSubscriptionType;
+  form_template_id?: string | null;
   is_active?: boolean;
 };
 

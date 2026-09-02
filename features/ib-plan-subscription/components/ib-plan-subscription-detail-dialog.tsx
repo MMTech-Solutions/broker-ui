@@ -182,6 +182,7 @@ export function IbPlanSubscriptionDetailDialog({
                 </dl>
               </div>
             ) : null}
+
           </div>
         ) : null}
 

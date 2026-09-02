@@ -1,5 +1,6 @@
 import type { IbPlan } from "@/features/ib-plan/types";
 import type { IbProgram } from "@/features/ib-program/types";
+import type { JwfDocument } from "@/features/forms/types";
 
 export type IbPlanSubscriptionStatus = "pending" | "active" | "denied";
 
@@ -58,6 +59,23 @@ export type IbPlanSubscription = {
   placement?: IbPlanProgramPlacement | null;
   created_at?: string;
   updated_at?: string;
+  has_form_submission?: boolean;
+};
+
+export type IbPlanSubscriptionFormSubmission = {
+  submission_id: string;
+  submitted_at: string;
+  template_id: string;
+  template_name: string | null;
+  form_version_id: string;
+  version_number: number;
+  form_id: string;
+  document: JwfDocument;
+  answers: Array<{
+    input_id: string;
+    value: string | number | boolean | null;
+    sensitive: boolean;
+  }>;
 };
 
 export type IbPlanSubscriptionSortBy =

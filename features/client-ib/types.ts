@@ -4,6 +4,7 @@ import type {
   IbPlanSubscription,
 } from "@/features/ib-plan-subscription/types";
 import type { IbProgram } from "@/features/ib-program/types";
+import type { JwfDocument } from "@/features/forms/types";
 
 export type ClientIbPlan = IbPlan & {
   programs?: IbPlanProgram[];
@@ -13,6 +14,21 @@ export type IbActivePlanContext = {
   subscription: IbPlanSubscription;
   placement: IbPlanProgramPlacement;
   program: IbProgram;
+};
+
+export type IbSubscriptionFormRuntime = {
+  template_id: string;
+  template_name: string;
+  form_version_id: string;
+  version_number: number;
+  form_id: string;
+  document: JwfDocument;
+};
+
+export type IbSubscriptionFormInput = {
+  form_version_id: string;
+  form_id: string;
+  values: Record<string, string | number | boolean | null>;
 };
 
 export type IbPlanProgressionDirection =

@@ -4,6 +4,7 @@ import type {
   IbPlanSubscription,
   IbPlanSubscriptionAdminInteraction,
   IbPlanSubscriptionListFilters,
+  IbPlanSubscriptionFormSubmission,
   UpdateIbPlanProgramPlacementInput,
   UpdateIbPlanSubscriptionInput,
   UpdateIbPlanSubscriptionParametersInput,
@@ -18,6 +19,15 @@ function adminSubscriptionsPath(
   const base = `v1/admin/ib-plans/${ibPlanId}/subscriptions`;
 
   return subscriptionId ? `${base}/${subscriptionId}` : base;
+}
+
+export async function getIbPlanSubscriptionFormSubmission(
+  ibPlanId: string,
+  subscriptionId: string,
+): Promise<BrokerSuccessResponse<IbPlanSubscriptionFormSubmission>> {
+  return browserBrokerRequest<IbPlanSubscriptionFormSubmission>(
+    `${adminSubscriptionsPath(ibPlanId, subscriptionId)}/form-submission`,
+  );
 }
 
 function toSearchParams(

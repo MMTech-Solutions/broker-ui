@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -19,6 +20,7 @@ import { ClientIbProgressionPanel } from "@/features/client-ib/components/client
 import type {
   ClientIbPlan,
   IbActivePlanContext,
+  IbSubscriptionFormInput,
 } from "@/features/client-ib/types";
 import type { IbPlanSubscription } from "@/features/ib-plan-subscription/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
@@ -96,11 +98,11 @@ export function ClientIbDashboardView() {
     void loadDashboard();
   }, [loadDashboard]);
 
-  async function handleSubscribe(planId: string) {
+  async function handleSubscribe(planId: string, formSubmission?: IbSubscriptionFormInput) {
     setSubscribingPlanId(planId);
 
     try {
-      await subscribeToIbPlan(planId);
+      await subscribeToIbPlan(planId, formSubmission);
       await loadDashboard();
     } finally {
       setSubscribingPlanId(null);

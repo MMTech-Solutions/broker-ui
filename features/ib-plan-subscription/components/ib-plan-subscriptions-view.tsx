@@ -70,6 +70,7 @@ import {
   type IbPlanSubscriptionSortDirection,
 } from "@/features/ib-plan-subscription";
 import { IbPlanSubscriptionDetailDialog } from "@/features/ib-plan-subscription/components/ib-plan-subscription-detail-dialog";
+import { IbPlanSubscriptionFormSubmissionDialog } from "@/features/ib-plan-subscription/components/ib-plan-subscription-form-submission-dialog";
 import { IbPlanSubscriptionAdminInteractionsDialog } from "@/features/ib-plan-subscription/components/ib-plan-subscription-admin-interactions-dialog";
 import { IbPlanSubscriptionFormDialog } from "@/features/ib-plan-subscription/components/ib-plan-subscription-form-dialog";
 import { IbPlanSubscriptionParametersDialog } from "@/features/ib-plan-subscription/components/ib-plan-subscription-parameters-dialog";
@@ -261,6 +262,7 @@ export function IbPlanSubscriptionsView({
   const [selectedSubscription, setSelectedSubscription] =
     useState<IbPlanSubscription | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [formSubmissionOpen, setFormSubmissionOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewMode, setReviewMode] = useState<"approve" | "reject">("approve");
@@ -446,6 +448,11 @@ export function IbPlanSubscriptionsView({
   function openDetailDialog(subscription: IbPlanSubscription) {
     setSelectedSubscription(subscription);
     setDetailOpen(true);
+  }
+
+  function openFormSubmissionDialog(subscription: IbPlanSubscription) {
+    setSelectedSubscription(subscription);
+    setFormSubmissionOpen(true);
   }
 
   function openReviewDialog(
@@ -860,6 +867,7 @@ export function IbPlanSubscriptionsView({
                             <DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" aria-label={`Acciones para ${owner.name || owner.id}`} />}><MoreHorizontalIcon /></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => openDetailDialog(subscription)}><EyeIcon />Ver detalles</DropdownMenuItem>
+                              {subscription.has_form_submission ? <DropdownMenuItem onClick={() => openFormSubmissionDialog(subscription)}><EyeIcon />Ver formulario enviado</DropdownMenuItem> : null}
                               <DropdownMenuItem onClick={() => openInteractionLogsDialog(subscription)}><ClipboardListIcon />Interaction logs</DropdownMenuItem>
                               <DropdownMenuItem disabled={!owner.id} onClick={() => owner.id && router.push(`/ib-analytics/${owner.id}`)}><BarChart3Icon />Ver métricas IB</DropdownMenuItem>
                               {subscription.status === "pending" || subscription.status === "active" ? <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => openParametersDialog(subscription)}><PencilIcon />Editar parámetros</DropdownMenuItem></> : null}
@@ -956,6 +964,11 @@ export function IbPlanSubscriptionsView({
         planName={selectedPlan?.name}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+      />
+      <IbPlanSubscriptionFormSubmissionDialog
+        subscription={selectedSubscription}
+        open={formSubmissionOpen}
+        onOpenChange={setFormSubmissionOpen}
       />
     </div>
   );

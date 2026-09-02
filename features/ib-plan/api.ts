@@ -72,6 +72,10 @@ function appendIbPlanFormData(
     formData.append("subscription_type", input.subscription_type);
   }
 
+  if (input.form_template_id !== undefined) {
+    formData.append("form_template_id", input.form_template_id ?? "");
+  }
+
   if (input.is_active !== undefined) {
     formData.append("is_active", input.is_active ? "1" : "0");
   }
