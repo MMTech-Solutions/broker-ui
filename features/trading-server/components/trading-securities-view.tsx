@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { FilterXIcon, PercentIcon, SearchIcon, TagsIcon } from "lucide-react";
+import { FilterXIcon, PercentIcon, SearchIcon, TagIcon, TagsIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
@@ -26,7 +26,8 @@ import {
   getTradingServerForAdmin,
   listSecurities,
 } from "@/features/trading-server/api";
-import type { Security, SymbolsMarkupScope, TradingServer } from "@/features/trading-server/types";
+import type { Security, SymbolsBulkScope, TradingServer } from "@/features/trading-server/types";
+import { SetSymbolsCategoryDialog } from "@/features/trading-server/components/set-symbols-category-dialog";
 import { SetSymbolsMarkupDialog } from "@/features/trading-server/components/set-symbols-markup-dialog";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
@@ -67,9 +68,11 @@ export function TradingSecuritiesView({
   const [nameFilter, setNameFilter] = useState("");
   const [appliedNameFilter, setAppliedNameFilter] = useState("");
   const [markupOpen, setMarkupOpen] = useState(false);
-  const [markupScope, setMarkupScope] = useState<SymbolsMarkupScope | null>(
+  const [markupScope, setMarkupScope] = useState<SymbolsBulkScope | null>(
     null,
   );
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [categoryScope, setCategoryScope] = useState<SymbolsBulkScope | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const breadcrumbs = useMemo<BreadcrumbItem[]>(
@@ -156,6 +159,16 @@ export function TradingSecuritiesView({
     setSuccessMessage(null);
   }
 
+  function openSecurityCategory(security: Security) {
+    setCategoryScope({
+      type: "security",
+      securityId: security.id,
+      label: security.name,
+    });
+    setCategoryOpen(true);
+    setSuccessMessage(null);
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar
@@ -166,7 +179,7 @@ export function TradingSecuritiesView({
 
       {successMessage ? (
         <Alert>
-          <AlertTitle>Markup updated</AlertTitle>
+          <AlertTitle>Symbols updated</AlertTitle>
           <AlertDescription>{successMessage}</AlertDescription>
         </Alert>
       ) : null}
@@ -252,6 +265,14 @@ export function TradingSecuritiesView({
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"
+                          tooltip={`Set category for ${security.name}`}
+                          onClick={() => openSecurityCategory(security)}
+                        >
+                          <TagIcon />
+                        </ActionTooltipButton>
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
                           tooltip={`Set markup for ${security.name}`}
                           onClick={() => openSecurityMarkup(security)}
                         >
@@ -317,6 +338,13 @@ export function TradingSecuritiesView({
         onSuccess={(_result, message) => {
           setSuccessMessage(message);
         }}
+      />
+      <SetSymbolsCategoryDialog
+        open={categoryOpen}
+        onOpenChange={setCategoryOpen}
+        tradingServerId={tradingServerId}
+        scope={categoryScope}
+        onSuccess={(_result, message) => setSuccessMessage(message)}
       />
     </div>
   );

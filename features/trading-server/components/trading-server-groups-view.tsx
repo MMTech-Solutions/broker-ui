@@ -9,6 +9,7 @@ import {
   PencilIcon,
   PercentIcon,
   SearchIcon,
+  TagIcon,
 } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
@@ -38,6 +39,7 @@ import {
 import { ServerGroupEditSheet } from "@/features/trading-server/components/server-group-edit-sheet";
 import { ServerGroupLeveragesSyncDialog } from "@/features/trading-server/components/server-group-leverages-sync-dialog";
 import { SetSymbolsMarkupDialog } from "@/features/trading-server/components/set-symbols-markup-dialog";
+import { SetSymbolsCategoryDialog } from "@/features/trading-server/components/set-symbols-category-dialog";
 import {
   formatBookTypeLabel,
   formatConfigurationWarning,
@@ -122,6 +124,8 @@ export function TradingServerGroupsView({
   const [markupScope, setMarkupScope] = useState<SymbolsMarkupScope | null>(
     null,
   );
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [categoryScope, setCategoryScope] = useState<SymbolsMarkupScope | null>(null);
   const [selectedServerGroup, setSelectedServerGroup] =
     useState<ServerGroup | null>(null);
 
@@ -231,6 +235,16 @@ export function TradingServerGroupsView({
       label: serverGroup.name ?? serverGroup.meta_name,
     });
     setMarkupOpen(true);
+    setSuccessMessage(null);
+  }
+
+  function openCategoryDialog(serverGroup: ServerGroup) {
+    setCategoryScope({
+      type: "server_group",
+      serverGroupId: serverGroup.id,
+      label: serverGroup.name ?? serverGroup.meta_name,
+    });
+    setCategoryOpen(true);
     setSuccessMessage(null);
   }
 
@@ -418,6 +432,14 @@ export function TradingServerGroupsView({
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"
+                          tooltip={`Set category for ${serverGroup.name}`}
+                          onClick={() => openCategoryDialog(serverGroup)}
+                        >
+                          <TagIcon />
+                        </ActionTooltipButton>
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
                           tooltip={`Set markup for ${serverGroup.name}`}
                           onClick={() => openMarkupDialog(serverGroup)}
                         >
@@ -515,6 +537,13 @@ export function TradingServerGroupsView({
         onSuccess={(_result, message) => {
           setSuccessMessage(message);
         }}
+      />
+      <SetSymbolsCategoryDialog
+        open={categoryOpen}
+        onOpenChange={setCategoryOpen}
+        tradingServerId={tradingServerId}
+        scope={categoryScope}
+        onSuccess={(_result, message) => setSuccessMessage(message)}
       />
     </div>
   );

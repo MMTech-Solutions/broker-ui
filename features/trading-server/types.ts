@@ -1,3 +1,5 @@
+import type { SymbolCategory } from "@/features/symbol-category/types";
+
 export const TRADING_SERVER_ENVIRONMENT = {
   DEMO: 1,
   LIVE: 2,
@@ -184,14 +186,17 @@ export type TradingSymbol = {
   alpha: string;
   stype: number;
   markup: string;
+  category: SymbolCategory | null;
   trading_server_id: string;
 };
 
-export type SymbolsMarkupScope =
+export type SymbolsBulkScope =
   | { type: "trading_server" }
   | { type: "server_group"; serverGroupId: string; label: string }
   | { type: "security"; securityId: string; label: string }
   | { type: "symbols"; symbolIds: string[]; label?: string };
+
+export type SymbolsMarkupScope = SymbolsBulkScope;
 
 export type UpdateSymbolsMarkupInput = {
   markup: string;
@@ -203,6 +208,18 @@ export type UpdateSymbolsMarkupInput = {
 export type SymbolsMarkupUpdate = {
   updated_count: number;
   markup: string;
+};
+
+export type UpdateSymbolsCategoryInput = {
+  category_id: string | null;
+  server_group_id?: string;
+  security_id?: string;
+  symbol_ids?: string[];
+};
+
+export type SymbolsCategoryUpdate = {
+  updated_count: number;
+  category: SymbolCategory | null;
 };
 
 export type SymbolListFilters = {

@@ -1,5 +1,7 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,6 +13,8 @@ import {
 } from "@/components/ui/select";
 
 export const PAGE_SIZE_OPTIONS = [15, 25, 50, 100] as const;
+
+const subscribeToHydration = () => () => {};
 
 type PageNumberPaginationProps = {
   currentPage: number;
@@ -62,7 +66,12 @@ export function PageNumberPagination({
   perPageOptions = PAGE_SIZE_OPTIONS,
   onPerPageChange,
 }: PageNumberPaginationProps) {
-  const isDisabled = disabled === true;
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
+  const isDisabled = isHydrated && disabled === true;
   const showPages = lastPage > 1;
   const showPerPage = onPerPageChange != null && perPage != null;
 

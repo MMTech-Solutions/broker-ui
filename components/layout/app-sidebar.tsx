@@ -21,6 +21,7 @@ import {
   Settings2Icon,
   ShieldIcon,
   TrophyIcon,
+  TagsIcon,
   UsersIcon,
   WalletIcon,
   WorkflowIcon,
@@ -63,6 +64,11 @@ const tradingNavigation = [
     title: "Default amounts",
     href: "/initial-amounts",
     icon: CircleDollarSignIcon,
+  },
+  {
+    title: "Symbol categories",
+    href: "/symbol-categories",
+    icon: TagsIcon,
   },
 ] as const;
 

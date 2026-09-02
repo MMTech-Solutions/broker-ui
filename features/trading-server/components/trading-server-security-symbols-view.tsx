@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { FilterXIcon, PercentIcon, SearchIcon } from "lucide-react";
+import { FilterXIcon, PercentIcon, SearchIcon, TagsIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
@@ -18,10 +18,11 @@ import {
   listSecuritySymbols,
 } from "@/features/trading-server/api";
 import { SetSymbolsMarkupDialog } from "@/features/trading-server/components/set-symbols-markup-dialog";
+import { SetSymbolsCategoryDialog } from "@/features/trading-server/components/set-symbols-category-dialog";
 import { TradingSymbolsTable } from "@/features/trading-server/components/trading-symbols-table";
 import type {
   SymbolListFilters,
-  SymbolsMarkupScope,
+  SymbolsBulkScope,
   TradingServer,
   TradingSymbol,
 } from "@/features/trading-server/types";
@@ -109,9 +110,14 @@ export function TradingServerSecuritySymbolsView({
   const [appliedFilters, setAppliedFilters] = useState<SymbolListFilters>({});
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [markupOpen, setMarkupOpen] = useState(false);
-  const [markupScope, setMarkupScope] = useState<SymbolsMarkupScope | null>(
+  const [markupScope, setMarkupScope] = useState<SymbolsBulkScope | null>(
     null,
   );
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [categoryScope, setCategoryScope] = useState<SymbolsBulkScope | null>(null);
+  const [initialCategoryId, setInitialCategoryId] = useState<
+    string | null | undefined
+  >(undefined);
   const [initialMarkup, setInitialMarkup] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -219,12 +225,22 @@ export function TradingServerSecuritySymbolsView({
   }
 
   function openMarkup(
-    scope: SymbolsMarkupScope,
+    scope: SymbolsBulkScope,
     markupValue: string | null = null,
   ) {
     setMarkupScope(scope);
     setInitialMarkup(markupValue);
     setMarkupOpen(true);
+    setSuccessMessage(null);
+  }
+
+  function openCategory(
+    scope: SymbolsBulkScope,
+    categoryId?: string | null,
+  ) {
+    setCategoryScope(scope);
+    setInitialCategoryId(categoryId);
+    setCategoryOpen(true);
     setSuccessMessage(null);
   }
 
@@ -239,17 +255,37 @@ export function TradingServerSecuritySymbolsView({
       >
         <div className="flex flex-wrap gap-2">
           {selectedIds.length > 0 ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                openMarkup({ type: "symbols", symbolIds: selectedIds })
-              }
-            >
-              <PercentIcon data-icon="inline-start" />
-              Set markup ({selectedIds.length})
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => openCategory({ type: "symbols", symbolIds: selectedIds })}
+              >
+                <TagsIcon data-icon="inline-start" />
+                Set category ({selectedIds.length})
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  openMarkup({ type: "symbols", symbolIds: selectedIds })
+                }
+              >
+                <PercentIcon data-icon="inline-start" />
+                Set markup ({selectedIds.length})
+              </Button>
+            </>
           ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() =>
+              openCategory({ type: "security", securityId, label: securityLabel })
+            }
+          >
+            <TagsIcon data-icon="inline-start" />
+            Set category for all
+          </Button>
           <Button
             type="button"
             onClick={() =>
@@ -268,7 +304,7 @@ export function TradingServerSecuritySymbolsView({
 
       {successMessage ? (
         <Alert>
-          <AlertTitle>Markup updated</AlertTitle>
+          <AlertTitle>Symbols updated</AlertTitle>
           <AlertDescription>{successMessage}</AlertDescription>
         </Alert>
       ) : null}
@@ -351,6 +387,12 @@ export function TradingServerSecuritySymbolsView({
         emptyMessage="No symbols found for this security."
         selectedIds={selectedIds}
         onSelectedIdsChange={setSelectedIds}
+        onSetCategory={(symbol) =>
+          openCategory(
+            { type: "symbols", symbolIds: [symbol.id], label: symbol.alpha },
+            symbol.category?.id ?? null,
+          )
+        }
         onSetMarkup={(symbol) =>
           openMarkup(
             {
@@ -382,6 +424,18 @@ export function TradingServerSecuritySymbolsView({
         tradingServerId={tradingServerId}
         scope={markupScope}
         initialMarkup={initialMarkup}
+        onSuccess={(_result, message) => {
+          setSelectedIds([]);
+          setSuccessMessage(message);
+          void loadSymbols(page, appliedFilters, { silent: true });
+        }}
+      />
+      <SetSymbolsCategoryDialog
+        open={categoryOpen}
+        onOpenChange={setCategoryOpen}
+        tradingServerId={tradingServerId}
+        scope={categoryScope}
+        initialCategoryId={initialCategoryId}
         onSuccess={(_result, message) => {
           setSelectedIds([]);
           setSuccessMessage(message);

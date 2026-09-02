@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FilterXIcon, PercentIcon, SearchIcon, TagsIcon } from "lucide-react";
+import { FilterXIcon, PercentIcon, SearchIcon, TagIcon, TagsIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
@@ -27,7 +27,8 @@ import {
   getTradingServerForAdmin,
   listServerGroupSecurities,
 } from "@/features/trading-server/api";
-import type { Security, SymbolsMarkupScope, TradingServer } from "@/features/trading-server/types";
+import type { Security, SymbolsBulkScope, TradingServer } from "@/features/trading-server/types";
+import { SetSymbolsCategoryDialog } from "@/features/trading-server/components/set-symbols-category-dialog";
 import { SetSymbolsMarkupDialog } from "@/features/trading-server/components/set-symbols-markup-dialog";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
@@ -73,9 +74,11 @@ export function TradingServerGroupSecuritiesView({
   const [nameFilter, setNameFilter] = useState("");
   const [appliedNameFilter, setAppliedNameFilter] = useState("");
   const [markupOpen, setMarkupOpen] = useState(false);
-  const [markupScope, setMarkupScope] = useState<SymbolsMarkupScope | null>(
+  const [markupScope, setMarkupScope] = useState<SymbolsBulkScope | null>(
     null,
   );
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [categoryScope, setCategoryScope] = useState<SymbolsBulkScope | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const serverGroupsHref = `/platforms/${platformId}/trading-servers/${tradingServerId}/server-groups`;
@@ -153,9 +156,15 @@ export function TradingServerGroupSecuritiesView({
     setAppliedNameFilter("");
   }
 
-  function openMarkup(scope: SymbolsMarkupScope) {
+  function openMarkup(scope: SymbolsBulkScope) {
     setMarkupScope(scope);
     setMarkupOpen(true);
+    setSuccessMessage(null);
+  }
+
+  function openCategory(scope: SymbolsBulkScope) {
+    setCategoryScope(scope);
+    setCategoryOpen(true);
     setSuccessMessage(null);
   }
 
@@ -168,24 +177,36 @@ export function TradingServerGroupSecuritiesView({
         backHref={serverGroupsHref}
         backLabel="Ir atrás"
       >
-        <Button
-          type="button"
-          onClick={() =>
-            openMarkup({
-              type: "server_group",
-              serverGroupId,
-              label: groupLabel,
-            })
-          }
-        >
-          <PercentIcon data-icon="inline-start" />
-          Set markup for group
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() =>
+              openCategory({ type: "server_group", serverGroupId, label: groupLabel })
+            }
+          >
+            <TagIcon data-icon="inline-start" />
+            Set category for group
+          </Button>
+          <Button
+            type="button"
+            onClick={() =>
+              openMarkup({
+                type: "server_group",
+                serverGroupId,
+                label: groupLabel,
+              })
+            }
+          >
+            <PercentIcon data-icon="inline-start" />
+            Set markup for group
+          </Button>
+        </div>
       </PageContentToolbar>
 
       {successMessage ? (
         <Alert>
-          <AlertTitle>Markup updated</AlertTitle>
+          <AlertTitle>Symbols updated</AlertTitle>
           <AlertDescription>{successMessage}</AlertDescription>
         </Alert>
       ) : null}
@@ -269,6 +290,20 @@ export function TradingServerGroupSecuritiesView({
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"
+                          tooltip={`Set category for ${security.name}`}
+                          onClick={() =>
+                            openCategory({
+                              type: "security",
+                              securityId: security.id,
+                              label: security.name,
+                            })
+                          }
+                        >
+                          <TagIcon />
+                        </ActionTooltipButton>
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
                           tooltip={`Set markup for ${security.name}`}
                           onClick={() =>
                             openMarkup({
@@ -340,6 +375,13 @@ export function TradingServerGroupSecuritiesView({
         onSuccess={(_result, message) => {
           setSuccessMessage(message);
         }}
+      />
+      <SetSymbolsCategoryDialog
+        open={categoryOpen}
+        onOpenChange={setCategoryOpen}
+        tradingServerId={tradingServerId}
+        scope={categoryScope}
+        onSuccess={(_result, message) => setSuccessMessage(message)}
       />
     </div>
   );

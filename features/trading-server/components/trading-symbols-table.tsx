@@ -1,6 +1,6 @@
 "use client";
 
-import { PercentIcon } from "lucide-react";
+import { PercentIcon, TagsIcon } from "lucide-react";
 
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,6 +23,7 @@ type TradingSymbolsTableProps = {
   selectedIds: string[];
   onSelectedIdsChange: (ids: string[]) => void;
   onSetMarkup: (symbol: TradingSymbol) => void;
+  onSetCategory: (symbol: TradingSymbol) => void;
 };
 
 export function TradingSymbolsTable({
@@ -32,6 +33,7 @@ export function TradingSymbolsTable({
   selectedIds,
   onSelectedIdsChange,
   onSetMarkup,
+  onSetCategory,
 }: TradingSymbolsTableProps) {
   const selectedSet = new Set(selectedIds);
   const allSelected = symbols.length > 0 && selectedIds.length === symbols.length;
@@ -67,15 +69,16 @@ export function TradingSymbolsTable({
             <TableHead>Name</TableHead>
             <TableHead>Alpha</TableHead>
             <TableHead className="w-[120px]">Stype</TableHead>
+            <TableHead className="w-[160px]">Category</TableHead>
             <TableHead className="w-[140px] text-right">Markup</TableHead>
-            <TableHead className="w-[72px] text-right">Actions</TableHead>
+            <TableHead className="w-[108px] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {loading
             ? Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={`skeleton-${index}`}>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={7}>
                     <Skeleton className="h-8 w-full" />
                   </TableCell>
                 </TableRow>
@@ -85,7 +88,7 @@ export function TradingSymbolsTable({
           {!loading && symbols.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={6}
+                colSpan={7}
                 className="h-24 text-center text-muted-foreground"
               >
                 {emptyMessage}
@@ -108,18 +111,33 @@ export function TradingSymbolsTable({
                   <TableCell className="font-medium">{symbol.name}</TableCell>
                   <TableCell>{symbol.alpha}</TableCell>
                   <TableCell>{symbol.stype}</TableCell>
+                  <TableCell>
+                    {symbol.category?.name ?? (
+                      <span className="text-muted-foreground">Uncategorized</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatMarkup(symbol.markup)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <ActionTooltipButton
-                      variant="ghost"
-                      size="icon-sm"
-                      tooltip={`Set markup for ${symbol.alpha}`}
-                      onClick={() => onSetMarkup(symbol)}
-                    >
-                      <PercentIcon />
-                    </ActionTooltipButton>
+                    <div className="flex justify-end gap-1">
+                      <ActionTooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        tooltip={`Set category for ${symbol.alpha}`}
+                        onClick={() => onSetCategory(symbol)}
+                      >
+                        <TagsIcon />
+                      </ActionTooltipButton>
+                      <ActionTooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        tooltip={`Set markup for ${symbol.alpha}`}
+                        onClick={() => onSetMarkup(symbol)}
+                      >
+                        <PercentIcon />
+                      </ActionTooltipButton>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
