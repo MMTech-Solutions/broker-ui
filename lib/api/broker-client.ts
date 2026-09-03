@@ -156,6 +156,12 @@ export async function proxyBrokerRequest(
     responseHeaders.set("Content-Type", upstreamContentType);
   }
 
+  const contentDisposition = upstream.headers.get("Content-Disposition");
+
+  if (contentDisposition) {
+    responseHeaders.set("Content-Disposition", contentDisposition);
+  }
+
   if (upstream.status === 204) {
     return new Response(null, {
       status: upstream.status,
@@ -163,10 +169,9 @@ export async function proxyBrokerRequest(
     });
   }
 
-  // arrayBuffer preserves binary bodies (e.g. platform images); also fine for JSON.
-  const responseBody = await upstream.arrayBuffer();
-
-  return new Response(responseBody, {
+  // Forward the upstream stream directly so large report exports stay bounded
+  // in memory. This also preserves binary bodies such as platform images.
+  return new Response(upstream.body, {
     status: upstream.status,
     headers: responseHeaders,
   });

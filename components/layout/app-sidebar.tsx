@@ -16,6 +16,7 @@ import {
   MedalIcon,
   MessageSquareWarningIcon,
   FilePenLineIcon,
+  FileChartColumnIcon,
   PercentIcon,
   ScaleIcon,
   Settings2Icon,
@@ -125,6 +126,14 @@ const bonusNavigation = [
     title: "Bonus logs",
     href: "/bonus-assignment-logs",
     icon: HistoryIcon,
+  },
+] as const;
+
+const reportsNavigation = [
+  {
+    title: "IB reward trades",
+    href: "/reports/ib-volume-reward-trades",
+    icon: FileChartColumnIcon,
   },
 ] as const;
 
@@ -254,6 +263,22 @@ export function AppSidebar() {
                     render={<Link href={item.href} />}
                     isActive={pathname.startsWith(item.href)}
                   >
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Reports</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {reportsNavigation.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname.startsWith(item.href)}>
                     <item.icon />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
