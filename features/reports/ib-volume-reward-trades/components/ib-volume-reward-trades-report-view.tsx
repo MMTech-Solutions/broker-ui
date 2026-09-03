@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { listIbPrograms } from "@/features/ib-program/api";
 import type { IbProgram } from "@/features/ib-program/types";
 import {
@@ -28,7 +29,9 @@ import {
   formatReportNumber,
   formatReportRatio,
   listIbVolumeRewardTrades,
+  reportFlagDescription,
   reportFlagLabel,
+  reportFlagLetter,
   type IbVolumeRewardTrade,
   type IbVolumeRewardTradeFilters,
   type IbVolumeRewardTradeFlag,
@@ -302,18 +305,60 @@ function SortHead({ label, value, filters, onSort, align = "right" }: { label: s
 function TradesTable({ rows, loading, filters, onSort, onOpenDetail }: { rows: IbVolumeRewardTrade[]; loading: boolean; filters: IbVolumeRewardTradeFilters; onSort: (sort: IbVolumeRewardTradeSort) => void; onOpenDetail: (trade: IbVolumeRewardTrade) => void }) {
   const money = (trade: IbVolumeRewardTrade, value: string | null) => formatReportMoney(value, trade.currency_code, trade.currency_precision);
   return (
-    <section className="space-y-2"><div><h2 className="font-medium">Reward-generating trades</h2><p className="text-sm text-muted-foreground">One row per closed position. Horizontal scrolling keeps every report field available.</p></div>
+    <TooltipProvider><section className="space-y-2"><div><h2 className="font-medium">Trades con rewards</h2><p className="text-sm text-muted-foreground">Una fila por posición cerrada que generó rewards.</p></div>
       <div className="min-w-0 overflow-x-auto rounded-xl border">
-        <Table><TableHeader><TableRow><SortHead label="Opened" value="opened_at" align="left" filters={filters} onSort={onSort} /><SortHead label="Closed" value="closed_at" align="left" filters={filters} onSort={onSort} /><TableHead>Client</TableHead><TableHead>Direct IB</TableHead><TableHead>Account</TableHead><TableHead>Operation</TableHead><TableHead>Platform</TableHead><TableHead>Environment</TableHead><TableHead>Group</TableHead><TableHead>Book</TableHead><TableHead>Symbol</TableHead><TableHead>Side</TableHead><SortHead label="Volume" value="volume" filters={filters} onSort={onSort} /><TableHead className="text-right">Open price</TableHead><TableHead className="text-right">Close price</TableHead><SortHead label="Duration" value="duration_seconds" filters={filters} onSort={onSort} /><SortHead label="Commission" value="commission" filters={filters} onSort={onSort} /><SortHead label="Markup/lot" value="markup_per_lot" filters={filters} onSort={onSort} /><SortHead label="Markup" value="markup_revenue" filters={filters} onSort={onSort} /><SortHead label="Revenue" value="revenue" filters={filters} onSort={onSort} /><SortHead label="PnL" value="pnl" filters={filters} onSort={onSort} /><SortHead label="Broker gross" value="broker_gross" filters={filters} onSort={onSort} /><SortHead label="Paid" value="reward_paid" filters={filters} onSort={onSort} /><SortHead label="Pending" value="reward_pending" filters={filters} onSort={onSort} /><SortHead label="Failed" value="reward_failed" filters={filters} onSort={onSort} /><SortHead label="Cancelled" value="reward_cancelled" filters={filters} onSort={onSort} /><SortHead label="Ratio" value="ratio" filters={filters} onSort={onSort} /><SortHead label="Margin" value="margin" filters={filters} onSort={onSort} /><SortHead label="Lines" value="reward_lines" filters={filters} onSort={onSort} /><SortHead label="IBs" value="distinct_ibs" filters={filters} onSort={onSort} /><SortHead label="Max level" value="max_level" filters={filters} onSort={onSort} /><TableHead>Flags</TableHead><TableHead>Economics</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+        <Table><TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>IB L1</TableHead><TableHead>Cuenta</TableHead><TableHead>Trade ID</TableHead><TableHead>Plat.</TableHead><TableHead>Env</TableHead><TableHead>Grupo</TableHead><TableHead>Book</TableHead><TableHead>Símbolo</TableHead><TableHead>Side</TableHead><SortHead label="Lots" value="volume" filters={filters} onSort={onSort} /><SortHead label="Cierre" value="closed_at" filters={filters} onSort={onSort} /><SortHead label="Dur." value="duration_seconds" filters={filters} onSort={onSort} /><SortHead label="Comisión" value="commission" filters={filters} onSort={onSort} /><SortHead label="Markup" value="markup_revenue" filters={filters} onSort={onSort} /><SortHead label="Revenue" value="revenue" filters={filters} onSort={onSort} /><SortHead label="PnL" value="pnl" filters={filters} onSort={onSort} /><SortHead label="Bruto broker" value="broker_gross" filters={filters} onSort={onSort} /><SortHead label="Reward" value="reward_paid" filters={filters} onSort={onSort} /><SortHead label="Pend." value="reward_pending" filters={filters} onSort={onSort} /><SortHead label="Ratio" value="ratio" filters={filters} onSort={onSort} /><SortHead label="Margen" value="margin" filters={filters} onSort={onSort} /><SortHead label="Lín" value="reward_lines" filters={filters} onSort={onSort} /><SortHead label="IBs" value="distinct_ibs" filters={filters} onSort={onSort} /><SortHead label="Nv" value="max_level" filters={filters} onSort={onSort} /><TableHead>Flags</TableHead><TableHead>Economics</TableHead><TableHead><span className="sr-only">Detalle</span></TableHead></TableRow></TableHeader>
           <TableBody>
-            {loading ? Array.from({ length: 5 }).map((_, rowIndex) => <TableRow key={rowIndex}>{Array.from({ length: 34 }).map((__, cellIndex) => <TableCell key={cellIndex}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>) : null}
-            {!loading && rows.length === 0 ? <TableRow><TableCell colSpan={34} className="h-24 text-center text-muted-foreground">No reward-generating trades match the filters.</TableCell></TableRow> : null}
+            {loading ? Array.from({ length: 5 }).map((_, rowIndex) => <TableRow key={rowIndex}>{Array.from({ length: 28 }).map((__, cellIndex) => <TableCell key={cellIndex}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>) : null}
+            {!loading && rows.length === 0 ? <TableRow><TableCell colSpan={28} className="h-24 text-center text-muted-foreground">No hay trades con rewards que coincidan con los filtros.</TableCell></TableRow> : null}
             {!loading ? rows.map((trade) => (
-              <TableRow key={trade.position_id}><TableCell className="whitespace-nowrap">{formatReportDate(trade.opened_at)}</TableCell><TableCell className="whitespace-nowrap">{formatReportDate(trade.closed_at)}</TableCell><TableCell>{identity(trade.client)}</TableCell><TableCell>{identity(trade.direct_ib)}</TableCell><TableCell className="font-mono text-xs">{trade.account_id}</TableCell><TableCell className="font-mono text-xs">{trade.operation_id ?? "—"}</TableCell><TableCell>{trade.platform.name || trade.platform.id}</TableCell><TableCell>{environmentLabel(trade.environment)}</TableCell><TableCell>{trade.server_group.name || trade.server_group.id}</TableCell><TableCell>{bookLabel(trade.book_type)}</TableCell><TableCell className="font-medium">{trade.symbol}</TableCell><TableCell className="capitalize">{trade.side}</TableCell><TableCell className="text-right">{formatReportNumber(trade.volume)}</TableCell><TableCell className="text-right">{formatReportNumber(trade.open_price)}</TableCell><TableCell className="text-right">{formatReportNumber(trade.close_price)}</TableCell><TableCell className="whitespace-nowrap text-right">{formatDuration(trade.duration_seconds)}</TableCell><TableCell className="whitespace-nowrap text-right">{money(trade, trade.commission)}</TableCell><TableCell className="whitespace-nowrap text-right">{money(trade, trade.markup_per_lot)}</TableCell><TableCell className="whitespace-nowrap text-right">{money(trade, trade.markup_revenue)}</TableCell><TableCell className="whitespace-nowrap text-right">{money(trade, trade.revenue)}</TableCell><TableCell className={cn("whitespace-nowrap text-right", Number(trade.pnl) < 0 && "text-destructive")}>{money(trade, trade.pnl)}</TableCell><TableCell className="whitespace-nowrap text-right">{money(trade, trade.broker_gross)}</TableCell><TableCell className="whitespace-nowrap text-right">{money(trade, trade.reward_paid)}</TableCell><TableCell className="whitespace-nowrap text-right">{money(trade, trade.reward_pending)}</TableCell><TableCell className="whitespace-nowrap text-right">{money(trade, trade.reward_failed)}</TableCell><TableCell className="whitespace-nowrap text-right">{money(trade, trade.reward_cancelled)}</TableCell><TableCell className={cn("text-right", Number(trade.ratio) > 1 && "font-medium text-destructive")}>{formatReportRatio(trade.ratio)}</TableCell><TableCell className="whitespace-nowrap text-right">{money(trade, trade.margin)}</TableCell><TableCell className="text-right">{trade.reward_lines}</TableCell><TableCell className="text-right">{trade.distinct_ibs}</TableCell><TableCell className="text-right">{trade.max_level}</TableCell><TableCell><div className="flex min-w-48 flex-wrap gap-1">{trade.flags.length ? trade.flags.map((flag) => <Badge key={flag} variant={flag === "reward_exceeds_revenue" || flag === "economics_unavailable" ? "destructive" : "outline"}>{reportFlagLabel(flag)}</Badge>) : <span>—</span>}</div></TableCell><TableCell><Badge variant={trade.calculation_availability.status === "available" ? "secondary" : "outline"}>{trade.calculation_availability.status}</Badge>{trade.calculation_availability.missing.length ? <p className="mt-1 max-w-52 text-xs text-muted-foreground">Missing: {trade.calculation_availability.missing.join(", ")}</p> : null}{trade.calculation_availability.snapshotted_at ? <p className="mt-1 whitespace-nowrap text-xs text-muted-foreground">Snapshot: {formatReportDate(trade.calculation_availability.snapshotted_at)}</p> : null}</TableCell><TableCell><Button size="sm" variant="outline" onClick={() => onOpenDetail(trade)}>View rewards</Button></TableCell></TableRow>
+              <TableRow key={trade.position_id}>
+                <TableCell>{identity(trade.client)}</TableCell>
+                <TableCell>{identity(trade.direct_ib)}</TableCell>
+                <TableCell className="font-mono text-xs">{trade.account_id}</TableCell>
+                <TableCell className="font-mono text-xs">{trade.operation_id ?? "—"}</TableCell>
+                <TableCell>{trade.platform.name || trade.platform.id}</TableCell>
+                <TableCell>{environmentLabel(trade.environment)}</TableCell>
+                <TableCell>{trade.server_group.name || trade.server_group.id}</TableCell>
+                <TableCell>{bookLabel(trade.book_type)}</TableCell>
+                <TableCell className="font-medium">{trade.symbol}</TableCell>
+                <TableCell className="capitalize">{trade.side}</TableCell>
+                <TableCell className="text-right">{formatReportNumber(trade.volume)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right">{formatReportDate(trade.closed_at)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right">{formatDuration(trade.duration_seconds)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right">{money(trade, trade.commission)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right">{money(trade, trade.markup_revenue)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right">{money(trade, trade.revenue)}</TableCell>
+                <TableCell className={cn("whitespace-nowrap text-right", Number(trade.pnl) < 0 && "text-destructive")}>{money(trade, trade.pnl)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right">{money(trade, trade.broker_gross)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right">{money(trade, trade.reward_paid)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right">{money(trade, trade.reward_pending)}</TableCell>
+                <TableCell className={cn("text-right", Number(trade.ratio) > 1 && "font-medium text-destructive")}>{formatReportRatio(trade.ratio)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right">{money(trade, trade.margin)}</TableCell>
+                <TableCell className="text-right">{trade.reward_lines}</TableCell>
+                <TableCell className="text-right">{trade.distinct_ibs}</TableCell>
+                <TableCell className="text-right">{trade.max_level}</TableCell>
+                <TableCell>
+                  <div className="flex min-w-28 flex-wrap gap-1">
+                    {trade.flags.length ? trade.flags.map((flag) => (
+                      <Tooltip key={flag}>
+                        <TooltipTrigger
+                          render={<span aria-label={`${reportFlagLabel(flag)}: ${reportFlagDescription(flag)}`} className={cn("inline-flex size-6 cursor-help items-center justify-center rounded border text-xs font-bold", flag === "reward_exceeds_revenue" || flag === "economics_unavailable" ? "border-destructive bg-destructive text-destructive-foreground" : "border-border bg-muted text-foreground")} />}
+                        >
+                          {reportFlagLetter(flag)}
+                        </TooltipTrigger>
+                        <TooltipContent side="top"><strong>{reportFlagLabel(flag)}</strong>: {reportFlagDescription(flag)}</TooltipContent>
+                      </Tooltip>
+                    )) : <span>—</span>}
+                  </div>
+                </TableCell>
+                <TableCell><Badge variant={trade.calculation_availability.status === "available" ? "secondary" : "outline"}>{trade.calculation_availability.status}</Badge>{trade.calculation_availability.missing.length ? <p className="mt-1 max-w-52 text-xs text-muted-foreground">Missing: {trade.calculation_availability.missing.join(", ")}</p> : null}{trade.calculation_availability.snapshotted_at ? <p className="mt-1 whitespace-nowrap text-xs text-muted-foreground">Snapshot: {formatReportDate(trade.calculation_availability.snapshotted_at)}</p> : null}</TableCell>
+                <TableCell><Button size="sm" variant="outline" onClick={() => onOpenDetail(trade)}>detalle</Button></TableCell>
+              </TableRow>
             )) : null}
           </TableBody>
         </Table>
       </div>
-    </section>
+    </section></TooltipProvider>
   );
 }

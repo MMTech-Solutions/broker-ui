@@ -40,11 +40,33 @@ export function formatDuration(seconds: string | number | null): string {
 export function reportFlagLabel(flag: IbVolumeRewardTradeFlag): string {
   return ({
     reward_exceeds_revenue: "Reward > revenue",
-    scalp_under_60_seconds: "Scalp < 60s",
-    multi_ib: "Multiple IBs",
-    bonus_group: "Bonus group",
-    no_markup: "No markup",
-    economics_unavailable: "Economics unavailable",
+    scalp_under_60_seconds: "Scalping < 60s",
+    multi_ib: "Multi-IB",
+    bonus_group: "Grupo bonus",
+    no_markup: "Sin markup",
+    economics_unavailable: "Economics no disponible",
+  } satisfies Record<IbVolumeRewardTradeFlag, string>)[flag];
+}
+
+export function reportFlagLetter(flag: IbVolumeRewardTradeFlag): string {
+  return ({
+    reward_exceeds_revenue: "R",
+    scalp_under_60_seconds: "S",
+    multi_ib: "M",
+    bonus_group: "B",
+    no_markup: "0",
+    economics_unavailable: "E",
+  } satisfies Record<IbVolumeRewardTradeFlag, string>)[flag];
+}
+
+export function reportFlagDescription(flag: IbVolumeRewardTradeFlag): string {
+  return ({
+    reward_exceeds_revenue: "El reward pagado supera el revenue.",
+    scalp_under_60_seconds: "La posición duró menos de 60 segundos.",
+    multi_ib: "La posición distribuyó rewards a más de un IB.",
+    bonus_group: "La cuenta pertenece a un grupo bonus.",
+    no_markup: "Existe snapshot económico y el markup por lote es cero.",
+    economics_unavailable: "Falta el snapshot económico o el book requerido para calcular los importes derivados.",
   } satisfies Record<IbVolumeRewardTradeFlag, string>)[flag];
 }
 

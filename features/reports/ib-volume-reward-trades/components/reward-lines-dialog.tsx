@@ -1,34 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
+  bookLabel,
+  environmentLabel,
+  formatDuration,
   formatReportDate,
   formatReportMoney,
+  formatReportNumber,
+  formatReportRatio,
   getIbVolumeRewardTradeRewards,
+  type IbVolumeRewardLine,
   type IbVolumeRewardTrade,
   type IbVolumeRewardTradeDetail,
 } from "@/features/reports/ib-volume-reward-trades";
-import { paymentRuleTypeLabel, paymentStatusLabel, paymentStatusVariant } from "@/features/ib-reward";
+import { paymentStatusLabel, paymentStatusVariant } from "@/features/ib-reward";
 import { formatBrokerApiError } from "@/lib/api/errors";
+import { cn } from "@/lib/utils";
 
 type RewardLinesDialogProps = {
   trade: IbVolumeRewardTrade | null;
@@ -36,14 +30,47 @@ type RewardLinesDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-function identityLabel(identity: { id: string; name: string | null; email: string | null }): React.ReactNode {
+function identityLabel(identity: { id: string; name: string | null; email: string | null }): ReactNode {
   return (
-    <div className="min-w-48">
+    <div className="min-w-44">
       <p className="font-medium">{identity.name || identity.id}</p>
       {identity.email ? <p className="text-xs text-muted-foreground">{identity.email}</p> : null}
-      <p className="font-mono text-[11px] text-muted-foreground">{identity.id}</p>
     </div>
   );
+}
+
+function DetailMetric({ value, label }: { value: ReactNode; label: string }) {
+  return (
+    <div className="text-center">
+      <div className="text-base font-semibold tabular-nums">{value}</div>
+      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function EconomyRow({ label, value, emphasized = false, negative = false }: { label: ReactNode; value: ReactNode; emphasized?: boolean; negative?: boolean }) {
+  return (
+    <div className={cn("flex items-center justify-between gap-4 border-b py-1.5 last:border-0", emphasized && "font-semibold")}>
+      <span className="text-muted-foreground">{label}</span>
+      <span className={cn("whitespace-nowrap tabular-nums", negative && "text-destructive")}>{value}</span>
+    </div>
+  );
+}
+
+function rewardTier(reward: IbVolumeRewardLine): string {
+  if (!reward.calculation_inputs) return "—";
+
+  for (const key of ["ib_tier", "beneficiary_tier", "tier"]) {
+    const value = reward.calculation_inputs[key];
+    if (typeof value === "string" || typeof value === "number") return String(value);
+  }
+
+  return "—";
+}
+
+function rateLabel(reward: IbVolumeRewardLine): string {
+  if (reward.rate === null) return "—";
+  return reward.calculation_basis === "per_lot" ? `${reward.rate}/lot` : reward.rate;
 }
 
 export function RewardLinesDialog({ trade, open, onOpenChange }: RewardLinesDialogProps) {
@@ -76,101 +103,115 @@ export function RewardLinesDialog({ trade, open, onOpenChange }: RewardLinesDial
     return () => controller.abort();
   }, [open, trade]);
 
+  const money = (value: string | null) => formatReportMoney(value, trade?.currency_code, trade?.currency_precision);
+  const platform = trade ? `${trade.platform.name || trade.platform.id} · ${environmentLabel(trade.environment)} · book ${bookLabel(trade.book_type)}` : "—";
+  const marginAvailable = Boolean(trade && trade.revenue !== null && trade.margin !== null);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-[calc(100%-2rem)] overflow-hidden sm:max-w-[min(96rem,calc(100%-2rem))]">
+      <DialogContent className="max-h-[90vh] max-w-[calc(100%-2rem)] overflow-hidden sm:max-w-[min(68.75rem,calc(100%-2rem))]">
         <DialogHeader>
-          <DialogTitle>Volume reward lines</DialogTitle>
-          <DialogDescription>
-            Position <span className="font-mono">{trade?.position_id ?? "—"}</span>. Paid lines must reconcile with the parent row.
-          </DialogDescription>
+          <DialogTitle>Detalle del trade y rewards</DialogTitle>
+          <DialogDescription className="sr-only">Detalle económico del trade y sus líneas de reward.</DialogDescription>
         </DialogHeader>
 
-        {error ? <ApiErrorAlert title="Could not load reward detail" message={error} /> : null}
+        {error ? <ApiErrorAlert title="No se pudo cargar el detalle de rewards" message={error} /> : null}
 
-        {detail ? (
-          <div className="flex flex-wrap gap-2 text-sm">
-            <Badge variant={detail.paid_sum_matches_parent ? "secondary" : "destructive"}>
-              {detail.paid_sum_matches_parent ? "Paid sum reconciled" : "Paid sum mismatch"}
-            </Badge>
-            <span className="text-muted-foreground">Parent paid: {detail.reward_paid}</span>
-            <span className="text-muted-foreground">Lines paid: {detail.paid_lines_sum}</span>
-            {detail.identity_enrichment_partial ? <Badge variant="outline">Identity data partial</Badge> : null}
-          </div>
-        ) : null}
+        <div className="min-h-0 space-y-4 overflow-auto pr-1">
+          <section className="space-y-3">
+            <h3 className="inline-flex rounded-md bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Detalles</h3>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-5 md:grid-cols-4">
+              <DetailMetric value={trade?.operation_id ?? trade?.position_id ?? "—"} label="Orden" />
+              <DetailMetric value={trade?.account_id ?? "—"} label="Cuenta" />
+              <DetailMetric value={trade ? `${trade.symbol} · ${trade.server_group.name || trade.server_group.id}` : "—"} label="Símbolo · Grupo" />
+              <DetailMetric value={<span className="uppercase">{trade?.side ?? "—"}</span>} label="CMD" />
+              <DetailMetric value={formatReportNumber(trade?.volume)} label="Volumen" />
+              <DetailMetric value={formatReportNumber(trade?.open_price)} label="Precio apertura" />
+              <DetailMetric value={formatReportNumber(trade?.close_price)} label="Precio cierre" />
+              <DetailMetric value={money(trade?.pnl ?? null)} label="PnL cliente" />
+              <DetailMetric value={formatReportDate(trade?.opened_at)} label="Apertura" />
+              <DetailMetric value={formatReportDate(trade?.closed_at)} label={`Cierre · ${formatDuration(trade?.duration_seconds ?? null)}`} />
+              <DetailMetric value={platform} label="Plataforma" />
+              <DetailMetric value="—" label="Swap" />
+            </div>
 
-        <div className="min-h-0 overflow-auto rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>IB</TableHead>
-                <TableHead>Program</TableHead>
-                <TableHead>Benefactor</TableHead>
-                <TableHead>Level</TableHead>
-                <TableHead>Rule</TableHead>
-                <TableHead>Formula</TableHead>
-                <TableHead>Basis</TableHead>
-                <TableHead>Rate</TableHead>
-                <TableHead>Inputs</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>External txn</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead>Paid</TableHead>
-                <TableHead>Comments</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading
-                ? Array.from({ length: 3 }).map((_, rowIndex) => (
+            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+              <EconomyRow label="Comisión" value={money(trade?.commission ?? null)} />
+              <EconomyRow
+                label={!trade || trade.markup_per_lot === null
+                  ? `Markup spread · ${trade?.symbol ?? "—"} · sin markup disponible`
+                  : `Markup spread · ${trade?.symbol ?? "—"} · ${money(trade.markup_per_lot)}/lot × ${formatReportNumber(trade.volume)}`}
+                value={money(trade?.markup_revenue ?? null)}
+              />
+              <EconomyRow label="Revenue broker" value={money(trade?.revenue ?? null)} />
+              <EconomyRow label={`Reward pagado (${trade?.reward_lines ?? 0} líneas · ${trade?.distinct_ibs ?? 0} IBs)`} value={`−${money(trade?.reward_paid ?? null)}`} />
+              <EconomyRow
+                emphasized
+                negative={Number(trade?.margin) < 0}
+                label={`Margen del canal · ratio ${formatReportRatio(trade?.ratio)}`}
+                value={money(trade?.margin ?? null)}
+              />
+            </div>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="inline-flex rounded-md bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Rewards</h3>
+            <div className="overflow-auto rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Programa</TableHead>
+                    <TableHead>Base</TableHead>
+                    <TableHead className="text-right">Tasa</TableHead>
+                    <TableHead>IB</TableHead>
+                    <TableHead>Tier</TableHead>
+                    <TableHead className="text-right">Nivel</TableHead>
+                    <TableHead className="text-right">Reward</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Evento</TableHead>
+                    <TableHead>Pagado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? Array.from({ length: 3 }).map((_, rowIndex) => (
                     <TableRow key={`detail-skeleton-${rowIndex}`}>
-                      {Array.from({ length: 16 }).map((__, cellIndex) => (
-                        <TableCell key={`${rowIndex}-${cellIndex}`}><Skeleton className="h-4 w-24" /></TableCell>
-                      ))}
+                      {Array.from({ length: 11 }).map((__, cellIndex) => <TableCell key={`${rowIndex}-${cellIndex}`}><Skeleton className="h-4 w-24" /></TableCell>)}
                     </TableRow>
-                  ))
-                : null}
+                  )) : null}
 
-              {!loading && detail?.rewards.length === 0 ? (
-                <TableRow><TableCell colSpan={16} className="h-24 text-center text-muted-foreground">No volume reward lines found.</TableCell></TableRow>
-              ) : null}
+                  {!loading && detail?.rewards.length === 0 ? (
+                    <TableRow><TableCell colSpan={11} className="h-24 text-center text-muted-foreground">No se encontraron líneas de reward por volumen.</TableCell></TableRow>
+                  ) : null}
 
-              {!loading
-                ? detail?.rewards.map((reward) => (
+                  {!loading ? detail?.rewards.map((reward) => (
                     <TableRow key={reward.id}>
+                      <TableCell className="font-mono text-xs">{reward.id}</TableCell>
+                      <TableCell>{reward.program_name || reward.ib_program_id}</TableCell>
+                      <TableCell className="text-muted-foreground">{reward.calculation_basis || "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right">{rateLabel(reward)}</TableCell>
                       <TableCell>{identityLabel(reward.ib)}</TableCell>
-                      <TableCell>
-                        <p>{reward.program_name || reward.ib_program_id}</p>
-                        <p className="font-mono text-[11px] text-muted-foreground">{reward.ib_program_id}</p>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{reward.benefactor_id}</TableCell>
-                      <TableCell>{reward.level}</TableCell>
-                      <TableCell>{paymentRuleTypeLabel(reward.payment_rule_type)}</TableCell>
-                      <TableCell>{reward.formula_version || "—"}</TableCell>
-                      <TableCell>{reward.calculation_basis || "—"}</TableCell>
-                      <TableCell className="text-right">{reward.rate ?? "—"}</TableCell>
-                      <TableCell>
-                        {reward.calculation_inputs ? (
-                          <pre className="max-h-28 min-w-56 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 text-[11px]">
-                            {JSON.stringify(reward.calculation_inputs, null, 2)}
-                          </pre>
-                        ) : "—"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-right">
-                        {formatReportMoney(reward.amount.value, reward.amount.currency_code, reward.amount.currency_precision)}
-                      </TableCell>
+                      <TableCell>{rewardTier(reward)}</TableCell>
+                      <TableCell className="text-right">L{reward.level}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right">{formatReportMoney(reward.amount.value, reward.amount.currency_code, reward.amount.currency_precision)}</TableCell>
                       <TableCell><Badge variant={paymentStatusVariant(reward.payment_status)}>{paymentStatusLabel(reward.payment_status)}</Badge></TableCell>
-                      <TableCell className="font-mono text-xs">{reward.external_transaction_id || "—"}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatReportDate(reward.created_at)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatReportDate(reward.updated_at)}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatReportDate(reward.paid_at)}</TableCell>
-                      <TableCell className="max-w-64 whitespace-normal">{reward.comments || "—"}</TableCell>
                     </TableRow>
-                  ))
-                : null}
-            </TableBody>
-          </Table>
+                  )) : null}
+                </TableBody>
+              </Table>
+            </div>
+
+            {detail ? (
+              <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                Identidad: Σ líneas pagadas {money(detail.paid_lines_sum)} = reward_paid {money(detail.reward_paid)}{" "}
+                <strong className={detail.paid_sum_matches_parent ? "text-emerald-600" : "text-destructive"}>{detail.paid_sum_matches_parent ? "✓" : "✗"}</strong>
+                {" · "}revenue {money(trade?.revenue ?? null)} − reward {money(trade?.reward_paid ?? null)} = margen {money(trade?.margin ?? null)}{" "}
+                <strong className={marginAvailable ? "text-emerald-600" : "text-muted-foreground"}>{marginAvailable ? "✓" : "—"}</strong>
+              </div>
+            ) : null}
+          </section>
         </div>
       </DialogContent>
     </Dialog>
