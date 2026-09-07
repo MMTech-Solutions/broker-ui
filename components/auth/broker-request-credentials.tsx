@@ -44,7 +44,7 @@ function CredentialValue({ label, value }: { label: string; value: string | null
         </Button>
       </div>
       <pre className="max-h-36 overflow-auto whitespace-pre-wrap break-all rounded-md border bg-muted p-3 text-xs">
-        {value ?? "No hay una sesión de cliente activa."}
+        {value ?? "No hay una sesión activa."}
       </pre>
     </div>
   );
