@@ -31,9 +31,10 @@ export function formatDuration(seconds: string | number | null): string {
   if (seconds === null) return "—";
   const value = Number(seconds);
   if (!Number.isFinite(value)) return String(seconds);
-  const hours = Math.floor(value / 3600);
-  const minutes = Math.floor((value % 3600) / 60);
-  const remainder = value % 60;
+  const totalMilliseconds = Math.round(value * 1000);
+  const hours = Math.floor(totalMilliseconds / 3_600_000);
+  const minutes = Math.floor(totalMilliseconds / 60_000) % 60;
+  const remainder = (totalMilliseconds % 60_000) / 1000;
   return [hours ? `${hours}h` : null, minutes ? `${minutes}m` : null, `${remainder}s`].filter(Boolean).join(" ");
 }
 

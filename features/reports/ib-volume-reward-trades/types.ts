@@ -5,6 +5,7 @@ import type {
 
 export type ReportIdentity = { id: string; name: string | null; email: string | null };
 export type ReportReference = { id: string; name: string | null };
+export type ReportServerGroup = ReportReference & { meta_name: string | null };
 
 export type CalculationAvailability = {
   status: "available" | "unavailable";
@@ -20,7 +21,7 @@ export type IbVolumeRewardTrade = {
   operation_id: string | number | null;
   platform: ReportReference;
   environment: number | string;
-  server_group: ReportReference;
+  server_group: ReportServerGroup;
   book_type: "a_book" | "b_book" | null;
   symbol: string;
   side: string;

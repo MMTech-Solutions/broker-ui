@@ -90,6 +90,15 @@ function identity(identity: { id: string; name: string | null; email: string | n
   );
 }
 
+function serverGroup(group: { id: string; name: string | null; meta_name: string | null }) {
+  return (
+    <div className="min-w-36">
+      <p className="font-medium">{group.meta_name || group.name || group.id}</p>
+      {group.name ? <p className="text-xs text-muted-foreground">{group.name}</p> : null}
+    </div>
+  );
+}
+
 export function IbVolumeRewardTradesReportView() {
   const [draft, setDraft] = useState<FilterDraft>(EMPTY_DRAFT);
   const [filters, setFilters] = useState<IbVolumeRewardTradeFilters>(DEFAULT_FILTERS);
@@ -319,7 +328,7 @@ function TradesTable({ rows, loading, filters, onSort, onOpenDetail }: { rows: I
                 <TableCell className="font-mono text-xs">{trade.operation_id ?? "—"}</TableCell>
                 <TableCell>{trade.platform.name || trade.platform.id}</TableCell>
                 <TableCell>{environmentLabel(trade.environment)}</TableCell>
-                <TableCell>{trade.server_group.name || trade.server_group.id}</TableCell>
+                <TableCell>{serverGroup(trade.server_group)}</TableCell>
                 <TableCell>{bookLabel(trade.book_type)}</TableCell>
                 <TableCell className="font-medium">{trade.symbol}</TableCell>
                 <TableCell className="capitalize">{trade.side}</TableCell>
