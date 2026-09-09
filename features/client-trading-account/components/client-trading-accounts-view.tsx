@@ -7,6 +7,7 @@ import {
   LineChartIcon,
   PlusIcon,
   ShieldCheckIcon,
+  ShieldAlertIcon,
 } from "lucide-react";
 
 import { ActionTooltipButton } from "@/components/feedback/action-tooltip-button";
@@ -345,6 +346,10 @@ export function ClientTradingAccountsView() {
     router.push(`/client/accounts/${account.id}/metrics`);
   }
 
+  function openRiskControl(account: EnrichedClientTradingAccount) {
+    router.push(`/client/accounts/${account.id}/risk-control`);
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <PageContentToolbar breadcrumbs={clientTradingAccountsBreadcrumbs}>
@@ -530,6 +535,14 @@ export function ClientTradingAccountsView() {
                             <ShieldCheckIcon />
                           </ActionTooltipButton>
                         ) : null}
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          tooltip="Control de riesgo"
+                          onClick={() => openRiskControl(account)}
+                        >
+                          <ShieldAlertIcon />
+                        </ActionTooltipButton>
                         <ActionTooltipButton
                           variant="ghost"
                           size="icon-sm"

@@ -8,6 +8,7 @@ import {
   MoreHorizontalIcon,
   PauseCircleIcon,
   PlayCircleIcon,
+  ShieldAlertIcon,
   UnlockIcon,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ type TradingAccountActionsMenuProps = {
   onViewPositions: (account: TradingAccount) => void;
   onResetPassword: (account: TradingAccount) => void;
   onViewNotes: (account: TradingAccount) => void;
+  onViewRiskControl: (account: TradingAccount) => void;
   onAccessAction: (
     account: TradingAccount,
     action: TradingAccountAccessAction,
@@ -38,6 +40,7 @@ export function TradingAccountActionsMenu({
   onViewPositions,
   onResetPassword,
   onViewNotes,
+  onViewRiskControl,
   onAccessAction,
 }: TradingAccountActionsMenuProps) {
   return (
@@ -67,6 +70,11 @@ export function TradingAccountActionsMenu({
         <DropdownMenuItem onClick={() => onViewNotes(account)}>
           <MessageSquareTextIcon />
           View comments and reasons
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={() => onViewRiskControl(account)}>
+          <ShieldAlertIcon />
+          View risk control
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

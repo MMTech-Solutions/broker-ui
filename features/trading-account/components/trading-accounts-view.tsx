@@ -510,6 +510,10 @@ export function TradingAccountsView() {
     setNotesDialogOpen(true);
   }
 
+  function openRiskControl(account: TradingAccount) {
+    router.push(`/trading-accounts/${account.id}/risk-control`);
+  }
+
   const serverGroupById = useMemo(
     () => new Map(serverGroupOptions.map((option) => [option.id, option])),
     [serverGroupOptions],
@@ -1069,6 +1073,7 @@ export function TradingAccountsView() {
                           onViewPositions={openPositionsDialog}
                           onResetPassword={openResetPasswordDialog}
                           onViewNotes={openNotesDialog}
+                          onViewRiskControl={openRiskControl}
                           onAccessAction={openAccessDialog}
                         />
                       </TableCell>
