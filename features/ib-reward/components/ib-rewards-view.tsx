@@ -39,6 +39,7 @@ import {
   paymentStatusVariant,
   sourceTypeLabel,
   type IbReward,
+  type IbRewardParticipant,
 } from "@/features/ib-reward";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
@@ -52,6 +53,27 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 function truncateId(value: string): string {
   return value.length > 12 ? `${value.slice(0, 8)}…` : value;
+}
+
+function RewardParticipantCell({
+  participant,
+}: {
+  participant: IbRewardParticipant;
+}) {
+  return (
+    <div className="space-y-0.5">
+      <p className="font-medium">{participant.name.trim() || "—"}</p>
+      <p className="text-xs text-muted-foreground">
+        {participant.email?.trim() || "—"}
+      </p>
+      <p
+        className="font-mono text-xs text-muted-foreground"
+        title={participant.id}
+      >
+        {truncateId(participant.id)}
+      </p>
+    </div>
+  );
 }
 
 export function IbRewardsView() {
@@ -71,10 +93,18 @@ export function IbRewardsView() {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [sourceTypeFilter, setSourceTypeFilter] = useState("all");
   const [benefactorIdInput, setBenefactorIdInput] = useState("");
+  const [benefactorNameInput, setBenefactorNameInput] = useState("");
+  const [benefactorEmailInput, setBenefactorEmailInput] = useState("");
   const [beneficiaryIdInput, setBeneficiaryIdInput] = useState("");
+  const [beneficiaryNameInput, setBeneficiaryNameInput] = useState("");
+  const [beneficiaryEmailInput, setBeneficiaryEmailInput] = useState("");
   const [settlementRunIdInput, setSettlementRunIdInput] = useState("");
   const [benefactorIdFilter, setBenefactorIdFilter] = useState("");
+  const [benefactorNameFilter, setBenefactorNameFilter] = useState("");
+  const [benefactorEmailFilter, setBenefactorEmailFilter] = useState("");
   const [beneficiaryIdFilter, setBeneficiaryIdFilter] = useState("");
+  const [beneficiaryNameFilter, setBeneficiaryNameFilter] = useState("");
+  const [beneficiaryEmailFilter, setBeneficiaryEmailFilter] = useState("");
   const [settlementRunIdFilter, setSettlementRunIdFilter] = useState("");
   const [createdAtFrom, setCreatedAtFrom] = useState("");
   const [createdAtTo, setCreatedAtTo] = useState("");
@@ -107,7 +137,11 @@ export function IbRewardsView() {
           ib_program_id: selectedProgramId,
           settlement_run_id: settlementRunIdFilter || undefined,
           benefactor_id: benefactorIdFilter || undefined,
+          benefactor_name: benefactorNameFilter || undefined,
+          benefactor_email: benefactorEmailFilter || undefined,
           beneficiary_id: beneficiaryIdFilter || undefined,
+          beneficiary_name: beneficiaryNameFilter || undefined,
+          beneficiary_email: beneficiaryEmailFilter || undefined,
           payment_rule_type:
             paymentRuleTypeFilter === "all"
               ? undefined
@@ -134,7 +168,11 @@ export function IbRewardsView() {
       selectedProgramId,
       settlementRunIdFilter,
       benefactorIdFilter,
+      benefactorNameFilter,
+      benefactorEmailFilter,
       beneficiaryIdFilter,
+      beneficiaryNameFilter,
+      beneficiaryEmailFilter,
       paymentRuleTypeFilter,
       paymentStatusFilter,
       sourceTypeFilter,
@@ -154,7 +192,11 @@ export function IbRewardsView() {
   function applyFilters() {
     setPage(1);
     setBenefactorIdFilter(benefactorIdInput.trim());
+    setBenefactorNameFilter(benefactorNameInput.trim());
+    setBenefactorEmailFilter(benefactorEmailInput.trim());
     setBeneficiaryIdFilter(beneficiaryIdInput.trim());
+    setBeneficiaryNameFilter(beneficiaryNameInput.trim());
+    setBeneficiaryEmailFilter(beneficiaryEmailInput.trim());
     setSettlementRunIdFilter(settlementRunIdInput.trim());
   }
 
@@ -164,10 +206,18 @@ export function IbRewardsView() {
     setPaymentStatusFilter("all");
     setSourceTypeFilter("all");
     setBenefactorIdInput("");
+    setBenefactorNameInput("");
+    setBenefactorEmailInput("");
     setBeneficiaryIdInput("");
+    setBeneficiaryNameInput("");
+    setBeneficiaryEmailInput("");
     setSettlementRunIdInput("");
     setBenefactorIdFilter("");
+    setBenefactorNameFilter("");
+    setBenefactorEmailFilter("");
     setBeneficiaryIdFilter("");
+    setBeneficiaryNameFilter("");
+    setBeneficiaryEmailFilter("");
     setSettlementRunIdFilter("");
     setCreatedAtFrom("");
     setCreatedAtTo("");
@@ -290,6 +340,48 @@ export function IbRewardsView() {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="ib-rewards-benefactor-name">Benefactor name</Label>
+          <Input
+            id="ib-rewards-benefactor-name"
+            value={benefactorNameInput}
+            onChange={(event) => setBenefactorNameInput(event.target.value)}
+            placeholder="Name or surname"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ib-rewards-benefactor-email">Benefactor email</Label>
+          <Input
+            id="ib-rewards-benefactor-email"
+            type="email"
+            value={benefactorEmailInput}
+            onChange={(event) => setBenefactorEmailInput(event.target.value)}
+            placeholder="user@example.com"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ib-rewards-beneficiary-name">Beneficiary name</Label>
+          <Input
+            id="ib-rewards-beneficiary-name"
+            value={beneficiaryNameInput}
+            onChange={(event) => setBeneficiaryNameInput(event.target.value)}
+            placeholder="Name or surname"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ib-rewards-beneficiary-email">Beneficiary email</Label>
+          <Input
+            id="ib-rewards-beneficiary-email"
+            type="email"
+            value={beneficiaryEmailInput}
+            onChange={(event) => setBeneficiaryEmailInput(event.target.value)}
+            placeholder="ib@example.com"
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="ib-rewards-settlement-run-id">Settlement run ID</Label>
           <Input
             id="ib-rewards-settlement-run-id"
@@ -384,11 +476,11 @@ export function IbRewardsView() {
                       {reward.program?.name ??
                         truncateId(reward.ib_program_id)}
                     </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {truncateId(reward.benefactor_id)}
+                    <TableCell>
+                      <RewardParticipantCell participant={reward.benefactor} />
                     </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {truncateId(reward.beneficiary_id)}
+                    <TableCell>
+                      <RewardParticipantCell participant={reward.beneficiary} />
                     </TableCell>
                     <TableCell>
                       {paymentRuleTypeLabel(reward.payment_rule_type)}

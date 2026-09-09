@@ -7,7 +7,11 @@ export {
   paymentStatusVariant,
   sourceTypeLabel,
 } from "@/features/ib-reward/format";
-export type { IbReward, IbRewardListFilters } from "@/features/ib-reward/types";
+export type {
+  IbReward,
+  IbRewardListFilters,
+  IbRewardParticipant,
+} from "@/features/ib-reward/types";
 export {
   IB_PAYMENT_RULE_TYPES,
   IB_REWARD_PAYMENT_STATUSES,

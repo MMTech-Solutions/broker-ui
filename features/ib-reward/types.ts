@@ -1,11 +1,17 @@
 import type { IbProgram } from "@/features/ib-program/types";
 
+export type IbRewardParticipant = {
+  id: string;
+  name: string;
+  email: string | null;
+};
+
 export type IbReward = {
   id: string;
   ib_program_id: string;
   settlement_run_id: string | null;
-  benefactor_id: string;
-  beneficiary_id: string;
+  benefactor: IbRewardParticipant;
+  beneficiary: IbRewardParticipant;
   payment_rule_type: string;
   distribution_level: number;
   amount: string;
@@ -25,7 +31,11 @@ export type IbRewardListFilters = {
   ib_program_id?: string;
   settlement_run_id?: string;
   benefactor_id?: string;
+  benefactor_name?: string;
+  benefactor_email?: string;
   beneficiary_id?: string;
+  beneficiary_name?: string;
+  beneficiary_email?: string;
   payment_rule_type?: string;
   payment_status?: string;
   source_type?: string;
