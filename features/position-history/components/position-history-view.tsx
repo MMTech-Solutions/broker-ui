@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CoinsIcon, FilterXIcon, RefreshCwIcon, WifiIcon, WifiOffIcon } from "lucide-react";
+import { Popover } from "@base-ui/react/popover";
+import { CoinsIcon, FilterIcon, FilterXIcon, RefreshCwIcon, WifiIcon, WifiOffIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { applyOpenPositionsSnapshot } from "@/features/client-positions/apply-position-snapshot";
 import { formatNumber, formatOpenedAt, formatSide } from "@/features/client-positions/format";
@@ -40,6 +42,7 @@ export function PositionHistoryView() {
   const pathname = usePathname();
   const filters = useMemo(() => fromSearch(search), [search]);
   const [draft, setDraft] = useState<PositionHistoryFilters>(filters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [tab, setTab] = useState<PositionsTab>(() => historyTab(filters));
   const [rows, setRows] = useState<GlobalPosition[]>([]);
   const [latestSnapshot, setLatestSnapshot] = useState<OpenPositionsSnapshotPayload | null>(null);
@@ -93,7 +96,17 @@ export function PositionHistoryView() {
     setLatestSnapshot(null);
     setTab(historyTab(draft));
     replace({ ...draft, page: 1 });
+    setFiltersOpen(false);
   }
+
+  function clearFilters() {
+    const next = { ...DEFAULTS, status: filters.status, sort_by: filters.sort_by, sort_direction: filters.sort_direction };
+    setDraft(next);
+    replace(next);
+    setFiltersOpen(false);
+  }
+
+  const activeFilterCount = FILTER_KEYS.filter((key) => filters[key] !== undefined && filters[key] !== "").length;
 
   function changeHistoryTab(nextTab: "open" | "closed") {
     setLatestSnapshot(null);
@@ -103,12 +116,17 @@ export function PositionHistoryView() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-hidden p-4">
-      <PageContentToolbar breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Positions", current: true }]} backHref="/trading-accounts" backLabel="Back">
-        <Button variant="outline" size="sm" onClick={() => replace(DEFAULTS)}><FilterXIcon data-icon="inline-start" />Clear filters</Button>
-      </PageContentToolbar>
-      <div className="flex flex-wrap gap-2 rounded-xl border p-3">
-        {FILTER_KEYS.map((key) => <Input key={key} value={String(draft[key] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value }))} placeholder={key.replaceAll("_", " ")} className="h-8 w-[150px]" />)}
-        <Button size="sm" onClick={apply}>Apply filters</Button>
+      <PageContentToolbar breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Positions", current: true }]} backHref="/trading-accounts" backLabel="Back" />
+      <div className="flex flex-wrap items-center gap-3">
+        <Popover.Root open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <Popover.Trigger render={<Button type="button" variant="outline" size="sm" />}><FilterIcon data-icon="inline-start" />Filters{activeFilterCount > 0 ? <Badge variant="secondary">{activeFilterCount}</Badge> : null}</Popover.Trigger>
+          <Popover.Portal><Popover.Positioner side="bottom" sideOffset={4} align="start" className="isolate z-50"><Popover.Popup className="z-50 max-h-[calc(100vh-2rem)] w-[48rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg bg-popover p-4 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none">
+            <div className="mb-4"><p className="font-medium">Filter positions</p><p className="text-xs text-muted-foreground">Combine one or more fields and apply them to the table.</p></div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{FILTER_KEYS.map((key) => <div key={key} className="space-y-1.5"><Label htmlFor={`position-filter-${key}`}>{key.replaceAll("_", " ")}</Label><Input id={`position-filter-${key}`} value={String(draft[key] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); apply(); } }} /></div>)}</div>
+            <div className="mt-5 flex justify-end gap-2 border-t pt-4"><Button variant="ghost" size="sm" onClick={clearFilters}><FilterXIcon />Clear</Button><Button size="sm" onClick={apply}>Apply filters</Button></div>
+          </Popover.Popup></Popover.Positioner></Popover.Portal>
+        </Popover.Root>
+        {activeFilterCount > 0 ? <span className="text-sm text-muted-foreground">{activeFilterCount} active {activeFilterCount === 1 ? "filter" : "filters"}</span> : null}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1 rounded-lg border bg-muted/40 p-1">

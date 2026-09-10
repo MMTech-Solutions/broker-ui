@@ -131,6 +131,11 @@ const bonusNavigation = [
 
 const reportsNavigation = [
   {
+    title: "Positions report",
+    href: "/reports/positions",
+    icon: FileChartColumnIcon,
+  },
+  {
     title: "IB reward trades",
     href: "/reports/ib-volume-reward-trades",
     icon: FileChartColumnIcon,

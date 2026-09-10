@@ -1,2 +1,7 @@
+import { Suspense } from "react";
+
 import { PositionHistoryView } from "@/features/position-history/components/position-history-view";
-export default function PositionsPage() { return <PositionHistoryView />; }
+
+export default function PositionsPage() {
+  return <Suspense><PositionHistoryView /></Suspense>;
+}
