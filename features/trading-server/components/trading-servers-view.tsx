@@ -394,12 +394,7 @@ export function TradingServersView({ platformId }: TradingServersViewProps) {
                           <ActionTooltipButton
                             variant="ghost"
                             size="icon-sm"
-                            disabled={!isInitialized}
-                            tooltip={
-                              isInitialized
-                                ? "Delete trading server"
-                                : "Initialize the trading server first"
-                            }
+                            tooltip="Delete trading server"
                             onClick={() => openDeleteDialog(server)}
                           >
                             <Trash2Icon />
