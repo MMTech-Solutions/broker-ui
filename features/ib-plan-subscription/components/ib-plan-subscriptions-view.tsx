@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useRouter } from "next/navigation";
+import { Popover } from "@base-ui/react/popover";
 import {
   ArrowDownIcon,
   ArrowRightLeftIcon,
@@ -17,6 +18,7 @@ import {
   CheckIcon,
   ClipboardListIcon,
   EyeIcon,
+  FilterIcon,
   FilterXIcon,
   PencilIcon,
   MoreHorizontalIcon,
@@ -85,7 +87,7 @@ type IbPlanSubscriptionsViewProps = {
   ibPlanId?: string;
 };
 
-const TABLE_COLUMN_COUNT = 9;
+const TABLE_COLUMN_COUNT = 10;
 
 function parseOptionalNumber(value: string): number | undefined {
   const trimmed = value.trim();
@@ -258,6 +260,7 @@ export function IbPlanSubscriptionsView({
         "desc",
       ),
     );
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [selectedSubscription, setSelectedSubscription] =
     useState<IbPlanSubscription | null>(null);
@@ -403,13 +406,13 @@ export function IbPlanSubscriptionsView({
 
   function applyFiltersFromDraft() {
     commitFilters(draftFilters);
+    setFiltersOpen(false);
   }
 
   function clearFilters() {
     setDraftFilters(EMPTY_IB_PLAN_SUBSCRIPTION_FILTERS);
-    setSortBy("created_at");
-    setSortDirection("desc");
-    commitFilters(EMPTY_IB_PLAN_SUBSCRIPTION_FILTERS, "created_at", "desc");
+    commitFilters(EMPTY_IB_PLAN_SUBSCRIPTION_FILTERS);
+    setFiltersOpen(false);
   }
 
   function toggleSort(column: IbPlanSubscriptionSortBy) {
@@ -420,18 +423,19 @@ export function IbPlanSubscriptionsView({
 
     setSortBy(column);
     setSortDirection(nextDirection);
-    commitFilters(draftFilters, column, nextDirection);
+    setPage(1);
+    setAppliedFilters((current) => ({
+      ...current,
+      sort_by: column,
+      sort_direction: nextDirection,
+    }));
   }
 
   function patchDraft(
     patch: Partial<IbPlanSubscriptionFilterFormState>,
-    options?: { apply?: boolean },
   ) {
     const next = { ...draftFilters, ...patch };
     setDraftFilters(next);
-    if (options?.apply) {
-      commitFilters(next);
-    }
   }
 
   function onFilterEnter(event: KeyboardEvent<HTMLInputElement>) {
@@ -481,6 +485,9 @@ export function IbPlanSubscriptionsView({
 
   const showPlanSelector = !fixedIbPlanId;
   const canCreate = Boolean(activePlanId);
+  const activeFilterCount = Object.keys(appliedFilters).filter(
+    (key) => key !== "sort_by" && key !== "sort_direction",
+  ).length;
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-hidden p-4">
@@ -489,17 +496,6 @@ export function IbPlanSubscriptionsView({
         backHref={fixedIbPlanId ? "/ib-plans" : "/"}
         backLabel="Go back"
       >
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={clearFilters}
-          disabled={loading}
-          title="Clear column filters and sort"
-        >
-          <FilterXIcon data-icon="inline-start" />
-          Clear filters
-        </Button>
         {canCreate ? (
           <Button onClick={() => setFormOpen(true)}>
             <PlusIcon />
@@ -565,11 +561,247 @@ export function IbPlanSubscriptionsView({
           Select an IB plan to view subscriptions.
         </div>
       ) : (
-        <div className="min-w-0 max-w-full overflow-x-auto rounded-xl border">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="min-w-[150px] align-bottom">
+        <>
+          <div className="flex items-center gap-3">
+            <Popover.Root open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <Popover.Trigger
+                render={
+                  <Button type="button" variant="outline" size="sm" />
+                }
+              >
+                <FilterIcon data-icon="inline-start" />
+                Filters
+                {activeFilterCount > 0 ? (
+                  <Badge variant="secondary">{activeFilterCount}</Badge>
+                ) : null}
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Positioner
+                  side="bottom"
+                  sideOffset={4}
+                  align="start"
+                  className="isolate z-50"
+                >
+                  <Popover.Popup className="z-50 max-h-[calc(100vh-2rem)] w-[42rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg bg-popover p-4 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95">
+                <div className="mb-4">
+                  <p className="font-medium">Filter subscriptions</p>
+                  <p className="text-xs text-muted-foreground">
+                    Combine one or more fields and apply them to the table.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="subscription-filter-user-id">User ID</Label>
+                    <Input
+                      id="subscription-filter-user-id"
+                      className="font-mono text-xs"
+                      placeholder="UUID"
+                      value={draftFilters.user_id}
+                      onChange={(event) =>
+                        patchDraft({ user_id: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="subscription-filter-user-name">
+                      User name
+                    </Label>
+                    <Input
+                      id="subscription-filter-user-name"
+                      placeholder="Name"
+                      value={draftFilters.user_name}
+                      onChange={(event) =>
+                        patchDraft({ user_name: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="subscription-filter-user-email">
+                      User email
+                    </Label>
+                    <Input
+                      id="subscription-filter-user-email"
+                      placeholder="Email"
+                      value={draftFilters.user_email}
+                      onChange={(event) =>
+                        patchDraft({ user_email: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="subscription-filter-status">Status</Label>
+                    <Select
+                      value={draftFilters.status || "all"}
+                      onValueChange={(value) =>
+                        patchDraft({
+                          status:
+                            value === "pending" ||
+                            value === "active" ||
+                            value === "denied"
+                              ? value
+                              : "",
+                        })
+                      }
+                    >
+                      <SelectTrigger id="subscription-filter-status" className="w-full">
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {IB_PLAN_SUBSCRIPTION_STATUSES.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="subscription-filter-program">Program</Label>
+                    <Select
+                      value={draftFilters.ib_program_id || "all"}
+                      onValueChange={(value) =>
+                        patchDraft({
+                          ib_program_id: value === "all" ? "" : (value ?? ""),
+                        })
+                      }
+                      disabled={programsLoading}
+                    >
+                      <SelectTrigger id="subscription-filter-program" className="w-full">
+                        <SelectValue
+                          placeholder={
+                            programsLoading ? "Loading…" : "All programs"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All programs</SelectItem>
+                        {programOptions.map((entry) => (
+                          <SelectItem
+                            key={entry.program.id}
+                            value={entry.program.id}
+                          >
+                            {entry.program.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="subscription-filter-program-name">
+                      Program name
+                    </Label>
+                    <Input
+                      id="subscription-filter-program-name"
+                      placeholder="Partial program name"
+                      value={draftFilters.ib_program_name}
+                      onChange={(event) =>
+                        patchDraft({ ib_program_name: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="subscription-filter-personal-rate">
+                      Personal rate
+                    </Label>
+                    <Input
+                      id="subscription-filter-personal-rate"
+                      inputMode="decimal"
+                      placeholder="Exact value"
+                      value={draftFilters.personal_rate}
+                      onChange={(event) =>
+                        patchDraft({ personal_rate: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="subscription-filter-master">Master</Label>
+                    <Select
+                      value={draftFilters.is_master || "all"}
+                      onValueChange={(value) =>
+                        patchDraft({
+                          is_master:
+                            value === "true" || value === "false" ? value : "",
+                        })
+                      }
+                    >
+                      <SelectTrigger id="subscription-filter-master" className="w-full">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="true">Master only</SelectItem>
+                        <SelectItem value="false">Non-master only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="subscription-filter-comments">
+                      Comments
+                    </Label>
+                    <Input
+                      id="subscription-filter-comments"
+                      placeholder="Contains text"
+                      value={draftFilters.comments}
+                      onChange={(event) =>
+                        patchDraft({ comments: event.target.value })
+                      }
+                      onKeyDown={onFilterEnter}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-5 flex items-center justify-end gap-2 border-t pt-4">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    disabled={loading && activeFilterCount === 0}
+                  >
+                    <FilterXIcon data-icon="inline-start" />
+                    Clear
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={applyFiltersFromDraft}
+                    disabled={loading}
+                  >
+                    Apply filters
+                  </Button>
+                </div>
+                  </Popover.Popup>
+                </Popover.Positioner>
+              </Popover.Portal>
+            </Popover.Root>
+
+            {activeFilterCount > 0 ? (
+              <span className="text-sm text-muted-foreground">
+                {activeFilterCount} active{" "}
+                {activeFilterCount === 1 ? "filter" : "filters"}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="min-w-0 max-w-full overflow-x-auto rounded-xl border">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                <TableHead className="min-w-[150px]">
                   <ColumnSortHead
                     label="User ID"
                     sortKey="user.id"
@@ -578,19 +810,9 @@ export function IbPlanSubscriptionsView({
                     onSort={toggleSort}
                     disabled={loading}
                   />
-                  <Input
-                    className="mt-1.5 h-8 font-mono text-xs"
-                    placeholder="UUID… (Enter)"
-                    title="Press Enter to apply filter"
-                    value={draftFilters.user_id}
-                    onChange={(event) =>
-                      patchDraft({ user_id: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                  />
                 </TableHead>
 
-                <TableHead className="min-w-[140px] align-bottom">
+                <TableHead className="min-w-[140px]">
                   <ColumnSortHead
                     label="User name"
                     sortKey="user.name"
@@ -599,19 +821,9 @@ export function IbPlanSubscriptionsView({
                     onSort={toggleSort}
                     disabled={loading}
                   />
-                  <Input
-                    className="mt-1.5 h-8"
-                    placeholder="Name… (Enter)"
-                    title="Press Enter to apply filter"
-                    value={draftFilters.user_name}
-                    onChange={(event) =>
-                      patchDraft({ user_name: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                  />
                 </TableHead>
 
-                <TableHead className="min-w-[160px] align-bottom">
+                <TableHead className="min-w-[160px]">
                   <ColumnSortHead
                     label="User email"
                     sortKey="user.email"
@@ -620,19 +832,9 @@ export function IbPlanSubscriptionsView({
                     onSort={toggleSort}
                     disabled={loading}
                   />
-                  <Input
-                    className="mt-1.5 h-8"
-                    placeholder="Email… (Enter)"
-                    title="Press Enter to apply filter"
-                    value={draftFilters.user_email}
-                    onChange={(event) =>
-                      patchDraft({ user_email: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                  />
                 </TableHead>
 
-                <TableHead className="min-w-[130px] align-bottom">
+                <TableHead className="min-w-[130px]">
                   <ColumnSortHead
                     label="Status"
                     sortKey="status"
@@ -641,36 +843,9 @@ export function IbPlanSubscriptionsView({
                     onSort={toggleSort}
                     disabled={loading}
                   />
-                  <Select
-                    value={draftFilters.status || "all"}
-                    onValueChange={(value) =>
-                      patchDraft(
-                        {
-                          status:
-                            value === "pending" ||
-                            value === "active" ||
-                            value === "denied"
-                              ? value
-                              : "",
-                        },
-                        { apply: true },
-                      )
-                    }
-                  >
-                    <SelectTrigger className="mt-1.5 h-8 w-full">
-                      <SelectValue placeholder="All statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {IB_PLAN_SUBSCRIPTION_STATUSES.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </TableHead>
 
-                <TableHead className="min-w-[150px] align-bottom">
+                <TableHead className="min-w-[150px]">
                   <ColumnSortHead
                     label="Program"
                     sortKey="ib_program_name"
@@ -679,51 +854,13 @@ export function IbPlanSubscriptionsView({
                     onSort={toggleSort}
                     disabled={loading}
                   />
-                  <Select
-                    value={draftFilters.ib_program_id || "all"}
-                    onValueChange={(value) =>
-                      patchDraft(
-                        {
-                          ib_program_id:
-                            value === "all" ? "" : (value ?? ""),
-                        },
-                        { apply: true },
-                      )
-                    }
-                    disabled={programsLoading}
-                  >
-                    <SelectTrigger className="mt-1.5 h-8 w-full">
-                      <SelectValue
-                        placeholder={
-                          programsLoading ? "Loading…" : "All programs"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      {programOptions.map((entry) => (
-                        <SelectItem
-                          key={entry.program.id}
-                          value={entry.program.id}
-                        >
-                          {entry.program.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    className="mt-1.5 h-8"
-                    placeholder="Name… (Enter)"
-                    title="Partial match on program name. Press Enter to apply."
-                    value={draftFilters.ib_program_name}
-                    onChange={(event) =>
-                      patchDraft({ ib_program_name: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                  />
                 </TableHead>
 
-                <TableHead className="min-w-[120px] align-bottom text-right">
+                <TableHead className="min-w-[190px]">
+                  <span className="text-xs font-medium">Progress</span>
+                </TableHead>
+
+                <TableHead className="min-w-[120px] text-right">
                   <ColumnSortHead
                     label="Personal rate"
                     sortKey="personal_rate"
@@ -733,20 +870,9 @@ export function IbPlanSubscriptionsView({
                     disabled={loading}
                     align="right"
                   />
-                  <Input
-                    className="mt-1.5 h-8 text-right"
-                    inputMode="decimal"
-                    placeholder="Exact… (Enter)"
-                    title="Exact match. Press Enter to apply."
-                    value={draftFilters.personal_rate}
-                    onChange={(event) =>
-                      patchDraft({ personal_rate: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                  />
                 </TableHead>
 
-                <TableHead className="min-w-[120px] align-bottom">
+                <TableHead className="min-w-[120px]">
                   <ColumnSortHead
                     label="Master"
                     sortKey="is_master"
@@ -755,46 +881,13 @@ export function IbPlanSubscriptionsView({
                     onSort={toggleSort}
                     disabled={loading}
                   />
-                  <Select
-                    value={draftFilters.is_master || "all"}
-                    onValueChange={(value) =>
-                      patchDraft(
-                        {
-                          is_master:
-                            value === "true" || value === "false"
-                              ? value
-                              : "",
-                        },
-                        { apply: true },
-                      )
-                    }
-                  >
-                    <SelectTrigger className="mt-1.5 h-8 w-full">
-                      <SelectValue placeholder="All" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="true">Master only</SelectItem>
-                      <SelectItem value="false">Non-master only</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </TableHead>
 
-                <TableHead className="min-w-[160px] align-bottom">
+                <TableHead className="min-w-[160px]">
                   <span className="text-xs font-medium">Comments</span>
-                  <Input
-                    className="mt-1.5 h-8"
-                    placeholder="Contains… (Enter)"
-                    title="Press Enter to apply filter"
-                    value={draftFilters.comments}
-                    onChange={(event) =>
-                      patchDraft({ comments: event.target.value })
-                    }
-                    onKeyDown={onFilterEnter}
-                  />
                 </TableHead>
 
-                <TableHead className="w-[180px] align-bottom text-right">
+                <TableHead className="w-[180px] text-right">
                   <span className="text-xs font-medium">Actions</span>
                 </TableHead>
               </TableRow>
@@ -853,6 +946,9 @@ export function IbPlanSubscriptionsView({
                         <TableCell>
                           {resolveSubscriptionProgramName(subscription) || "—"}
                         </TableCell>
+                        <TableCell>
+                          <SubscriptionProgress subscription={subscription} />
+                        </TableCell>
                         <TableCell className="text-right">
                           {subscription.personal_rate}
                         </TableCell>
@@ -882,7 +978,8 @@ export function IbPlanSubscriptionsView({
                 : null}
             </TableBody>
           </Table>
-        </div>
+          </div>
+        </>
       )}
 
       {pagination && pagination.last_page > 1 ? (
@@ -970,6 +1067,47 @@ export function IbPlanSubscriptionsView({
         open={formSubmissionOpen}
         onOpenChange={setFormSubmissionOpen}
       />
+    </div>
+  );
+}
+
+function SubscriptionProgress({
+  subscription,
+}: {
+  subscription: IbPlanSubscription;
+}) {
+  const placement = subscription.placement;
+  const percentage = placement?.progression_percentage;
+
+  if (percentage == null) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  const boundedPercentage = Math.min(100, Math.max(0, percentage));
+  const current = placement?.progression_metric_value ?? "0";
+  const total = placement?.progression_metric_total;
+
+  return (
+    <div className="min-w-[170px] space-y-1.5">
+      <div className="flex items-center justify-between gap-3 text-xs tabular-nums">
+        <span className="text-muted-foreground">
+          {total == null ? current : `${current} / ${total}`}
+        </span>
+        <span className="font-medium">{boundedPercentage.toFixed(2)}%</span>
+      </div>
+      <div
+        className="h-2 overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+        aria-label={`Progress for ${resolveSubscriptionProgramName(subscription) || "IB program"}`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={boundedPercentage}
+      >
+        <div
+          className="h-full rounded-full bg-primary transition-[width]"
+          style={{ width: `${boundedPercentage}%` }}
+        />
+      </div>
     </div>
   );
 }

@@ -12,6 +12,8 @@ export type IbPlanProgramPlacement = {
   assigned_by: "initial" | "admin" | "progression";
   assigned_at?: string | null;
   progression_metric_value?: string | null;
+  progression_metric_total?: string | null;
+  progression_percentage?: number | null;
   program?: IbProgram;
 };
 
