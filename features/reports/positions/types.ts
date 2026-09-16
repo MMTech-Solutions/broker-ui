@@ -44,6 +44,7 @@ export type PositionReportRow = {
   ratio: string | null;
   margin: string | null;
   reward_lines: number;
+  has_rewards: boolean;
   distinct_ibs: number;
   max_level: number;
   flags: IbVolumeRewardTradeFlag[];

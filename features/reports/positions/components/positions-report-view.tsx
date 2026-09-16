@@ -195,7 +195,7 @@ function PositionsTable({ rows, loading, filters, onSort, onSelect }: { rows: Po
         <TableCell className={cn("whitespace-nowrap text-right", Number(row.pnl) < 0 && "text-destructive")}>{money(row.pnl)}</TableCell>
         <TableCell className="whitespace-nowrap text-right">{money(row.broker_gross)}</TableCell>
         <TableCell className="min-w-32"><Badge variant="outline">{row.calculation_availability.status.replaceAll("_", " ")}</Badge><div className="mt-1 flex flex-wrap gap-1">{row.flags.map((flag) => <Badge key={flag} variant="outline" title={reportFlagLabel(flag)}>{flag.slice(0, 3).toUpperCase()}</Badge>)}</div></TableCell>
-        <TableCell><Button size="sm" variant="outline" onClick={() => onSelect(row)}>View details</Button></TableCell>
+        <TableCell>{row.has_rewards ? <Button size="sm" variant="outline" onClick={() => onSelect(row)}>View details</Button> : null}</TableCell>
       </TableRow>;
     }) : null}
   </TableBody></Table></div>;
