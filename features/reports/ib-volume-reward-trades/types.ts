@@ -4,13 +4,33 @@ import type {
 } from "@/lib/api/types/broker-response";
 
 export type ReportIdentity = { id: string; name: string | null; email: string | null };
-export type ReportReference = { id: string; name: string | null };
-export type ReportServerGroup = ReportReference & { meta_name: string | null };
+export type ReportReference = { id: string | null; name: string | null };
+export type ReportServerGroup = { id: string; name: string | null; meta_name: string | null };
 
 export type CalculationAvailability = {
   status: "available" | "unavailable";
   missing: string[];
   snapshotted_at: string | null;
+};
+
+export type ReportCommission = {
+  type: string | null;
+  value: string | null;
+};
+
+export type ReportPaymentLevel = {
+  id: string | null;
+  name: string | null;
+  rate: string | null;
+};
+
+export type IbVolumeDirectReward = {
+  reward_id: string;
+  plan: ReportReference | null;
+  program: ReportReference | null;
+  commission: ReportCommission | null;
+  payment_template: ReportReference | null;
+  level: ReportPaymentLevel | null;
 };
 
 export type IbVolumeRewardTrade = {
@@ -19,7 +39,7 @@ export type IbVolumeRewardTrade = {
   direct_ib: ReportIdentity | null;
   account_id: string;
   operation_id: string | number | null;
-  platform: ReportReference;
+  platform: { id: string; name: string | null };
   environment: number | string;
   server_group: ReportServerGroup;
   book_type: "a_book" | "b_book" | null;
@@ -52,6 +72,7 @@ export type IbVolumeRewardTrade = {
   max_level: number;
   flags: IbVolumeRewardTradeFlag[];
   calculation_availability: CalculationAvailability;
+  direct_reward: IbVolumeDirectReward | null;
 };
 
 export type IbVolumeRewardTradeFlag =
@@ -129,11 +150,15 @@ export type IbVolumeRewardLine = {
   id: string;
   ib_program_id: string;
   program_name: string | null;
+  plan: ReportReference | null;
+  program: ReportReference | null;
+  commission: ReportCommission | null;
+  payment_template: ReportReference | null;
+  level: ReportPaymentLevel | null;
   benefactor_id: string;
   beneficiary_id: string;
   ib: ReportIdentity;
   distribution_level: number;
-  level: number;
   payment_rule_type: string;
   formula_version: string | null;
   calculation_basis: string | null;

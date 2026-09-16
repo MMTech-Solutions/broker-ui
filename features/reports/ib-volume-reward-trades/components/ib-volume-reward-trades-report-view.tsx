@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, DownloadIcon, FilterXIcon, RefreshCwIcon } from "lucide-react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
 import { PageNumberPagination } from "@/components/page-number-pagination";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -316,10 +315,10 @@ function TradesTable({ rows, loading, filters, onSort, onOpenDetail }: { rows: I
   return (
     <TooltipProvider><section className="space-y-2"><div><h2 className="font-medium">Trades con rewards</h2><p className="text-sm text-muted-foreground">Una fila por posición cerrada que generó rewards.</p></div>
       <div className="min-w-0 overflow-x-auto rounded-xl border">
-        <Table><TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>IB L1</TableHead><TableHead>Cuenta</TableHead><TableHead>Trade ID</TableHead><TableHead>Plat.</TableHead><TableHead>Env</TableHead><TableHead>Grupo</TableHead><TableHead>Book</TableHead><TableHead>Símbolo</TableHead><TableHead>Side</TableHead><SortHead label="Lots" value="volume" filters={filters} onSort={onSort} /><SortHead label="Cierre" value="closed_at" filters={filters} onSort={onSort} /><SortHead label="Dur." value="duration_seconds" filters={filters} onSort={onSort} /><SortHead label="Comisión" value="commission" filters={filters} onSort={onSort} /><SortHead label="Markup" value="markup_revenue" filters={filters} onSort={onSort} /><SortHead label="Revenue" value="revenue" filters={filters} onSort={onSort} /><SortHead label="PnL" value="pnl" filters={filters} onSort={onSort} /><SortHead label="Bruto broker" value="broker_gross" filters={filters} onSort={onSort} /><SortHead label="Reward" value="reward_paid" filters={filters} onSort={onSort} /><SortHead label="Pend." value="reward_pending" filters={filters} onSort={onSort} /><SortHead label="Ratio" value="ratio" filters={filters} onSort={onSort} /><SortHead label="Margen" value="margin" filters={filters} onSort={onSort} /><SortHead label="Lín" value="reward_lines" filters={filters} onSort={onSort} /><SortHead label="IBs" value="distinct_ibs" filters={filters} onSort={onSort} /><SortHead label="Nv" value="max_level" filters={filters} onSort={onSort} /><TableHead>Flags</TableHead><TableHead>Economics</TableHead><TableHead><span className="sr-only">Detalle</span></TableHead></TableRow></TableHeader>
+        <Table><TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>IB L1</TableHead><TableHead>Cuenta</TableHead><TableHead>Trade ID</TableHead><TableHead>Plat.</TableHead><TableHead>Env</TableHead><TableHead>Grupo</TableHead><TableHead>Book</TableHead><TableHead>Símbolo</TableHead><TableHead>Side</TableHead><SortHead label="Lots" value="volume" filters={filters} onSort={onSort} /><SortHead label="Cierre" value="closed_at" filters={filters} onSort={onSort} /><SortHead label="Dur." value="duration_seconds" filters={filters} onSort={onSort} /><SortHead label="Comisión" value="commission" filters={filters} onSort={onSort} /><SortHead label="Markup" value="markup_revenue" filters={filters} onSort={onSort} /><SortHead label="Revenue" value="revenue" filters={filters} onSort={onSort} /><SortHead label="PnL" value="pnl" filters={filters} onSort={onSort} /><SortHead label="Bruto broker" value="broker_gross" filters={filters} onSort={onSort} /><SortHead label="Reward" value="reward_paid" filters={filters} onSort={onSort} /><SortHead label="Pend." value="reward_pending" filters={filters} onSort={onSort} /><SortHead label="Ratio" value="ratio" filters={filters} onSort={onSort} /><SortHead label="Margen" value="margin" filters={filters} onSort={onSort} /><SortHead label="Lín" value="reward_lines" filters={filters} onSort={onSort} /><SortHead label="IBs" value="distinct_ibs" filters={filters} onSort={onSort} /><SortHead label="Nv" value="max_level" filters={filters} onSort={onSort} /><TableHead>Flags</TableHead><TableHead>Plan / Program</TableHead><TableHead>Payment / Template</TableHead><TableHead><span className="sr-only">Detalle</span></TableHead></TableRow></TableHeader>
           <TableBody>
-            {loading ? Array.from({ length: 5 }).map((_, rowIndex) => <TableRow key={rowIndex}>{Array.from({ length: 28 }).map((__, cellIndex) => <TableCell key={cellIndex}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>) : null}
-            {!loading && rows.length === 0 ? <TableRow><TableCell colSpan={28} className="h-24 text-center text-muted-foreground">No hay trades con rewards que coincidan con los filtros.</TableCell></TableRow> : null}
+            {loading ? Array.from({ length: 5 }).map((_, rowIndex) => <TableRow key={rowIndex}>{Array.from({ length: 29 }).map((__, cellIndex) => <TableCell key={cellIndex}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>) : null}
+            {!loading && rows.length === 0 ? <TableRow><TableCell colSpan={29} className="h-24 text-center text-muted-foreground">No hay trades con rewards que coincidan con los filtros.</TableCell></TableRow> : null}
             {!loading ? rows.map((trade) => (
               <TableRow key={trade.position_id}>
                 <TableCell>{identity(trade.client)}</TableCell>
@@ -361,7 +360,8 @@ function TradesTable({ rows, loading, filters, onSort, onOpenDetail }: { rows: I
                     )) : <span>—</span>}
                   </div>
                 </TableCell>
-                <TableCell><Badge variant={trade.calculation_availability.status === "available" ? "secondary" : "outline"}>{trade.calculation_availability.status}</Badge>{trade.calculation_availability.missing.length ? <p className="mt-1 max-w-52 text-xs text-muted-foreground">Missing: {trade.calculation_availability.missing.join(", ")}</p> : null}{trade.calculation_availability.snapshotted_at ? <p className="mt-1 whitespace-nowrap text-xs text-muted-foreground">Snapshot: {formatReportDate(trade.calculation_availability.snapshotted_at)}</p> : null}</TableCell>
+                <TableCell className="min-w-44">{planProgramLabel(trade.direct_reward)}</TableCell>
+                <TableCell className="min-w-48">{paymentTemplateLabel(trade.direct_reward)}</TableCell>
                 <TableCell><Button size="sm" variant="outline" onClick={() => onOpenDetail(trade)}>detalle</Button></TableCell>
               </TableRow>
             )) : null}
@@ -369,5 +369,35 @@ function TradesTable({ rows, loading, filters, onSort, onOpenDetail }: { rows: I
         </Table>
       </div>
     </section></TooltipProvider>
+  );
+}
+
+function planProgramLabel(directReward: IbVolumeRewardTrade["direct_reward"]): ReactNode {
+  if (!directReward?.plan && !directReward?.program) return <span className="text-muted-foreground">—</span>;
+  return (
+    <div className="min-w-40 space-y-0.5">
+      <p className="font-medium">{directReward.plan?.name || directReward.plan?.id || "—"}</p>
+      <p className="text-xs text-muted-foreground">{directReward.program?.name || directReward.program?.id || "—"}</p>
+    </div>
+  );
+}
+
+function paymentTemplateLabel(directReward: IbVolumeRewardTrade["direct_reward"]): ReactNode {
+  if (!directReward?.commission && !directReward?.payment_template && !directReward?.level) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  const commission = directReward.commission
+    ? `${directReward.commission.type ?? "—"} · ${directReward.commission.value ?? "—"}`
+    : "—";
+  const template = directReward.payment_template?.name || directReward.payment_template?.id || "—";
+  const level = directReward.level
+    ? `${directReward.level.name || directReward.level.id || "—"} · ${directReward.level.rate ?? "—"}`
+    : "—";
+  return (
+    <div className="min-w-44 space-y-0.5">
+      <p className="font-medium">{commission}</p>
+      <p className="text-xs text-muted-foreground">{template}</p>
+      <p className="text-xs text-muted-foreground">{level}</p>
+    </div>
   );
 }

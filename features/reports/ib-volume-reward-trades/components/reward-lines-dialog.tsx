@@ -58,19 +58,45 @@ function EconomyRow({ label, value, emphasized = false, negative = false }: { la
 }
 
 function rewardTier(reward: IbVolumeRewardLine): string {
-  if (!reward.calculation_inputs) return "—";
-
-  for (const key of ["ib_tier", "beneficiary_tier", "tier"]) {
-    const value = reward.calculation_inputs[key];
-    if (typeof value === "string" || typeof value === "number") return String(value);
-  }
-
+  if (reward.level?.name) return reward.level.name;
+  if (reward.level?.id) return reward.level.id;
   return "—";
 }
 
 function rateLabel(reward: IbVolumeRewardLine): string {
-  if (reward.rate === null) return "—";
-  return reward.calculation_basis === "per_lot" ? `${reward.rate}/lot` : reward.rate;
+  const rate = reward.level?.rate ?? reward.rate;
+  if (rate === null || rate === undefined) return "—";
+  return reward.calculation_basis === "per_lot" || reward.commission?.type === "fixed"
+    ? `${rate}/lot`
+    : rate;
+}
+
+function planProgramCell(reward: IbVolumeRewardLine): ReactNode {
+  const plan = reward.plan?.name || reward.plan?.id || "—";
+  const program = reward.program?.name || reward.program_name || reward.program?.id || reward.ib_program_id;
+  return (
+    <div className="min-w-40 space-y-0.5">
+      <p className="font-medium">{plan}</p>
+      <p className="text-xs text-muted-foreground">{program}</p>
+    </div>
+  );
+}
+
+function paymentTemplateCell(reward: IbVolumeRewardLine): ReactNode {
+  const commission = reward.commission
+    ? `${reward.commission.type ?? "—"} · ${reward.commission.value ?? "—"}`
+    : reward.calculation_basis || "—";
+  const template = reward.payment_template?.name || reward.payment_template?.id || "—";
+  const level = reward.level
+    ? `${reward.level.name || reward.level.id || "—"} · ${reward.level.rate ?? "—"}`
+    : "—";
+  return (
+    <div className="min-w-44 space-y-0.5">
+      <p className="font-medium">{commission}</p>
+      <p className="text-xs text-muted-foreground">{template}</p>
+      <p className="text-xs text-muted-foreground">{level}</p>
+    </div>
+  );
 }
 
 export function RewardLinesDialog({ trade, open, onOpenChange }: RewardLinesDialogProps) {
@@ -161,11 +187,11 @@ export function RewardLinesDialog({ trade, open, onOpenChange }: RewardLinesDial
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>Programa</TableHead>
-                    <TableHead>Base</TableHead>
+                    <TableHead>Plan / Program</TableHead>
+                    <TableHead>Payment / Template</TableHead>
                     <TableHead className="text-right">Tasa</TableHead>
                     <TableHead>IB</TableHead>
-                    <TableHead>Tier</TableHead>
+                    <TableHead>Nivel plantilla</TableHead>
                     <TableHead className="text-right">Nivel</TableHead>
                     <TableHead className="text-right">Reward</TableHead>
                     <TableHead>Status</TableHead>
@@ -187,12 +213,12 @@ export function RewardLinesDialog({ trade, open, onOpenChange }: RewardLinesDial
                   {!loading ? detail?.rewards.map((reward) => (
                     <TableRow key={reward.id}>
                       <TableCell className="font-mono text-xs">{reward.id}</TableCell>
-                      <TableCell>{reward.program_name || reward.ib_program_id}</TableCell>
-                      <TableCell className="text-muted-foreground">{reward.calculation_basis || "—"}</TableCell>
+                      <TableCell>{planProgramCell(reward)}</TableCell>
+                      <TableCell>{paymentTemplateCell(reward)}</TableCell>
                       <TableCell className="whitespace-nowrap text-right">{rateLabel(reward)}</TableCell>
                       <TableCell>{identityLabel(reward.ib)}</TableCell>
                       <TableCell>{rewardTier(reward)}</TableCell>
-                      <TableCell className="text-right">L{reward.level}</TableCell>
+                      <TableCell className="text-right">L{reward.distribution_level + 1}</TableCell>
                       <TableCell className="whitespace-nowrap text-right">{formatReportMoney(reward.amount.value, reward.amount.currency_code, reward.amount.currency_precision)}</TableCell>
                       <TableCell><Badge variant={paymentStatusVariant(reward.payment_status)}>{paymentStatusLabel(reward.payment_status)}</Badge></TableCell>
                       <TableCell className="whitespace-nowrap">{formatReportDate(reward.created_at)}</TableCell>
