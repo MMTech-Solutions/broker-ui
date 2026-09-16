@@ -55,6 +55,7 @@ export type IbVolumeRewardTrade = {
   duration_seconds: string | number | null;
   currency_code: string | null;
   currency_precision: number | null;
+  swap: string | null;
   commission: string | null;
   markup_per_lot: string | null;
   markup_revenue: string | null;
@@ -128,7 +129,7 @@ export type IbVolumeRewardTradeFilters = {
 export type IbVolumeRewardRatioBucket = "under_70" | "70_to_100" | "over_100";
 
 export type IbVolumeRewardTradeSort =
-  | "closed_at" | "opened_at" | "duration_seconds" | "volume"
+  | "closed_at" | "opened_at" | "duration_seconds" | "volume" | "swap"
   | "commission" | "markup_per_lot" | "markup_revenue" | "revenue"
   | "pnl" | "broker_gross" | "reward_paid" | "reward_pending"
   | "reward_failed" | "reward_cancelled" | "ratio" | "margin"
