@@ -16,6 +16,7 @@ export function programSymbolFromApi(symbol: IbProgramSymbol): ProgramSymbolDraf
     commission_value: symbol.commission_value ?? "",
     commission_type: symbol.commission_type ?? "",
     ib_payment_template_id: symbol.ib_payment_template_id ?? "",
+    ib_progression_template_id: symbol.ib_progression_template_id ?? "",
   };
 }
 
@@ -32,6 +33,7 @@ export function programSymbolFromTradingSymbol(
     commission_value: "",
     commission_type: "",
     ib_payment_template_id: "",
+    ib_progression_template_id: "",
   };
 }
 
@@ -47,6 +49,7 @@ export function draftsSignature(drafts: ProgramSymbolDraft[]): string {
         commission_value: draft.commission_value,
         commission_type: draft.commission_type,
         ib_payment_template_id: draft.ib_payment_template_id,
+        ib_progression_template_id: draft.ib_progression_template_id,
       })),
   );
 }
@@ -65,6 +68,11 @@ export function draftToSyncInput(
     payload.commission_value = Number(draft.commission_value);
     payload.commission_type = draft.commission_type || null;
     payload.ib_payment_template_id = draft.ib_payment_template_id || null;
+  }
+
+  if (draft.use_for_plan_progression) {
+    payload.ib_progression_template_id =
+      draft.ib_progression_template_id || null;
   }
 
   return payload;
@@ -95,6 +103,13 @@ export function validateProgramSymbolDraft(draft: ProgramSymbolDraft): string | 
     if (!draft.ib_payment_template_id) {
       return "Payment template is required for volume payment.";
     }
+  }
+
+  if (
+    draft.use_for_plan_progression &&
+    !draft.ib_progression_template_id
+  ) {
+    return "A progression template is required for plan progression.";
   }
 
   return null;

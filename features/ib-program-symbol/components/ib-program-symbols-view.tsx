@@ -43,6 +43,8 @@ import {
 import type { ProgramSymbolDraft } from "@/features/ib-program-symbol/types";
 import { listIbPaymentTemplates } from "@/features/ib-payment-template/api";
 import type { IbPaymentTemplate } from "@/features/ib-payment-template/types";
+import { listIbProgressionTemplates } from "@/features/ib-progression-template/api";
+import type { IbProgressionTemplate } from "@/features/ib-progression-template/types";
 import { listIbPrograms } from "@/features/ib-program/api";
 import type { IbProgram } from "@/features/ib-program/types";
 import {
@@ -81,6 +83,9 @@ export function IbProgramSymbolsView() {
   const [paymentTemplates, setPaymentTemplates] = useState<IbPaymentTemplate[]>(
     [],
   );
+  const [progressionTemplates, setProgressionTemplates] = useState<
+    IbProgressionTemplate[]
+  >([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -306,14 +311,25 @@ export function IbProgramSymbolsView() {
     }
   }, []);
 
+  const loadProgressionTemplates = useCallback(async () => {
+    try {
+      const response = await listIbProgressionTemplates({ per_page: 100 });
+      setProgressionTemplates(response.data);
+    } catch {
+      setProgressionTemplates([]);
+    }
+  }, []);
+
   useEffect(() => {
     void loadProgram();
     void loadAssignedSymbols();
     void loadTradingServers();
     void loadPaymentTemplates();
+    void loadProgressionTemplates();
   }, [
     loadAssignedSymbols,
     loadPaymentTemplates,
+    loadProgressionTemplates,
     loadProgram,
     loadTradingServers,
   ]);
@@ -694,6 +710,7 @@ export function IbProgramSymbolsView() {
         onOpenChange={setConfigOpen}
         draft={selectedDraft}
         paymentTemplates={paymentTemplates}
+        progressionTemplates={progressionTemplates}
         onSave={handleConfigSave}
       />
     </div>

@@ -90,6 +90,11 @@ const ibNavigation = [
     icon: PercentIcon,
   },
   {
+    title: "Progression templates",
+    href: "/ib-progression-templates",
+    icon: WorkflowIcon,
+  },
+  {
     title: "IB Subscriptions",
     href: "/ib-subscriptions",
     icon: ClipboardListIcon,

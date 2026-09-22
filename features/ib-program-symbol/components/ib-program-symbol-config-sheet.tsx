@@ -28,12 +28,14 @@ import {
   type ProgramSymbolDraft,
 } from "@/features/ib-program-symbol/types";
 import type { IbPaymentTemplate } from "@/features/ib-payment-template/types";
+import type { IbProgressionTemplate } from "@/features/ib-progression-template/types";
 
 type IbProgramSymbolConfigSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   draft: ProgramSymbolDraft | null;
   paymentTemplates: IbPaymentTemplate[];
+  progressionTemplates: IbProgressionTemplate[];
   onSave: (draft: ProgramSymbolDraft) => void;
 };
 
@@ -42,6 +44,7 @@ export function IbProgramSymbolConfigSheet({
   onOpenChange,
   draft,
   paymentTemplates,
+  progressionTemplates,
   onSave,
 }: IbProgramSymbolConfigSheetProps) {
   const [form, setForm] = useState<ProgramSymbolDraft | null>(draft);
@@ -84,12 +87,20 @@ export function IbProgramSymbolConfigSheet({
       }
     }
 
+    if (form.use_for_plan_progression && !form.ib_progression_template_id) {
+      setError("Plan progression requires a progression template.");
+      return;
+    }
+
     onSave(form);
     onOpenChange(false);
   }
 
   const selectedTemplate = paymentTemplates.find(
     (template) => template.id === form?.ib_payment_template_id,
+  );
+  const selectedProgressionTemplate = progressionTemplates.find(
+    (template) => template.id === form?.ib_progression_template_id,
   );
 
   return (
@@ -279,6 +290,38 @@ export function IbProgramSymbolConfigSheet({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            ) : null}
+
+            {form.use_for_plan_progression ? (
+              <div className="space-y-2 rounded-lg border p-3">
+                <Label htmlFor="progression-template">Progression template</Label>
+                <Select
+                  value={form.ib_progression_template_id}
+                  onValueChange={(value) =>
+                    setForm((current) =>
+                      current
+                        ? { ...current, ib_progression_template_id: value ?? "" }
+                        : current,
+                    )
+                  }
+                >
+                  <SelectTrigger id="progression-template" className="w-full">
+                    <SelectValue placeholder="Select progression template">
+                      {selectedProgressionTemplate?.name ?? null}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {progressionTemplates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  The configured coefficients define each referral level contribution.
+                </p>
               </div>
             ) : null}
 

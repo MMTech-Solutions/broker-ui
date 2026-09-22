@@ -11,6 +11,7 @@ export type IbProgramSymbol = {
   commission_value: string | null;
   commission_type: IbProgramSymbolCommissionType | null;
   ib_payment_template_id: string | null;
+  ib_progression_template_id: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -34,6 +35,7 @@ export type SyncIbProgramSymbolInput = {
   commission_value?: number | null;
   commission_type?: IbProgramSymbolCommissionType | null;
   ib_payment_template_id?: string | null;
+  ib_progression_template_id?: string | null;
 };
 
 export type SyncIbProgramSymbolsInput = {
@@ -50,6 +52,7 @@ export type ProgramSymbolDraft = {
   commission_value: string;
   commission_type: IbProgramSymbolCommissionType | "";
   ib_payment_template_id: string;
+  ib_progression_template_id: string;
 };
 
 export const IB_PROGRAM_SYMBOL_COMMISSION_TYPES: {
