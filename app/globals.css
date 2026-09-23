@@ -128,3 +128,21 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  [role="tablist"][aria-label="Trading migrations"] {
+    @apply w-fit max-w-full gap-1 overflow-x-auto rounded-lg border bg-background p-1;
+    border-bottom-width: 1px !important;
+  }
+
+  [role="tablist"][aria-label="Trading migrations"] [role="tab"] {
+    @apply shrink-0;
+    border-bottom-width: 0 !important;
+    border-radius: min(var(--radius-md), 12px) !important;
+  }
+
+  [role="tablist"][aria-label="Trading migrations"] [role="tab"][aria-selected="true"] {
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+  }
+}

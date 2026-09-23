@@ -25,6 +25,7 @@ import {
   TagsIcon,
   UsersIcon,
   WalletIcon,
+  RefreshCwIcon,
   WorkflowIcon,
 } from "lucide-react";
 
@@ -50,6 +51,11 @@ const tradingNavigation = [
     title: "Trading accounts",
     href: "/trading-accounts",
     icon: WalletIcon,
+  },
+  {
+    title: "Trading migrations",
+    href: "/trading-migrations",
+    icon: RefreshCwIcon,
   },
   {
     title: "Positions",
