@@ -5,7 +5,7 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3276 nodes · 12169 edges · 152 communities (119 shown, 33 thin omitted)
+- 3276 nodes · 12170 edges · 159 communities (126 shown, 33 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 25 edges (avg confidence: 0.58)
 - Token cost: 0 input · 0 output
 
@@ -17,16 +17,16 @@
 ## Community Hubs (Navigation)
 - contest/api.ts
 - api-error-alert.tsx
-- ib-program-payment-rules-view.tsx
+- ib-program-payment-rule-form-dialog.tsx
 - insurance/index.ts
 - cn
 - client-risk-metrics/api.ts
-- getTradingServerForAdmin
+- TradingServerSecuritySymbolsView
 - alert-dialog.tsx
 - scheduled-command-run-dialog.tsx
 - ib-plan-subscription/index.ts
-- client-trading-account/api.ts
-- ClientInsurancesView
+- ib-payment-template/api.ts
+- listIbPaymentTemplates
 - form-builder-view.tsx
 - ib-admin-analytics-view.tsx
 - trading-server/api.ts
@@ -34,7 +34,7 @@
 - client-contest-detail-view.tsx
 - ib-volume-reward-trades-report-view.tsx
 - client-ib-progression-panel.tsx
-- FormsView
+- forms-view.tsx
 - formatBrokerApiError
 - public-risk-metrics-view.tsx
 - client-risk-metrics/types.ts
@@ -64,7 +64,7 @@
 - platform/api.ts
 - site-header.tsx
 - bonus-offer-template-form-dialog.tsx
-- trading-migration/api.ts
+- TradingMigrationsView
 - bonus-offers-view.tsx
 - EarningsRow
 - readSession
@@ -72,6 +72,7 @@
 - configuration/api.ts
 - client-analytics-dashboard-panel.tsx
 - components.json
+- SiteHeader
 - use-account-positions-channel.ts
 - auth.ts
 - ib-program/api.ts
@@ -93,10 +94,10 @@
 - client-bonus/api.ts
 - ib-admin-analytics/types.ts
 - contest-general-form.tsx
-- TradingServerGroupsView
+- ib-program-payment-rules-view.tsx
 - bonus-excluded-instruments-view.tsx
-- InitialAmountsView
-- listServerGroupLeverages
+- forms/types.ts
+- IbPaymentTemplateFormDialog
 - PositionsReportView
 - client-trading-account-create-dialog.tsx
 - errors.ts
@@ -118,19 +119,19 @@
 - RiskMetricsShareDialog
 - use-trading-stream-positions-channel.ts
 - package.json
-- parse-broker-error.ts
+- trading-migration/api.ts
 - config-form.ts
 - app-area-bar.tsx
 - NegativeBalanceRebalancesDataTable
 - IbProgramsView
-- trading-migrations-view.tsx
+- FormsListView
 - metrics/page.tsx
 - bonus-offer-form-dialog.tsx
 - ib-analytics-view.tsx
 - client-positions/api.ts
 - new/page.tsx
 - scripts
-- SymbolCategoriesView
+- FormBuilderView
 - apply-position-snapshot.ts
 - README.md
 - programs/page.tsx
@@ -140,23 +141,26 @@
 - [tradingServerId]/securities/page.tsx
 - [serverGroupId]/securities/page.tsx
 - LeveragesView
-- server-groups/page.tsx
 - IbReferralsContent
-- handleSubmit
 - position-history/api.ts
 - ContestGlobalSettingsView
 - RejectionTemplatesView
-- InsurancePlanOptionFormDialog
-- lucide-react
+- IbVolumeRewardTradesReportView
+- class-variance-authority
 - account-insurance-claim-dialogs.tsx
 - IbPaymentTemplateLevelFormDialog
+- TradingServersView
 - eslint.config.mjs
+- TradingSecuritiesView
+- TradingSymbolsView
+- ib-progression-templates/page.tsx
 - laravel-echo
 - next.config.ts
 - pusher-js
 - FormElementEditorSheet
 - react-dom
 - postcss.config.mjs
+- IbPaymentTemplateLevelsDialog
 - accounts/[accountId]/risk-control/page.tsx
 - trading-accounts/[accountId]/risk-control/page.tsx
 - OpenPositionDialog
@@ -191,7 +195,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (152 total, 33 thin omitted)
+## Communities (159 total, 33 thin omitted)
 
 ### Community 0 - "contest/api.ts"
 Cohesion: 0.09
@@ -199,11 +203,11 @@ Nodes (47): buildServerGroupLabel(), deleteContest(), deleteContestAward(), dele
 
 ### Community 1 - "api-error-alert.tsx"
 Cohesion: 0.08
-Nodes (67): ActionTooltipButton(), ActionTooltipButtonProps, ApiErrorAlertProps, PageContentToolbar(), PageContentToolbarProps, Alert(), AlertDescription(), AlertTitle() (+59 more)
+Nodes (69): ActionTooltipButton(), ActionTooltipButtonProps, ApiErrorAlertProps, PageContentToolbar(), PageContentToolbarProps, Alert(), AlertDescription(), AlertTitle() (+61 more)
 
-### Community 2 - "ib-program-payment-rules-view.tsx"
-Cohesion: 0.06
-Nodes (58): createIbPaymentTemplate(), createIbPaymentTemplateLevel(), deleteIbPaymentTemplate(), deleteIbPaymentTemplateLevel(), listIbPaymentTemplates(), updateIbPaymentTemplateLevel(), createLevelDraft(), IbPaymentTemplateFormDialog() (+50 more)
+### Community 2 - "ib-program-payment-rule-form-dialog.tsx"
+Cohesion: 0.18
+Nodes (23): createIbProgramCpaRule(), createIbProgramPnlRule(), createIbProgramVolumeRule(), ibProgramPath(), updateIbProgramCpaRule(), updateIbProgramPnlRule(), updateIbProgramVolumeRule(), emptyForm (+15 more)
 
 ### Community 3 - "insurance/index.ts"
 Cohesion: 0.06
@@ -217,9 +221,9 @@ Nodes (60): geistMono, geistSans, metadata, bonusNavigation, contestsNavigation,
 Cohesion: 0.08
 Nodes (43): analyticsOverviewInflight, analyticsOverviewRequestKey(), getAccountAnalyticsDrawdowns(), getAccountAnalyticsDurationScatter(), getAccountAnalyticsEquityCurve(), getAccountAnalyticsOverview(), getAccountAnalyticsPnlDistribution(), getAccountAnalyticsProfitability() (+35 more)
 
-### Community 6 - "getTradingServerForAdmin"
-Cohesion: 0.07
-Nodes (17): getTradingServerForAdmin(), listCatalogServerGroupLeverages(), listSecurities(), listSecuritySymbols(), listServerGroupSecurities(), listSymbols(), toSearchParams(), formatDateTime() (+9 more)
+### Community 6 - "TradingServerSecuritySymbolsView"
+Cohesion: 0.33
+Nodes (3): formToAppliedFilters(), TradingServerSecuritySymbolsView(), applyFilters()
 
 ### Community 7 - "alert-dialog.tsx"
 Cohesion: 0.14
@@ -233,25 +237,25 @@ Nodes (32): buildListSearchParams(), cancelScheduledCommandRun(), getScheduledCo
 Cohesion: 0.11
 Nodes (38): adminSubscriptionsPath(), createIbPlanSubscription(), getIbPlanSubscriptionFormSubmission(), listIbPlanSubscriptionAdminInteractions(), listIbPlanSubscriptions(), toSearchParams(), updateIbPlanSubscription(), updateIbPlanSubscriptionParameters() (+30 more)
 
-### Community 10 - "client-trading-account/api.ts"
-Cohesion: 0.15
-Nodes (18): listClientServerGroupsForSelection(), loadClientAccountCatalog(), startTradingCredentialsChallenge(), toClientServerGroup(), updateClientTradingAccountCredentials(), loadServerGroups(), ClientTradingAccountCredentialsDialog(), handleStartChallenge() (+10 more)
+### Community 10 - "ib-payment-template/api.ts"
+Cohesion: 0.23
+Nodes (16): createIbPaymentTemplate(), createIbPaymentTemplateLevel(), deleteIbPaymentTemplate(), deleteIbPaymentTemplateLevel(), updateIbPaymentTemplateLevel(), handleSubmit(), handleSubmit(), formatPaymentTemplateRate() (+8 more)
 
-### Community 11 - "ClientInsurancesView"
-Cohesion: 0.17
-Nodes (8): cancelClientAccountInsurance(), claimClientAccountInsurance(), ClientInsurancesView(), handleCancel(), handleClaim(), clientAccountInsuranceStatusLabel(), clientAccountInsuranceStatusVariant(), formatInsuranceDateTime()
+### Community 11 - "listIbPaymentTemplates"
+Cohesion: 0.29
+Nodes (3): listIbPaymentTemplates(), IbPaymentTemplatesView(), summarizeLevels()
 
 ### Community 12 - "form-builder-view.tsx"
-Cohesion: 0.12
-Nodes (25): DashboardBreadcrumbs(), DashboardBreadcrumbsProps, Breadcrumb(), BreadcrumbEllipsis(), BreadcrumbItem(), BreadcrumbLink(), BreadcrumbList(), BreadcrumbPage() (+17 more)
+Cohesion: 0.26
+Nodes (11): DashboardBreadcrumbs(), DashboardBreadcrumbsProps, Breadcrumb(), BreadcrumbEllipsis(), BreadcrumbItem(), BreadcrumbLink(), BreadcrumbList(), BreadcrumbPage() (+3 more)
 
 ### Community 13 - "ib-admin-analytics-view.tsx"
 Cohesion: 0.14
 Nodes (21): AnalyticsKpis(), AnalyticsSeriesChart(), AnalyticsTab, availabilityReason(), CATEGORY_COLORS, CategoryDistribution(), ClientFunnel(), CommissionBySource() (+13 more)
 
 ### Community 14 - "trading-server/api.ts"
-Cohesion: 0.12
-Nodes (36): cachedEnvironmentsByAudience, configSchemasByPlatform, configSchemasDeniedPlatforms, createTradingServer(), deleteTradingServer(), getTradingServer(), listServerGroups(), listTradingServerConfigSchemas() (+28 more)
+Cohesion: 0.09
+Nodes (45): cachedEnvironmentsByAudience, configSchemasByPlatform, configSchemasDeniedPlatforms, deleteTradingServer(), getTradingServer(), getTradingServerForAdmin(), listCatalogServerGroupLeverages(), listSecurities() (+37 more)
 
 ### Community 15 - "bonus-assignment-logs/index.ts"
 Cohesion: 0.11
@@ -269,9 +273,9 @@ Nodes (43): buildPageItems(), PageNumberPagination(), subscribeToHydration(), pa
 Cohesion: 0.11
 Nodes (31): compactFilters(), getActiveIbPlanContext(), getIbPlanSubscriptionForm(), getMyIbPlanSubscription(), listClientIbPlans(), listMyIbPlanProgressionLogs(), subscribeToIbPlan(), withProxyClientPlan() (+23 more)
 
-### Community 19 - "FormsView"
-Cohesion: 0.07
-Nodes (31): archiveFormVersion(), cloneFormVersion(), createForm(), deleteForm(), getFormVersion(), listForms(), publishFormVersion(), saveFormDraft() (+23 more)
+### Community 19 - "forms-view.tsx"
+Cohesion: 0.13
+Nodes (21): archiveFormVersion(), createForm(), deleteForm(), getForm(), getFormVersion(), listForms(), archive(), remove() (+13 more)
 
 ### Community 20 - "formatBrokerApiError"
 Cohesion: 0.05
@@ -286,8 +290,8 @@ Cohesion: 0.05
 Nodes (38): AnalyticsCumulativePnl, AnalyticsDailyDayBehavior, AnalyticsDailyStats, AnalyticsDailyStreakSegment, AnalyticsDailyTradeRow, AnalyticsDailyTransitionMatrix, AnalyticsDurationScatterPoint, AnalyticsEquityCurvePoint (+30 more)
 
 ### Community 23 - "form-document.ts"
-Cohesion: 0.11
-Nodes (32): FormBuilderPageProps, elementTitle(), FormBuilderView(), addElement(), changeDocument(), dropIntoContainer(), removeElement(), updateElement() (+24 more)
+Cohesion: 0.18
+Nodes (22): addFormElement(), collectInputNames(), containerPath(), containsNode(), editableForm(), findFormElement(), findNode(), findNodeLocation() (+14 more)
 
 ### Community 24 - "broker-client.ts"
 Cohesion: 0.12
@@ -306,8 +310,8 @@ Cohesion: 0.11
 Nodes (38): adminAssignBonus(), createBonusOffer(), deleteBonusOffer(), invalidateBonusOfferFormCatalog(), listBonusOffers(), listBonusOfferTemplates(), listEligibleAccountsForBonusOfferAdmin(), loadBonusOfferFormCatalog() (+30 more)
 
 ### Community 28 - "trading-server/format.ts"
-Cohesion: 0.10
-Nodes (20): parseMajorAmountToMinorUnits(), emptyCountryRow(), ServerGroupEditSheet(), handleSubmit(), TradingServersView(), buildServerGroupEditFormState(), buildUpdateServerGroupInput(), CONFIGURATION_WARNING_LABELS (+12 more)
+Cohesion: 0.07
+Nodes (30): applyFilters(), parseMajorAmountToMinorUnits(), updateServerGroup(), emptyCountryRow(), ServerGroupEditSheet(), handleSubmit(), formToAppliedFilters(), TradingServerGroupsView() (+22 more)
 
 ### Community 29 - "ib-plan-programs-sync-view.tsx"
 Cohesion: 0.12
@@ -338,8 +342,8 @@ Cohesion: 0.10
 Nodes (27): getAccountAnalyticsBehavior(), getAccountAnalyticsDaily(), getAccountAnalyticsDailyDayTrades(), buildCalendarGrid(), CalendarMonthView(), CalendarViewMode, CalendarYearView(), ClientAnalyticsBehaviorPanel() (+19 more)
 
 ### Community 36 - "ib-volume-reward-trades/types.ts"
-Cohesion: 0.10
-Nodes (22): buildReportSearchParams(), exportIbVolumeRewardTrades(), listIbVolumeRewardTrades(), IbVolumeRewardTradesReportView(), applyFilters(), download(), timestamp(), CalculationAvailability (+14 more)
+Cohesion: 0.14
+Nodes (15): CalculationAvailability, IbVolumeDirectReward, IbVolumeRewardLine, IbVolumeRewardRatioBucket, IbVolumeRewardTradeDetail, IbVolumeRewardTradeFilters, IbVolumeRewardTradesMeta, IbVolumeRewardTradeSort (+7 more)
 
 ### Community 37 - "card.tsx"
 Cohesion: 0.13
@@ -350,8 +354,8 @@ Cohesion: 0.11
 Nodes (19): AnalyticsPanelCard(), BreakEvenGauge(), ClientAnalyticsProfitabilityPanel(), ClientAnalyticsProfitabilityPanelProps, CumulativeGranularity, DirectionBreakdown(), ExpectancyContributionBar(), formatCurrency() (+11 more)
 
 ### Community 40 - "ib-program-symbols-view.tsx"
-Cohesion: 0.13
-Nodes (22): ibProgramPath(), listAllIbProgramSymbols(), listIbProgramSymbols(), syncIbProgramSymbols(), IbProgramSymbolConfigSheet(), IbProgramSymbolsView(), handleAddSymbol(), handleSave() (+14 more)
+Cohesion: 0.11
+Nodes (26): ibProgramPath(), listAllIbProgramSymbols(), listIbProgramSymbols(), syncIbProgramSymbols(), IbProgramSymbolConfigSheet(), IbProgramSymbolsView(), handleAddSymbol(), handleSave() (+18 more)
 
 ### Community 41 - "ib-reward-logs/index.ts"
 Cohesion: 0.16
@@ -362,8 +366,8 @@ Cohesion: 0.07
 Nodes (28): dom, dom.iterable, esnext, **/*.mts, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules (+20 more)
 
 ### Community 43 - "client-insurance/api.ts"
-Cohesion: 0.12
-Nodes (31): compactFilters(), contractClientAccountInsurance(), isInsuranceCandidateAccount(), listClientAccountInsurances(), listInsurancePlansForAccount(), loadAccountsWithInProgressInsurance(), loadClientInsuranceEligibleAccounts(), loadInsuranceEligibleAccountIds() (+23 more)
+Cohesion: 0.09
+Nodes (38): cancelClientAccountInsurance(), claimClientAccountInsurance(), compactFilters(), contractClientAccountInsurance(), isInsuranceCandidateAccount(), listClientAccountInsurances(), listInsurancePlansForAccount(), loadAccountsWithInProgressInsurance() (+30 more)
 
 ### Community 44 - "client-risk-metrics-view.tsx"
 Cohesion: 0.10
@@ -381,9 +385,9 @@ Nodes (20): appendPlatformFormData(), createPlatform(), deletePlatform(), getPla
 Cohesion: 0.14
 Nodes (28): BonusOfferFieldLabel(), createBonusOfferTemplate(), deleteBonusOfferTemplate(), getBonusOfferTemplate(), listBonusOfferTemplates(), syncBonusOfferTemplateExcludedInstruments(), toSearchParams(), updateBonusOfferTemplate() (+20 more)
 
-### Community 49 - "trading-migration/api.ts"
-Cohesion: 0.10
-Nodes (18): getMigrationRun(), listMigrationAccounts(), listMigrationRuns(), PaginatedResponse, startTradingMigration(), formatDate(), labelForStatus(), RunDetailsDialog() (+10 more)
+### Community 49 - "TradingMigrationsView"
+Cohesion: 0.16
+Nodes (8): getMigrationRun(), listMigrationAccounts(), listMigrationRuns(), formatDate(), labelForStatus(), RunDetailsDialog(), statusVariant(), TradingMigrationsView()
 
 ### Community 50 - "bonus-offers-view.tsx"
 Cohesion: 0.07
@@ -398,8 +402,8 @@ Cohesion: 0.26
 Nodes (12): AdminLoginPage(), AdminLoginPageProps, ClientLoginPage(), ClientLoginPageProps, LogoutButton(), loginHref(), resolveAuthArea(), SessionStatus() (+4 more)
 
 ### Community 53 - "initial-amount/api.ts"
-Cohesion: 0.18
-Nodes (13): compactFilters(), getInitialAmount(), listClientInitialAmounts(), listInitialAmounts(), syncInitialAmountServerGroups(), InitialAmountServerGroupsDialog(), handleSubmit(), CreateInitialAmountInput (+5 more)
+Cohesion: 0.11
+Nodes (13): compactFilters(), getInitialAmount(), listInitialAmounts(), syncInitialAmountServerGroups(), InitialAmountServerGroupsDialog(), handleSubmit(), InitialAmountsView(), CreateInitialAmountInput (+5 more)
 
 ### Community 54 - "configuration/api.ts"
 Cohesion: 0.17
@@ -438,8 +442,8 @@ Cohesion: 0.15
 Nodes (9): hasActiveScheduledCommandRun(), formatDateTime(), runStatusVariant(), ScheduledCommandDetailDialog(), handleCancel(), formatDateTime(), ScheduledCommandsView(), openRunDialog() (+1 more)
 
 ### Community 64 - "server-group-edit-sheet.tsx"
-Cohesion: 0.22
-Nodes (12): Sheet(), SheetContent(), SheetDescription(), SheetFooter(), SheetHeader(), SheetOverlay(), SheetTitle(), FormElementEditorSheetProps (+4 more)
+Cohesion: 0.25
+Nodes (10): Sheet(), SheetContent(), SheetDescription(), SheetFooter(), SheetHeader(), SheetOverlay(), SheetTitle(), FormElementEditorSheetProps (+2 more)
 
 ### Community 65 - "devDependencies"
 Cohesion: 0.11
@@ -447,15 +451,15 @@ Nodes (19): babel-plugin-react-compiler, eslint, eslint-config-next, devDependen
 
 ### Community 66 - "dependencies"
 Cohesion: 0.11
-Nodes (19): @base-ui/react, class-variance-authority, clsx, lightweight-charts, next, dependencies, @base-ui/react, class-variance-authority (+11 more)
+Nodes (19): @base-ui/react, clsx, lightweight-charts, lucide-react, next, dependencies, @base-ui/react, clsx (+11 more)
 
 ### Community 67 - "client-analytics-symbol-panel.tsx"
 Cohesion: 0.18
 Nodes (17): getAccountAnalyticsSymbols(), ClientAnalyticsSymbolPanel(), load(), ClientAnalyticsSymbolPanelProps, formatNumber(), formatPercent(), formatSideLabel(), formatSymbolMetric() (+9 more)
 
 ### Community 68 - "symbol-category/api.ts"
-Cohesion: 0.33
-Nodes (11): compactFilters(), createSymbolCategory(), deleteSymbolCategory(), listAllSymbolCategories(), listSymbolCategories(), updateSymbolCategory(), handleSubmit(), CreateSymbolCategoryInput (+3 more)
+Cohesion: 0.22
+Nodes (12): compactFilters(), createSymbolCategory(), deleteSymbolCategory(), listAllSymbolCategories(), listSymbolCategories(), updateSymbolCategory(), SymbolCategoriesView(), handleSubmit() (+4 more)
 
 ### Community 69 - "ib-admin-analytics/api.ts"
 Cohesion: 0.10
@@ -493,17 +497,21 @@ Nodes (21): IB_EARNINGS_PAYMENT_STATUSES, IB_EARNINGS_TYPES, IbAnalyticsAvailabi
 Cohesion: 0.23
 Nodes (13): createContest(), updateContest(), amountStep(), ContestGeneralForm(), handleSubmit(), ContestGeneralFormProps, contestToForm(), emptyForm (+5 more)
 
-### Community 79 - "TradingServerGroupsView"
-Cohesion: 0.18
-Nodes (5): listTradingServerEnvironments(), formToAppliedFilters(), TradingServerGroupsView(), applyFilters(), formatBookTypeLabel()
+### Community 79 - "ib-program-payment-rules-view.tsx"
+Cohesion: 0.15
+Nodes (13): listIbProgramCpaRules(), listIbProgramPnlRules(), listIbProgramVolumeRules(), IbProgramPaymentRuleFormDialog(), ruleTypeLabel(), ibProgramPaymentRulesBreadcrumbs, IbProgramPaymentRulesView(), renderRuleDetails() (+5 more)
 
 ### Community 80 - "bonus-excluded-instruments-view.tsx"
-Cohesion: 0.16
-Nodes (16): BonusExcludedInstrumentsView(), handleAddSymbol(), handleSave(), BonusExcludedInstrumentsViewProps, ExcludedInstrumentDraft, draftsSignature(), draftToSyncInput(), excludedInstrumentFromApi() (+8 more)
+Cohesion: 0.13
+Nodes (15): BonusExcludedInstrumentsView(), handleAddSymbol(), handleSave(), BonusExcludedInstrumentsViewProps, ExcludedInstrumentDraft, draftsSignature(), draftToSyncInput(), excludedInstrumentFromApi() (+7 more)
 
-### Community 82 - "listServerGroupLeverages"
-Cohesion: 0.33
-Nodes (5): listServerGroupLeverages(), synchronizeServerGroupLeverages(), ServerGroupLeveragesSyncDialog(), handleSubmit(), loadLeverages()
+### Community 81 - "forms/types.ts"
+Cohesion: 0.18
+Nodes (11): InputPreview(), JwfFormPreview(), JwfFormPreviewProps, stringAttribute(), FORM_INPUT_TYPES, FormListFilters, FormState, JwfDocument (+3 more)
+
+### Community 82 - "IbPaymentTemplateFormDialog"
+Cohesion: 0.50
+Nodes (3): createLevelDraft(), IbPaymentTemplateFormDialog(), addLevel()
 
 ### Community 83 - "PositionsReportView"
 Cohesion: 0.20
@@ -511,7 +519,7 @@ Nodes (6): activeCount(), datetimeInput(), fromSearch(), PositionsReportView(), 
 
 ### Community 84 - "client-trading-account-create-dialog.tsx"
 Cohesion: 0.07
-Nodes (26): createClientTradingAccount(), ClientTradingAccountCreateDialog(), handleSubmit(), loadLeverages(), ClientTradingAccountCreateDialogProps, SelectableCard(), SelectableCardProps, ClientTradingAccountsView() (+18 more)
+Nodes (34): createClientTradingAccount(), listClientServerGroupsForSelection(), loadClientAccountCatalog(), loadClientServerGroupEnvironments(), toClientServerGroup(), ClientTradingAccountCreateDialog(), handleSubmit(), loadLeverages() (+26 more)
 
 ### Community 85 - "errors.ts"
 Cohesion: 0.07
@@ -526,24 +534,24 @@ Cohesion: 0.33
 Nodes (10): abbreviateUuid(), ContestBansDialog(), applyFiltersFromDraft(), clearFilters(), commitFilters(), handleRevert(), onFilterEnter(), patchDraft() (+2 more)
 
 ### Community 89 - "browser-client.ts"
-Cohesion: 0.22
-Nodes (9): BrowserBrokerRequestOptions, buildSearch(), serializeSearchParamValue(), BrokerApiError, browserIamRequest(), BrowserIamRequestOptions, BrokerErrorDetails, BrokerSuccessResponse (+1 more)
+Cohesion: 0.12
+Nodes (19): startTradingCredentialsChallenge(), updateClientTradingAccountCredentials(), ClientTradingAccountCredentialsDialog(), handleStartChallenge(), handleSubmit(), BrowserBrokerRequestOptions, buildSearch(), serializeSearchParamValue() (+11 more)
 
 ### Community 90 - "positions/api.ts"
 Cohesion: 0.16
 Nodes (14): IbVolumeRewardTradeFlag, buildPositionsReportSearchParams(), exportPositionsReport(), getPositionReportDetail(), listPositionsReport(), download(), PositionReportDetail, PositionReportFilters (+6 more)
 
 ### Community 91 - "leverage/api.ts"
-Cohesion: 0.29
-Nodes (12): compactFilters(), createLeverage(), deleteLeverage(), getLeverage(), LeverageAudience, listLeverages(), updateLeverage(), handleSubmit() (+4 more)
+Cohesion: 0.18
+Nodes (16): compactFilters(), createLeverage(), deleteLeverage(), getLeverage(), LeverageAudience, listLeverages(), updateLeverage(), handleSubmit() (+8 more)
 
 ### Community 92 - "table.tsx"
-Cohesion: 0.08
-Nodes (56): Badge(), badgeVariants, Table(), TableBody(), TableCell(), TableHead(), TableHeader(), TableRow() (+48 more)
+Cohesion: 0.07
+Nodes (57): Badge(), badgeVariants, Table(), TableBody(), TableCell(), TableHead(), TableHeader(), TableRow() (+49 more)
 
 ### Community 93 - "ib-progression-template/api.ts"
-Cohesion: 0.16
-Nodes (13): createIbProgressionTemplate(), deleteIbProgressionTemplate(), updateIbProgressionTemplate(), IbProgressionTemplatesView(), handleDelete(), TemplateForm(), handleSubmit(), CreateIbProgressionTemplateInput (+5 more)
+Cohesion: 0.24
+Nodes (10): createIbProgressionTemplate(), updateIbProgressionTemplate(), TemplateForm(), handleSubmit(), CreateIbProgressionTemplateInput, IbProgressionTemplate, IbProgressionTemplateLevel, IbProgressionTemplateLevelInput (+2 more)
 
 ### Community 94 - "session.server.ts"
 Cohesion: 0.15
@@ -573,13 +581,13 @@ Nodes (14): GatewayPosition, GatewayPositionsEvent, GatewaySubscriptionRejected,
 Cohesion: 0.25
 Nodes (7): name, pnpm, onlyBuiltDependencies, private, version, sharp, unrs-resolver
 
-### Community 104 - "parse-broker-error.ts"
-Cohesion: 0.60
-Nodes (5): extractValidationMessages(), humanizeValidationMessage(), isRecord(), parseBrokerErrorPayload(), ParsedBrokerError
+### Community 104 - "trading-migration/api.ts"
+Cohesion: 0.23
+Nodes (10): PaginatedResponse, startTradingMigration(), confirmMigration(), StartTradingMigrationInput, StartTradingMigrationResult, TradingMigrationAccount, TradingMigrationItem, TradingMigrationItemStatus (+2 more)
 
 ### Community 105 - "config-form.ts"
-Cohesion: 0.36
-Nodes (8): TradingServerFormDialog(), handleSubmit(), loadOptions(), buildEmptyConfig(), configFromTradingServer(), getDefaultSchemaId(), MASKED_SECRET_VALUE, serializeConfigForSubmit()
+Cohesion: 0.24
+Nodes (11): createTradingServer(), listTradingServerConfigSchemas(), updateTradingServer(), TradingServerFormDialog(), handleSubmit(), loadOptions(), buildEmptyConfig(), configFromTradingServer() (+3 more)
 
 ### Community 106 - "app-area-bar.tsx"
 Cohesion: 0.13
@@ -589,13 +597,9 @@ Nodes (15): AppAreaBar(), AppAreaBarProps, AppSidebar(), AreaSwitcher(), areaTab
 Cohesion: 0.67
 Nodes (3): NegativeBalanceRebalancesDataTable(), applyFilters(), onFilterEnter()
 
-### Community 108 - "IbProgramsView"
-Cohesion: 0.18
-Nodes (3): IbProgramsView(), ibProgramPaymentRulesPath(), ibProgramSymbolsPath()
-
-### Community 109 - "trading-migrations-view.tsx"
-Cohesion: 0.40
-Nodes (3): breadcrumbs, PendingAction, Tab
+### Community 109 - "FormsListView"
+Cohesion: 0.25
+Nodes (9): cloneFormVersion(), builderPath(), editableVersion(), formatVersionDate(), FormsListView(), create(), openEditor(), openPreview() (+1 more)
 
 ### Community 111 - "bonus-offer-form-dialog.tsx"
 Cohesion: 0.10
@@ -613,6 +617,10 @@ Nodes (12): accountHistoryPath(), accountPositionsPath(), closePosition(), listA
 Cohesion: 0.40
 Nodes (5): scripts, build, dev, lint, start
 
+### Community 116 - "FormBuilderView"
+Cohesion: 0.13
+Nodes (16): FormBuilderPageProps, publishFormVersion(), saveFormDraft(), elementTitle(), FormBuilderView(), addElement(), changeDocument(), dropIntoContainer() (+8 more)
+
 ### Community 117 - "apply-position-snapshot.ts"
 Cohesion: 0.24
 Nodes (8): applyOpenPositionsSnapshot(), normalizeLivePosition(), toSide(), toSortableTime(), LivePositionSnapshotItem, OpenPositionsSnapshotPayload, listTradingAccountPositions(), TradingAccountPositionsDialog()
@@ -626,12 +634,8 @@ Cohesion: 0.14
 Nodes (18): getContestRegistrationOptions(), listEligibleAccountsForContest(), loadAccounts(), hasValidRegistrationOptions(), activateContest(), cancelContest(), createContestAward(), createContestCondition() (+10 more)
 
 ### Community 127 - "IbReferralsContent"
-Cohesion: 0.33
+Cohesion: 0.36
 Nodes (9): getIbReferralAccounts(), getIbReferrals(), AccountsDialog(), date(), flag(), GeoRanking(), IbReferralsContent(), money() (+1 more)
-
-### Community 128 - "handleSubmit"
-Cohesion: 0.67
-Nodes (3): handleSubmit(), successMessage(), toRequestBody()
 
 ### Community 129 - "position-history/api.ts"
 Cohesion: 0.36
@@ -641,9 +645,25 @@ Nodes (6): PositionSide, listPositionCommissionRewards(), loadRewards(), GlobalP
 Cohesion: 0.29
 Nodes (8): getContestGlobalSettings(), mapContestGlobalSettingsResponse(), updateContestGlobalSettings(), withProxyBannerUrl(), ContestGlobalSettingsView(), handleSubmit(), settingsToForm(), parseOptionalInteger()
 
+### Community 132 - "IbVolumeRewardTradesReportView"
+Cohesion: 0.29
+Nodes (7): buildReportSearchParams(), exportIbVolumeRewardTrades(), listIbVolumeRewardTrades(), IbVolumeRewardTradesReportView(), applyFilters(), download(), timestamp()
+
 ### Community 134 - "account-insurance-claim-dialogs.tsx"
 Cohesion: 0.29
 Nodes (6): AccountInsuranceApproveDialog(), handleApprove(), AccountInsuranceApproveDialogProps, AccountInsuranceRejectDialog(), handleReject(), AccountInsuranceRejectDialogProps
+
+### Community 135 - "IbPaymentTemplateLevelFormDialog"
+Cohesion: 0.33
+Nodes (4): getNextSortOrder(), IbPaymentTemplateLevelFormDialog(), InsurancePlanOptionFormDialog(), optionToForm()
+
+### Community 140 - "TradingSymbolsView"
+Cohesion: 0.33
+Nodes (3): formToAppliedFilters(), TradingSymbolsView(), applyFilters()
+
+### Community 141 - "ib-progression-templates/page.tsx"
+Cohesion: 0.40
+Nodes (3): deleteIbProgressionTemplate(), IbProgressionTemplatesView(), handleDelete()
 
 ### Community 145 - "FormElementEditorSheet"
 Cohesion: 0.60
@@ -661,17 +681,17 @@ Nodes (3): OpenPositionDialog(), handleSubmit(), resetForm()
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `formatBrokerApiError()` connect `formatBrokerApiError` to `api-error-alert.tsx`, `ib-program-payment-rules-view.tsx`, `insurance/index.ts`, `client-risk-metrics/api.ts`, `getTradingServerForAdmin`, `alert-dialog.tsx`, `scheduled-command-run-dialog.tsx`, `ib-plan-subscription/index.ts`, `client-trading-account/api.ts`, `ClientInsurancesView`, `form-builder-view.tsx`, `ib-admin-analytics-view.tsx`, `bonus-assignment-logs/index.ts`, `client-contest-detail-view.tsx`, `ib-volume-reward-trades-report-view.tsx`, `client-ib-progression-panel.tsx`, `FormsView`, `public-risk-metrics-view.tsx`, `form-document.ts`, `ib-reward/index.ts`, `contest-workspace-panels.tsx`, `trading-server/format.ts`, `ib-plan-programs-sync-view.tsx`, `risk-control/api.ts`, `client-bonus-assignment-detail-dialog.tsx`, `bonus-offer-delete-dialog.tsx`, `trading-accounts-view.tsx`, `bonus-assignment-logs-view.tsx`, `client-analytics-behavior-panel.tsx`, `ib-volume-reward-trades/types.ts`, `card.tsx`, `client-analytics-profitability-panel.tsx`, `ib-program-symbols-view.tsx`, `ib-reward-logs/index.ts`, `client-insurance/api.ts`, `ib-plan/api.ts`, `platform/api.ts`, `bonus-offer-template-form-dialog.tsx`, `trading-migration/api.ts`, `bonus-offers-view.tsx`, `initial-amount/api.ts`, `configuration/api.ts`, `client-analytics-dashboard-panel.tsx`, `ib-program/api.ts`, `client-ib/format.ts`, `bonus-offer-server-groups-dialog.tsx`, `ScheduledCommandsView`, `server-group-edit-sheet.tsx`, `client-analytics-symbol-panel.tsx`, `symbol-category/api.ts`, `ib-admin-analytics/api.ts`, `PlatformsView`, `client-analytics-risk-drawdown-panel.tsx`, `IbPlanSubscriptionsView`, `BonusAssignmentLogsView`, `PositionHistoryView`, `ContestSubscriptionsView`, `client-bonus/api.ts`, `contest-general-form.tsx`, `TradingServerGroupsView`, `bonus-excluded-instruments-view.tsx`, `InitialAmountsView`, `listServerGroupLeverages`, `PositionsReportView`, `client-trading-account-create-dialog.tsx`, `errors.ts`, `contest-workspace-view.tsx`, `ContestBansDialog`, `positions/api.ts`, `leverage/api.ts`, `table.tsx`, `ib-progression-template/api.ts`, `ContestAwardsView`, `ContestConditionsView`, `IbPlansView`, `bonus-offer-admin-assign-dialog.tsx`, `RiskMetricsShareDialog`, `parse-broker-error.ts`, `config-form.ts`, `NegativeBalanceRebalancesDataTable`, `IbProgramsView`, `trading-migrations-view.tsx`, `bonus-offer-form-dialog.tsx`, `ib-analytics-view.tsx`, `client-positions/api.ts`, `SymbolCategoriesView`, `apply-position-snapshot.ts`, `browserBrokerRequest`, `LeveragesView`, `IbReferralsContent`, `handleSubmit`, `position-history/api.ts`, `ContestGlobalSettingsView`, `RejectionTemplatesView`, `account-insurance-claim-dialogs.tsx`, `OpenPositionDialog`?**
+- **Why does `formatBrokerApiError()` connect `formatBrokerApiError` to `api-error-alert.tsx`, `ib-program-payment-rule-form-dialog.tsx`, `insurance/index.ts`, `client-risk-metrics/api.ts`, `TradingServerSecuritySymbolsView`, `alert-dialog.tsx`, `scheduled-command-run-dialog.tsx`, `ib-plan-subscription/index.ts`, `ib-payment-template/api.ts`, `listIbPaymentTemplates`, `form-builder-view.tsx`, `ib-admin-analytics-view.tsx`, `trading-server/api.ts`, `bonus-assignment-logs/index.ts`, `client-contest-detail-view.tsx`, `ib-volume-reward-trades-report-view.tsx`, `client-ib-progression-panel.tsx`, `forms-view.tsx`, `public-risk-metrics-view.tsx`, `ib-reward/index.ts`, `contest-workspace-panels.tsx`, `trading-server/format.ts`, `ib-plan-programs-sync-view.tsx`, `risk-control/api.ts`, `client-bonus-assignment-detail-dialog.tsx`, `bonus-offer-delete-dialog.tsx`, `trading-accounts-view.tsx`, `bonus-assignment-logs-view.tsx`, `client-analytics-behavior-panel.tsx`, `card.tsx`, `client-analytics-profitability-panel.tsx`, `ib-program-symbols-view.tsx`, `ib-reward-logs/index.ts`, `client-insurance/api.ts`, `ib-plan/api.ts`, `platform/api.ts`, `bonus-offer-template-form-dialog.tsx`, `TradingMigrationsView`, `bonus-offers-view.tsx`, `initial-amount/api.ts`, `configuration/api.ts`, `client-analytics-dashboard-panel.tsx`, `ib-program/api.ts`, `client-ib/format.ts`, `bonus-offer-server-groups-dialog.tsx`, `ScheduledCommandsView`, `server-group-edit-sheet.tsx`, `client-analytics-symbol-panel.tsx`, `symbol-category/api.ts`, `ib-admin-analytics/api.ts`, `PlatformsView`, `client-analytics-risk-drawdown-panel.tsx`, `IbPlanSubscriptionsView`, `BonusAssignmentLogsView`, `PositionHistoryView`, `ContestSubscriptionsView`, `client-bonus/api.ts`, `contest-general-form.tsx`, `ib-program-payment-rules-view.tsx`, `bonus-excluded-instruments-view.tsx`, `PositionsReportView`, `client-trading-account-create-dialog.tsx`, `errors.ts`, `contest-workspace-view.tsx`, `ContestBansDialog`, `browser-client.ts`, `positions/api.ts`, `leverage/api.ts`, `table.tsx`, `ib-progression-template/api.ts`, `ContestAwardsView`, `ContestConditionsView`, `IbPlansView`, `bonus-offer-admin-assign-dialog.tsx`, `RiskMetricsShareDialog`, `trading-migration/api.ts`, `config-form.ts`, `NegativeBalanceRebalancesDataTable`, `IbProgramsView`, `FormsListView`, `bonus-offer-form-dialog.tsx`, `ib-analytics-view.tsx`, `client-positions/api.ts`, `FormBuilderView`, `apply-position-snapshot.ts`, `browserBrokerRequest`, `LeveragesView`, `IbReferralsContent`, `position-history/api.ts`, `ContestGlobalSettingsView`, `RejectionTemplatesView`, `IbVolumeRewardTradesReportView`, `account-insurance-claim-dialogs.tsx`, `TradingServersView`, `TradingSecuritiesView`, `TradingSymbolsView`, `ib-progression-templates/page.tsx`, `OpenPositionDialog`?**
   _High betweenness centrality (0.264) - this node is a cross-community bridge._
-- **Why does `cn()` connect `cn` to `api-error-alert.tsx`, `ContestGlobalSettingsView`, `ib-program-payment-rules-view.tsx`, `insurance/index.ts`, `client-risk-metrics/api.ts`, `alert-dialog.tsx`, `scheduled-command-run-dialog.tsx`, `ClientInsurancesView`, `form-builder-view.tsx`, `ib-admin-analytics-view.tsx`, `client-contest-detail-view.tsx`, `ib-volume-reward-trades-report-view.tsx`, `client-ib-progression-panel.tsx`, `FormsView`, `form-document.ts`, `ib-reward/index.ts`, `ib-plan-programs-sync-view.tsx`, `bonus-offer-delete-dialog.tsx`, `trading-accounts-view.tsx`, `bonus-assignment-logs-view.tsx`, `client-analytics-behavior-panel.tsx`, `ib-volume-reward-trades/types.ts`, `card.tsx`, `client-analytics-profitability-panel.tsx`, `ib-program-symbols-view.tsx`, `ib-reward-logs/index.ts`, `client-risk-metrics-view.tsx`, `ib-plan/api.ts`, `trading-migration/api.ts`, `EarningsRow`, `client-analytics-dashboard-panel.tsx`, `ib-program/api.ts`, `ScheduledCommandsView`, `server-group-edit-sheet.tsx`, `client-analytics-symbol-panel.tsx`, `ib-admin-analytics/api.ts`, `client-analytics-risk-drawdown-panel.tsx`, `BonusAssignmentLogsView`, `bonus-excluded-instruments-view.tsx`, `PositionsReportView`, `client-trading-account-create-dialog.tsx`, `errors.ts`, `ContestBansDialog`, `table.tsx`, `app-area-bar.tsx`, `IbProgramsView`, `trading-migrations-view.tsx`, `ib-analytics-view.tsx`, `IbReferralsContent`?**
+- **Why does `cn()` connect `cn` to `api-error-alert.tsx`, `ContestGlobalSettingsView`, `ib-program-payment-rule-form-dialog.tsx`, `insurance/index.ts`, `client-risk-metrics/api.ts`, `IbVolumeRewardTradesReportView`, `alert-dialog.tsx`, `scheduled-command-run-dialog.tsx`, `form-builder-view.tsx`, `ib-admin-analytics-view.tsx`, `client-contest-detail-view.tsx`, `ib-volume-reward-trades-report-view.tsx`, `client-ib-progression-panel.tsx`, `forms-view.tsx`, `ib-reward/index.ts`, `ib-plan-programs-sync-view.tsx`, `bonus-offer-delete-dialog.tsx`, `trading-accounts-view.tsx`, `bonus-assignment-logs-view.tsx`, `client-analytics-behavior-panel.tsx`, `card.tsx`, `client-analytics-profitability-panel.tsx`, `ib-program-symbols-view.tsx`, `ib-reward-logs/index.ts`, `client-insurance/api.ts`, `client-risk-metrics-view.tsx`, `ib-plan/api.ts`, `TradingMigrationsView`, `EarningsRow`, `client-analytics-dashboard-panel.tsx`, `ib-program/api.ts`, `ScheduledCommandsView`, `server-group-edit-sheet.tsx`, `client-analytics-symbol-panel.tsx`, `ib-admin-analytics/api.ts`, `client-analytics-risk-drawdown-panel.tsx`, `BonusAssignmentLogsView`, `ib-program-payment-rules-view.tsx`, `bonus-excluded-instruments-view.tsx`, `forms/types.ts`, `PositionsReportView`, `client-trading-account-create-dialog.tsx`, `errors.ts`, `ContestBansDialog`, `table.tsx`, `app-area-bar.tsx`, `IbProgramsView`, `ib-analytics-view.tsx`, `FormBuilderView`, `IbReferralsContent`?**
   _High betweenness centrality (0.088) - this node is a cross-community bridge._
-- **Why does `browserBrokerRequest()` connect `browserBrokerRequest` to `contest/api.ts`, `position-history/api.ts`, `ib-program-payment-rules-view.tsx`, `insurance/index.ts`, `client-risk-metrics/api.ts`, `getTradingServerForAdmin`, `alert-dialog.tsx`, `scheduled-command-run-dialog.tsx`, `ib-plan-subscription/index.ts`, `client-trading-account/api.ts`, `ClientInsurancesView`, `form-builder-view.tsx`, `trading-server/api.ts`, `bonus-assignment-logs/index.ts`, `client-contest-detail-view.tsx`, `ib-volume-reward-trades-report-view.tsx`, `client-ib-progression-panel.tsx`, `FormsView`, `formatBrokerApiError`, `public-risk-metrics-view.tsx`, `ib-reward/index.ts`, `contest-workspace-panels.tsx`, `bonus-offer/api.ts`, `risk-control/api.ts`, `client-bonus-assignment-detail-dialog.tsx`, `bonus-offer-delete-dialog.tsx`, `trading-accounts-view.tsx`, `client-analytics-behavior-panel.tsx`, `ib-volume-reward-trades/types.ts`, `ib-program-symbols-view.tsx`, `ib-reward-logs/index.ts`, `client-insurance/api.ts`, `ib-plan/api.ts`, `platform/api.ts`, `bonus-offer-template-form-dialog.tsx`, `trading-migration/api.ts`, `initial-amount/api.ts`, `configuration/api.ts`, `use-account-positions-channel.ts`, `ib-program/api.ts`, `bonus-offer-server-groups-dialog.tsx`, `client-analytics-symbol-panel.tsx`, `symbol-category/api.ts`, `ib-admin-analytics/api.ts`, `PositionHistoryView`, `ContestSubscriptionsView`, `client-bonus/api.ts`, `contest-general-form.tsx`, `listServerGroupLeverages`, `client-trading-account-create-dialog.tsx`, `contest-workspace-view.tsx`, `browser-client.ts`, `positions/api.ts`, `leverage/api.ts`, `ib-progression-template/api.ts`, `RiskMetricsShareDialog`, `bonus-offer-form-dialog.tsx`, `client-positions/api.ts`, `apply-position-snapshot.ts`, `IbReferralsContent`?**
+- **Why does `browserBrokerRequest()` connect `browserBrokerRequest` to `contest/api.ts`, `position-history/api.ts`, `ib-program-payment-rule-form-dialog.tsx`, `insurance/index.ts`, `IbVolumeRewardTradesReportView`, `client-risk-metrics/api.ts`, `alert-dialog.tsx`, `scheduled-command-run-dialog.tsx`, `ib-plan-subscription/index.ts`, `ib-payment-template/api.ts`, `listIbPaymentTemplates`, `ib-progression-templates/page.tsx`, `trading-server/api.ts`, `bonus-assignment-logs/index.ts`, `client-contest-detail-view.tsx`, `ib-volume-reward-trades-report-view.tsx`, `client-ib-progression-panel.tsx`, `forms-view.tsx`, `formatBrokerApiError`, `public-risk-metrics-view.tsx`, `ib-reward/index.ts`, `contest-workspace-panels.tsx`, `bonus-offer/api.ts`, `trading-server/format.ts`, `risk-control/api.ts`, `client-bonus-assignment-detail-dialog.tsx`, `bonus-offer-delete-dialog.tsx`, `trading-accounts-view.tsx`, `client-analytics-behavior-panel.tsx`, `ib-volume-reward-trades/types.ts`, `ib-program-symbols-view.tsx`, `ib-reward-logs/index.ts`, `client-insurance/api.ts`, `ib-plan/api.ts`, `platform/api.ts`, `bonus-offer-template-form-dialog.tsx`, `TradingMigrationsView`, `initial-amount/api.ts`, `configuration/api.ts`, `use-account-positions-channel.ts`, `ib-program/api.ts`, `bonus-offer-server-groups-dialog.tsx`, `client-analytics-symbol-panel.tsx`, `symbol-category/api.ts`, `ib-admin-analytics/api.ts`, `PositionHistoryView`, `ContestSubscriptionsView`, `client-bonus/api.ts`, `contest-general-form.tsx`, `ib-program-payment-rules-view.tsx`, `bonus-excluded-instruments-view.tsx`, `client-trading-account-create-dialog.tsx`, `contest-workspace-view.tsx`, `browser-client.ts`, `positions/api.ts`, `leverage/api.ts`, `ib-progression-template/api.ts`, `RiskMetricsShareDialog`, `trading-migration/api.ts`, `config-form.ts`, `FormsListView`, `bonus-offer-form-dialog.tsx`, `client-positions/api.ts`, `FormBuilderView`, `apply-position-snapshot.ts`, `IbReferralsContent`?**
   _High betweenness centrality (0.067) - this node is a cross-community bridge._
 - **What connects `AdminLoginPageProps`, `ClientLoginPageProps`, `AccountMetricsPageProps` to the rest of the system?**
   _579 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `contest/api.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.09224489795918367 - nodes in this community are weakly interconnected._
 - **Should `api-error-alert.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.0790137837313143 - nodes in this community are weakly interconnected._
-- **Should `ib-program-payment-rules-view.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.05555555555555555 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07802197802197802 - nodes in this community are weakly interconnected._
+- **Should `insurance/index.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.05755693581780538 - nodes in this community are weakly interconnected._

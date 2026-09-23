@@ -965,7 +965,7 @@ export function IbPlanSubscriptionsView({
                               <DropdownMenuItem onClick={() => openDetailDialog(subscription)}><EyeIcon />Ver detalles</DropdownMenuItem>
                               {subscription.has_form_submission ? <DropdownMenuItem onClick={() => openFormSubmissionDialog(subscription)}><EyeIcon />Ver formulario enviado</DropdownMenuItem> : null}
                               <DropdownMenuItem onClick={() => openInteractionLogsDialog(subscription)}><ClipboardListIcon />Interaction logs</DropdownMenuItem>
-                              <DropdownMenuItem disabled={!owner.id} onClick={() => owner.id && router.push(`/ib-analytics/${owner.id}`)}><BarChart3Icon />Ver métricas IB</DropdownMenuItem>
+                              {subscription.status === "active" ? <DropdownMenuItem disabled={!owner.id} onClick={() => owner.id && router.push(`/ib-analytics/${owner.id}`)}><BarChart3Icon />Ver reporte IB</DropdownMenuItem> : null}
                               {subscription.status === "pending" || subscription.status === "active" ? <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => openParametersDialog(subscription)}><PencilIcon />Editar parámetros</DropdownMenuItem></> : null}
                               {subscription.status === "pending" ? <><DropdownMenuItem onClick={() => openReviewDialog(subscription, "approve")}><CheckIcon />Aprobar</DropdownMenuItem><DropdownMenuItem variant="destructive" onClick={() => openReviewDialog(subscription, "reject")}><XIcon />Rechazar</DropdownMenuItem></> : null}
                               {subscription.status === "active" ? <DropdownMenuItem onClick={() => openPlacementDialog(subscription)}><ArrowRightLeftIcon />Mover programa o fijar</DropdownMenuItem> : null}

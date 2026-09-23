@@ -1,8 +1,20 @@
 import { SiteHeader } from "@/components/layout/site-header";
-import { IbAnalyticsView } from "@/features/ib-analytics/components/ib-analytics-view";
+import { IbAdminAnalyticsView } from "@/features/ib-admin-analytics/components/ib-admin-analytics-view";
 
-export default async function IbAnalyticsPage({ params }: { params: Promise<{ beneficiaryId: string }> }) {
+export default async function IbAnalyticsPage({
+  params,
+}: {
+  params: Promise<{ beneficiaryId: string }>;
+}) {
   const { beneficiaryId } = await params;
 
-  return <><SiteHeader title="Métricas IB" description="Revisa referidos, recompensas y analíticas del IB seleccionado." /><IbAnalyticsView audience="admin" beneficiaryId={beneficiaryId} /></>;
+  return (
+    <>
+      <SiteHeader
+        title="IB Analytics"
+        description="Overview administrativo del IB seleccionado."
+      />
+      <IbAdminAnalyticsView beneficiaryId={beneficiaryId} />
+    </>
+  );
 }
