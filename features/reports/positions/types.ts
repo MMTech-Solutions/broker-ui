@@ -24,11 +24,9 @@ export type PositionReportRow = {
   tp: string | null;
   swap: string;
   comment: string | null;
-  opened_at: string;
-  closed_at: string | null;
-  unix_opened_at: number;
-  unix_closed_at: number | null;
-  duration_seconds: string | null;
+  open_time: { unix: number; datetime: string };
+  close_time: { unix: number; datetime: string } | null;
+  trade_duration: { seconds: number; string: string } | null;
   currency_code: string | null;
   currency_precision: number | null;
   commission: string;

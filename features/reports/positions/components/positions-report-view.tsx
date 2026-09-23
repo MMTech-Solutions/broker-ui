@@ -180,7 +180,7 @@ function PositionsTable({ rows, loading, filters, onSort, onSelect }: { rows: Po
       return <TableRow key={row.position_id}>
         <TableCell className="whitespace-nowrap font-mono text-xs">{row.operation_id}</TableCell>
         <TableCell><Badge variant={row.status === "closed" ? "secondary" : "default"}>{row.status}</Badge></TableCell>
-        <TableCell className="min-w-40 whitespace-nowrap"><p>{formatReportDate(row.opened_at)}</p><p className="text-xs text-muted-foreground">{row.closed_at ? formatReportDate(row.closed_at) : "—"}</p></TableCell>
+        <TableCell className="min-w-40 whitespace-nowrap"><p>{formatReportDate(row.open_time.datetime)}</p><p className="text-xs text-muted-foreground">{row.close_time ? formatReportDate(row.close_time.datetime) : "—"}</p></TableCell>
         <TableCell className="whitespace-nowrap text-right"><p>{row.open_price}</p><p className="text-xs text-muted-foreground">{row.close_price ?? "—"}</p></TableCell>
         <TableCell className="min-w-44"><p>{row.client.name || row.client.id}</p><p className="text-xs text-muted-foreground">{row.client.email || "—"}</p></TableCell>
         <TableCell className="min-w-36"><p>{row.trading_account.custom_name || "—"}</p><p className="font-mono text-[10px] text-muted-foreground">{row.trading_account.external_trader_id}</p></TableCell>

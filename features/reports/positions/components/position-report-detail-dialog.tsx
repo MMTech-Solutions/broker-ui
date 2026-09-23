@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { paymentStatusLabel, paymentStatusVariant } from "@/features/ib-reward";
-import { formatDuration, formatReportDate, formatReportMoney, formatReportRatio } from "@/features/reports/ib-volume-reward-trades";
+import { formatReportDate, formatReportMoney, formatReportRatio } from "@/features/reports/ib-volume-reward-trades";
 import { getPositionReportDetail } from "@/features/reports/positions/api";
 import type { PositionReportDetail, PositionReportIdentity, PositionReportRow } from "@/features/reports/positions/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
@@ -53,8 +53,8 @@ export function PositionReportDetailDialog({ position, open, onOpenChange }: { p
           <Metric label="Platform / group" value={`${row.platform.name || row.platform.id} · ${row.server_group.meta_name || row.server_group.name || row.server_group.id}`} />
           <Metric label="Instrument" value={`${row.symbol} · ${row.side.toUpperCase()}`} />
           <Metric label="Volume / prices" value={`${row.volume} · ${row.open_price} → ${row.close_price ?? "open"}`} />
-          <Metric label="Opened / closed" value={`${formatReportDate(row.opened_at)} · ${formatReportDate(row.closed_at)}`} />
-          <Metric label="Duration / swap" value={`${formatDuration(row.duration_seconds)} · ${row.swap}`} />
+          <Metric label="Opened / closed" value={`${formatReportDate(row.open_time.datetime)} · ${formatReportDate(row.close_time?.datetime)}`} />
+          <Metric label="Duration / swap" value={`${row.trade_duration?.string ?? "—"} · ${row.swap}`} />
         </div></section> : null}
 
         {detail ? <><section className="space-y-3"><div className="flex flex-wrap items-center gap-2"><h3 className="font-medium">Economics</h3><Badge variant={detail.economics.calculation_availability.status === "available" ? "secondary" : "outline"}>{detail.economics.calculation_availability.status.replaceAll("_", " ")}</Badge></div>
