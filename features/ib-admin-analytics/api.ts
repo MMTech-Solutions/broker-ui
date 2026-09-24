@@ -14,13 +14,16 @@ import type {
   IbReferrals,
 } from "@/features/ib-admin-analytics/types";
 
-const IB_ANALYTICS_OVERVIEW_PATH = "v1/admin/reports/ib-analytics/overview";
-const IB_ANALYTICS_PATH = "v1/admin/reports/ib-analytics/analytics";
-const IB_EARNINGS_PATH = "v1/admin/reports/ib-analytics/earnings";
-const IB_REFERRALS_PATH = "v1/admin/reports/ib-analytics/referrals";
+export type IbAnalyticsAudience = "admin" | "client";
+
+function path(audience: IbAnalyticsAudience, suffix: string): string {
+  return audience === "admin"
+    ? `v1/admin/reports/ib-analytics/${suffix}`
+    : `v1/ib-analytics/${suffix}`;
+}
 
 export type IbAnalyticsOverviewFilters = {
-  ib_user_id: string;
+  ib_user_id?: string;
   from: string;
   to: string;
 };
@@ -48,24 +51,26 @@ export type IbReferralsRequestFilters = IbAnalyticsFilters & {
 };
 
 export function getIbAnalyticsOverview(
+  audience: IbAnalyticsAudience,
   filters: IbAnalyticsOverviewFilters,
 ): Promise<BrokerSuccessResponse<IbAnalyticsOverview>> {
-  return browserBrokerRequest<IbAnalyticsOverview>(IB_ANALYTICS_OVERVIEW_PATH, {
+  return browserBrokerRequest<IbAnalyticsOverview>(path(audience, "overview"), {
     searchParams: filters,
   });
 }
 
 export function getIbAnalytics(
+  audience: IbAnalyticsAudience,
   filters: IbAnalyticsFilters,
 ): Promise<BrokerSuccessResponse<IbAnalytics>> {
-  return browserBrokerRequest<IbAnalytics>(IB_ANALYTICS_PATH, {
+  return browserBrokerRequest<IbAnalytics>(path(audience, "analytics"), {
     searchParams: filters,
   });
 }
 
 function earningsSearchParams(filters: IbEarningsRequestFilters): URLSearchParams {
   const params = new URLSearchParams();
-  params.set("ib_user_id", filters.ib_user_id);
+  if (filters.ib_user_id) params.set("ib_user_id", filters.ib_user_id);
   params.set("from", filters.from);
   params.set("to", filters.to);
   params.set("currency_code", filters.currency_code);
@@ -83,41 +88,46 @@ function earningsSearchParams(filters: IbEarningsRequestFilters): URLSearchParam
 }
 
 export function getIbEarnings(
+  audience: IbAnalyticsAudience,
   filters: IbEarningsRequestFilters,
 ): Promise<BrokerSuccessResponse<IbEarnings>> {
-  return browserBrokerRequest<IbEarnings>(IB_EARNINGS_PATH, {
+  return browserBrokerRequest<IbEarnings>(path(audience, "earnings"), {
     searchParams: earningsSearchParams(filters),
   });
 }
 
 export function getIbEarningsDailyTrades(
+  audience: IbAnalyticsAudience,
   dailyRowId: string,
   filters: IbEarningsRequestFilters,
 ): Promise<BrokerSuccessResponse<IbEarningsDailyTrades>> {
   return browserBrokerRequest<IbEarningsDailyTrades>(
-    `${IB_EARNINGS_PATH}/daily/${encodeURIComponent(dailyRowId)}/trades`,
+    `${path(audience, "earnings")}/daily/${encodeURIComponent(dailyRowId)}/trades`,
     { searchParams: earningsSearchParams(filters) },
   );
 }
 
 export function getIbReferrals(
+  audience: IbAnalyticsAudience,
   filters: IbReferralsRequestFilters,
 ): Promise<BrokerSuccessResponse<IbReferrals>> {
-  return browserBrokerRequest<IbReferrals>(IB_REFERRALS_PATH, { searchParams: filters });
+  return browserBrokerRequest<IbReferrals>(path(audience, "referrals"), { searchParams: filters });
 }
 
 export function getIbReferralsGeo(
+  audience: IbAnalyticsAudience,
   filters: IbAnalyticsFilters,
 ): Promise<BrokerSuccessResponse<IbReferralGeo>> {
-  return browserBrokerRequest<IbReferralGeo>(`${IB_REFERRALS_PATH}/geo`, { searchParams: filters });
+  return browserBrokerRequest<IbReferralGeo>(`${path(audience, "referrals")}/geo`, { searchParams: filters });
 }
 
 export function getIbReferralAccounts(
+  audience: IbAnalyticsAudience,
   referralId: string,
   filters: IbAnalyticsFilters,
 ): Promise<BrokerSuccessResponse<IbReferralAccounts>> {
   return browserBrokerRequest<IbReferralAccounts>(
-    `${IB_REFERRALS_PATH}/${encodeURIComponent(referralId)}/accounts`,
+    `${path(audience, "referrals")}/${encodeURIComponent(referralId)}/accounts`,
     { searchParams: filters },
   );
 }

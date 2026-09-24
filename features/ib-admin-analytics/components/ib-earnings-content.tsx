@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getIbEarningsDailyTrades, type IbEarningsRequestFilters } from "@/features/ib-admin-analytics/api";
+import { getIbEarningsDailyTrades, type IbAnalyticsAudience, type IbEarningsRequestFilters } from "@/features/ib-admin-analytics/api";
 import {
   IB_EARNINGS_PAYMENT_STATUSES,
   IB_EARNINGS_TYPES,
@@ -40,6 +40,7 @@ type IbEarningsContentProps = {
   onPreviousPage: () => void;
   onNextPage: () => void;
   hasPreviousPage: boolean;
+  audience?: IbAnalyticsAudience;
 };
 
 const statusClass: Record<IbEarningsPaymentStatus, string> = {
@@ -88,10 +89,11 @@ function EarningsCards({ earnings }: { earnings: IbEarnings }) {
   return <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value, caption]) => <Card key={label} size="sm" className="min-h-32"><CardHeader><CardTitle>{label}</CardTitle><p className="text-xs text-muted-foreground">{caption}</p></CardHeader><CardContent><p className="text-lg font-semibold tabular-nums">{value}</p></CardContent></Card>)}</div>;
 }
 
-function EarningsDetailDialog({ row, filters, onOpenChange }: { row: IbEarningsItem | null; filters: Omit<IbEarningsRequestFilters, "grain" | "cursor" | "limit">; onOpenChange: (open: boolean) => void }) {
+function EarningsDetailDialog({ row, filters, audience, onOpenChange }: { row: IbEarningsItem | null; filters: Omit<IbEarningsRequestFilters, "grain" | "cursor" | "limit">; audience?: IbAnalyticsAudience; onOpenChange: (open: boolean) => void }) {
   const [items, setItems] = useState<IbEarningsItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const resolvedAudience = audience ?? (filters.ib_user_id ? "admin" : "client");
 
   useEffect(() => {
     if (!row?.daily_row_id) return;
@@ -100,13 +102,13 @@ function EarningsDetailDialog({ row, filters, onOpenChange }: { row: IbEarningsI
       setLoading(true);
       setError(null);
       setItems(null);
-      void getIbEarningsDailyTrades(row.daily_row_id!, { ...filters, grain: "daily" })
+      void getIbEarningsDailyTrades(resolvedAudience, row.daily_row_id!, { ...filters, grain: "daily" })
         .then((response) => { if (!controller.signal.aborted) setItems(response.data.items); })
         .catch((cause) => { if (!controller.signal.aborted) setError(formatBrokerApiError(cause)); })
         .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     });
     return () => controller.abort();
-  }, [filters, row]);
+  }, [filters, resolvedAudience, row]);
 
   return <Dialog open={row !== null} onOpenChange={onOpenChange}><DialogContent className="max-h-[90vh] max-w-[calc(100%-2rem)] overflow-hidden sm:max-w-[min(70rem,calc(100%-2rem))]"><DialogHeader><DialogTitle>Rewards del resumen diario</DialogTitle><DialogDescription>El backend vuelve a validar el IB objetivo y los filtros antes de revelar cada reward.</DialogDescription></DialogHeader>{error ? <ApiErrorAlert title="No se pudo cargar el desglose diario" message={error} /> : null}<div className="min-h-0 overflow-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead>Fecha UTC</TableHead><TableHead>Trade</TableHead><TableHead>Cuenta</TableHead><TableHead>Referido</TableHead><TableHead>Evento</TableHead><TableHead>Nivel</TableHead><TableHead>Base / tasa</TableHead><TableHead className="text-right">Comisión</TableHead><TableHead>Estado</TableHead></TableRow></TableHeader><TableBody>{loading ? Array.from({ length: 3 }, (_, index) => <TableRow key={index}><TableCell colSpan={9}><Skeleton className="h-5 w-full" /></TableCell></TableRow>) : null}{!loading && items?.length === 0 ? <TableRow><TableCell colSpan={9} className="h-24 text-center text-muted-foreground">No se encontraron rewards para este resumen.</TableCell></TableRow> : null}{!loading ? items?.map((item) => <EarningsRow key={item.id ?? item.date} item={item} />) : null}</TableBody></Table></div></DialogContent></Dialog>;
 }

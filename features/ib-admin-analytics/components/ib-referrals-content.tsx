@@ -10,8 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getIbReferralAccounts, getIbReferrals } from "@/features/ib-admin-analytics/api";
-import type { IbAnalyticsFilters } from "@/features/ib-admin-analytics/api";
+import { getIbReferralAccounts, getIbReferrals, type IbAnalyticsAudience, type IbAnalyticsFilters } from "@/features/ib-admin-analytics/api";
 import type { IbReferral, IbReferralAccount, IbReferralGeo, IbReferrals } from "@/features/ib-admin-analytics/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
@@ -21,6 +20,7 @@ type Props = {
   geo: IbReferralGeo | null;
   filters: IbAnalyticsFilters;
   onPageChange: (page: number) => void;
+  audience?: IbAnalyticsAudience;
 };
 
 type ChildState = { loading: boolean; error: string | null; data: IbReferrals | null };
@@ -46,23 +46,24 @@ function flag(country: string | null): string {
   return String.fromCodePoint(...[...country].map((letter) => 127397 + letter.charCodeAt(0)));
 }
 
-function AccountsDialog({ referral, filters, onOpenChange }: { referral: IbReferral | null; filters: IbAnalyticsFilters; onOpenChange: (open: boolean) => void }) {
+function AccountsDialog({ referral, filters, audience, onOpenChange }: { referral: IbReferral | null; filters: IbAnalyticsFilters; audience?: IbAnalyticsAudience; onOpenChange: (open: boolean) => void }) {
   const [items, setItems] = useState<IbReferralAccount[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const resolvedAudience = audience ?? (filters.ib_user_id ? "admin" : "client");
 
   useEffect(() => {
     if (!referral) return;
     const controller = new AbortController();
     queueMicrotask(() => {
       setLoading(true); setError(null); setItems(null);
-      void getIbReferralAccounts(referral.user_id, filters)
+      void getIbReferralAccounts(resolvedAudience, referral.user_id, filters)
         .then((response) => { if (!controller.signal.aborted) setItems(response.data.items); })
         .catch((cause) => { if (!controller.signal.aborted) setError(formatBrokerApiError(cause)); })
         .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     });
     return () => controller.abort();
-  }, [filters, referral]);
+  }, [filters, referral, resolvedAudience]);
 
   return <Dialog open={referral !== null} onOpenChange={onOpenChange}><DialogContent className="max-h-[90vh] max-w-[calc(100%-2rem)] overflow-hidden sm:max-w-[min(72rem,calc(100%-2rem))]"><DialogHeader><DialogTitle>Cuentas de {referral?.full_name || "referido"}</DialogTitle><DialogDescription>Detalle autorizado de cuentas. No incluye balance, equity, PnL, credenciales ni progreso CPA.</DialogDescription></DialogHeader>{error ? <ApiErrorAlert title="No se pudieron cargar las cuentas" message={error} /> : null}<div className="min-h-0 overflow-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead>Login</TableHead><TableHead>Plataforma</TableHead><TableHead>Grupo</TableHead><TableHead>Moneda</TableHead><TableHead>Apertura UTC</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Lots</TableHead><TableHead>Última operación UTC</TableHead><TableHead className="text-right">Comisión generada</TableHead></TableRow></TableHeader><TableBody>{loading ? Array.from({ length: 3 }, (_, index) => <TableRow key={index}><TableCell colSpan={9}><Skeleton className="h-5 w-full" /></TableCell></TableRow>) : null}{!loading && items?.length === 0 ? <TableRow><TableCell colSpan={9} className="h-24 text-center text-muted-foreground">No hay cuentas autorizadas para este referido.</TableCell></TableRow> : null}{items?.map((account, index) => <TableRow key={`${account.login ?? "account"}-${index}`}><TableCell className="font-mono text-xs">{account.login ?? "—"}</TableCell><TableCell>{account.platform ?? "—"}</TableCell><TableCell>{account.server_group ?? "—"}</TableCell><TableCell>{account.currency_code ?? "—"}</TableCell><TableCell>{date(account.opened_at)}</TableCell><TableCell>{account.status ?? "—"}</TableCell><TableCell className="text-right tabular-nums">{number(account.lots)}</TableCell><TableCell>{date(account.last_activity_at)}</TableCell><TableCell className="text-right tabular-nums">{money(account.commission_generated, filters.currency_code)}</TableCell></TableRow>)}</TableBody></Table></div></DialogContent></Dialog>;
 }
@@ -73,10 +74,11 @@ function GeoRanking({ geo, currency }: { geo: IbReferralGeo | null; currency: st
   return <Card><CardHeader><CardTitle>Concentración por país</CardTitle><p className="text-sm text-muted-foreground">Ranking de la red actual de IAM; lots y rewards conservan el período seleccionado.</p></CardHeader><CardContent className="space-y-3">{countries.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">No hay países para este período.</p> : countries.map((country) => <div key={country.country_code} className="grid grid-cols-[minmax(8rem,1fr)_minmax(8rem,2fr)_auto] items-center gap-3 text-sm"><span className="truncate">{flag(country.country_code)} {country.country_code}</span><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(0, Math.min((Number(country.lots ?? 0) / maximum) * 100, 100))}%` }} /></div><span className="text-right tabular-nums">{geo?.trading_available ? `${number(country.lots)} lots · ${money(country.rewards, currency)}` : "Trading indisponible"}</span></div>)}{geo && !geo.net_deposits_available ? <p className="text-xs text-muted-foreground">Net deposits no está disponible para este período.</p> : null}</CardContent></Card>;
 }
 
-export function IbReferralsContent({ referrals, geo, filters, onPageChange }: Props) {
+export function IbReferralsContent({ referrals, geo, filters, onPageChange, audience }: Props) {
   const [children, setChildren] = useState<Record<string, ChildState>>({});
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [accountsReferral, setAccountsReferral] = useState<IbReferral | null>(null);
+  const resolvedAudience = audience ?? (filters.ib_user_id ? "admin" : "client");
   const roots = referrals.items;
   const allRows = (items: IbReferral[], depth = 0): Array<{ item: IbReferral; depth: number }> => items.flatMap((item) => [{ item, depth }, ...(expanded.has(item.user_id) ? allRows(children[item.user_id]?.data?.items ?? [], depth + 1) : [])]);
   const rows = allRows(roots);
@@ -90,7 +92,7 @@ export function IbReferralsContent({ referrals, geo, filters, onPageChange }: Pr
     if (children[item.user_id]?.data || children[item.user_id]?.loading) return;
     setChildren((value) => ({ ...value, [item.user_id]: { loading: true, error: null, data: null } }));
     try {
-      const response = await getIbReferrals({ ...filters, parent_id: item.user_id, page: 1, per_page: 25 });
+      const response = await getIbReferrals(resolvedAudience, { ...filters, parent_id: item.user_id, page: 1, per_page: 25 });
       setChildren((value) => ({ ...value, [item.user_id]: { loading: false, error: null, data: response.data } }));
     } catch (cause) {
       setChildren((value) => ({ ...value, [item.user_id]: { loading: false, error: formatBrokerApiError(cause), data: null } }));

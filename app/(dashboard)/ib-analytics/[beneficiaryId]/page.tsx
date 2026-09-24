@@ -1,5 +1,5 @@
 import { SiteHeader } from "@/components/layout/site-header";
-import { IbAdminAnalyticsView } from "@/features/ib-admin-analytics/components/ib-admin-analytics-view";
+import { IbAnalyticsView } from "@/features/ib-analytics/components/ib-analytics-view";
 
 export default async function IbAnalyticsPage({
   params,
@@ -14,7 +14,7 @@ export default async function IbAnalyticsPage({
         title="IB Analytics"
         description="Overview administrativo del IB seleccionado."
       />
-      <IbAdminAnalyticsView beneficiaryId={beneficiaryId} />
+      <IbAnalyticsView audience="admin" beneficiaryId={beneficiaryId} />
     </>
   );
 }

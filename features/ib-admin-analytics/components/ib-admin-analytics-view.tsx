@@ -12,7 +12,7 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 
-import { getIbAnalytics, getIbAnalyticsOverview, getIbEarnings, getIbReferrals, getIbReferralsGeo } from "@/features/ib-admin-analytics/api";
+import { getIbAnalytics, getIbAnalyticsOverview, getIbEarnings, getIbReferrals, getIbReferralsGeo, type IbAnalyticsAudience } from "@/features/ib-admin-analytics/api";
 import { IbEarningsContent } from "@/features/ib-admin-analytics/components/ib-earnings-content";
 import { IbReferralsContent } from "@/features/ib-admin-analytics/components/ib-referrals-content";
 import type {
@@ -51,7 +51,7 @@ import { cn } from "@/lib/utils";
 
 type AnalyticsTab = "overview" | "analytics" | "earnings" | "referrals";
 
-type IbAdminAnalyticsViewProps = { beneficiaryId: string };
+type IbAdminAnalyticsViewProps = { beneficiaryId?: string; audience?: IbAnalyticsAudience };
 
 const TABS: ReadonlyArray<{ key: AnalyticsTab; label: string }> = [
   { key: "overview", label: "Overview" },
@@ -438,7 +438,7 @@ function AnalyticsContent({ analytics }: { analytics: IbAnalytics }) {
   return <div className="space-y-4"><AnalyticsKpis analytics={analytics} /><div className="grid gap-4 xl:grid-cols-[minmax(0,2.25fr)_minmax(280px,0.75fr)]"><AnalyticsSeriesChart analytics={analytics} /><CategoryDistribution analytics={analytics} /></div><CountryTable analytics={analytics} /><SymbolTable analytics={analytics} /></div>;
 }
 
-export function IbAdminAnalyticsView({ beneficiaryId }: IbAdminAnalyticsViewProps) {
+export function IbAdminAnalyticsView({ beneficiaryId, audience = "admin" }: IbAdminAnalyticsViewProps) {
   const initialRange = useMemo(() => utcMonthBounds(), []);
   const [tab, setTab] = useState<AnalyticsTab>("overview");
   const [from, setFrom] = useState(initialRange.from);
@@ -474,8 +474,8 @@ export function IbAdminAnalyticsView({ beneficiaryId }: IbAdminAnalyticsViewProp
     setOverviewLoading(true);
     setOverviewError(null);
     try {
-      const response = await getIbAnalyticsOverview({
-        ib_user_id: beneficiaryId,
+      const response = await getIbAnalyticsOverview(audience, {
+        ...(audience === "admin" ? { ib_user_id: beneficiaryId } : {}),
         from,
         to,
       });
@@ -486,7 +486,7 @@ export function IbAdminAnalyticsView({ beneficiaryId }: IbAdminAnalyticsViewProp
     } finally {
       setOverviewLoading(false);
     }
-  }, [beneficiaryId, from, to]);
+  }, [audience, beneficiaryId, from, to]);
 
   const loadAnalytics = useCallback(async () => {
     const normalizedCurrencyCode = currencyCode.trim().toUpperCase();
@@ -499,8 +499,8 @@ export function IbAdminAnalyticsView({ beneficiaryId }: IbAdminAnalyticsViewProp
     setAnalyticsLoading(true);
     setAnalyticsError(null);
     try {
-      const response = await getIbAnalytics({
-        ib_user_id: beneficiaryId,
+      const response = await getIbAnalytics(audience, {
+        ...(audience === "admin" ? { ib_user_id: beneficiaryId } : {}),
         from,
         to,
         currency_code: normalizedCurrencyCode,
@@ -512,7 +512,7 @@ export function IbAdminAnalyticsView({ beneficiaryId }: IbAdminAnalyticsViewProp
     } finally {
       setAnalyticsLoading(false);
     }
-  }, [beneficiaryId, currencyCode, from, to]);
+  }, [audience, beneficiaryId, currencyCode, from, to]);
 
   const loadEarnings = useCallback(async () => {
     const normalizedCurrencyCode = currencyCode.trim().toUpperCase();
@@ -525,8 +525,8 @@ export function IbAdminAnalyticsView({ beneficiaryId }: IbAdminAnalyticsViewProp
     setEarningsLoading(true);
     setEarningsError(null);
     try {
-      const response = await getIbEarnings({
-        ib_user_id: beneficiaryId,
+      const response = await getIbEarnings(audience, {
+        ...(audience === "admin" ? { ib_user_id: beneficiaryId } : {}),
         from,
         to,
         currency_code: normalizedCurrencyCode,
@@ -544,7 +544,7 @@ export function IbAdminAnalyticsView({ beneficiaryId }: IbAdminAnalyticsViewProp
     } finally {
       setEarningsLoading(false);
     }
-  }, [beneficiaryId, currencyCode, earningsCursor, earningsGrain, earningsQuery, earningsStatus, earningsType, from, to]);
+  }, [audience, beneficiaryId, currencyCode, earningsCursor, earningsGrain, earningsQuery, earningsStatus, earningsType, from, to]);
 
   const loadReferrals = useCallback(async () => {
     const normalizedCurrencyCode = currencyCode.trim().toUpperCase();
@@ -558,10 +558,10 @@ export function IbAdminAnalyticsView({ beneficiaryId }: IbAdminAnalyticsViewProp
     setReferralsLoading(true);
     setReferralsError(null);
     try {
-      const filters = { ib_user_id: beneficiaryId, from, to, currency_code: normalizedCurrencyCode };
+      const filters = { ...(audience === "admin" ? { ib_user_id: beneficiaryId } : {}), from, to, currency_code: normalizedCurrencyCode };
       const [listResponse, geoResponse] = await Promise.all([
-        getIbReferrals({ ...filters, page: referralsPage, per_page: 25 }),
-        getIbReferralsGeo(filters),
+        getIbReferrals(audience, { ...filters, page: referralsPage, per_page: 25 }),
+        getIbReferralsGeo(audience, filters),
       ]);
       setReferrals(listResponse.data);
       setReferralsGeo(geoResponse.data);
@@ -572,7 +572,7 @@ export function IbAdminAnalyticsView({ beneficiaryId }: IbAdminAnalyticsViewProp
     } finally {
       setReferralsLoading(false);
     }
-  }, [beneficiaryId, currencyCode, from, referralsPage, to]);
+  }, [audience, beneficiaryId, currencyCode, from, referralsPage, to]);
 
   useEffect(() => {
     if (tab !== "overview") return;
