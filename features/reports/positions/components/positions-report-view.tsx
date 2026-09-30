@@ -115,7 +115,7 @@ export function PositionsReportView() {
 
   return <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-hidden p-4">
     <PageContentToolbar breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Reports" }, { label: "Positions report", current: true }]}>
-      <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={loading} onClick={() => void load()}><RefreshCwIcon className={cn(loading && "animate-spin")} />Refresh</Button><Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => void download("trade")}><DownloadIcon />{exporting === "trade" ? "Exporting…" : "Trades CSV"}</Button><Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => void download("reward")}><DownloadIcon />{exporting === "reward" ? "Exporting…" : "Rewards CSV"}</Button></div>
+      <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={loading} onClick={() => void load()}><RefreshCwIcon className={cn(loading && "animate-spin")} />Refresh</Button><Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => void download("trade")}><DownloadIcon />{exporting === "trade" ? "Exporting…" : "Trades Excel"}</Button><Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => void download("reward")}><DownloadIcon />{exporting === "reward" ? "Exporting…" : "Rewards Excel"}</Button></div>
     </PageContentToolbar>
     {identityPartial ? <Alert><AlertTitle>Identity data is partial</AlertTitle><AlertDescription>IDs remain available for identities IAM could not enrich.</AlertDescription></Alert> : null}
     {error ? <ApiErrorAlert title="Could not load positions report" message={error} /> : null}

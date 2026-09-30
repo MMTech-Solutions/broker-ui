@@ -28,6 +28,7 @@ export async function exportPositionsReport(filters: PositionReportFilters, grai
   params.delete("page");
   params.delete("per_page");
   params.set("grain", grain);
+  params.set("format", "xlsx");
   const response = await fetch(`/api/broker/${REPORT_PATH}/export?${params.toString()}`, { headers: { Accept: "text/csv" }, cache: "no-store" });
   if (!response.ok) {
     let payload: unknown = null;
@@ -38,7 +39,7 @@ export async function exportPositionsReport(filters: PositionReportFilters, grai
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `positions-report-${grain}.csv`;
+  anchor.download = `positions-report-${grain}.xlsx`;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();

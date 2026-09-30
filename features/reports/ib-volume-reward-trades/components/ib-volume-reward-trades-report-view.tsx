@@ -190,10 +190,10 @@ export function IbVolumeRewardTradesReportView() {
             <RefreshCwIcon className={cn(loading && "animate-spin")} /> Refresh
           </Button>
           <Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => void download("trade")}>
-            <DownloadIcon /> {exporting === "trade" ? "Exporting…" : "Trades CSV"}
+            <DownloadIcon /> {exporting === "trade" ? "Exporting…" : "Trades Excel"}
           </Button>
           <Button variant="outline" size="sm" disabled={exporting !== null} onClick={() => void download("reward")}>
-            <DownloadIcon /> {exporting === "reward" ? "Exporting…" : "Rewards CSV"}
+            <DownloadIcon /> {exporting === "reward" ? "Exporting…" : "Rewards Excel"}
           </Button>
         </div>
       </PageContentToolbar>

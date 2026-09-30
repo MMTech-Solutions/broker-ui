@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   KeyRoundIcon,
   LineChartIcon,
+  ListIcon,
   PlusIcon,
   ShieldCheckIcon,
   ShieldAlertIcon,
@@ -346,6 +347,10 @@ export function ClientTradingAccountsView() {
     router.push(`/client/accounts/${account.id}/metrics`);
   }
 
+  function openPositions(account: EnrichedClientTradingAccount) {
+    router.push(`/client/accounts/${account.id}/positions`);
+  }
+
   function openRiskControl(account: EnrichedClientTradingAccount) {
     router.push(`/client/accounts/${account.id}/risk-control`);
   }
@@ -542,6 +547,14 @@ export function ClientTradingAccountsView() {
                           onClick={() => openRiskControl(account)}
                         >
                           <ShieldAlertIcon />
+                        </ActionTooltipButton>
+                        <ActionTooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          tooltip="Ver posiciones"
+                          onClick={() => openPositions(account)}
+                        >
+                          <ListIcon />
                         </ActionTooltipButton>
                         <ActionTooltipButton
                           variant="ghost"

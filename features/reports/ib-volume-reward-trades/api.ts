@@ -31,6 +31,7 @@ export async function exportIbVolumeRewardTrades(filters: IbVolumeRewardTradeFil
   params.delete("page");
   params.delete("per_page");
   params.set("grain", grain);
+  params.set("format", "xlsx");
   const response = await fetch(`/api/broker/${REPORT_PATH}/export?${params.toString()}`, {
     headers: { Accept: "text/csv" }, cache: "no-store",
   });
@@ -45,10 +46,9 @@ export async function exportIbVolumeRewardTrades(filters: IbVolumeRewardTradeFil
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `ib-volume-reward-trades-${grain}.csv`;
+  anchor.download = `ib-volume-reward-trades-${grain}.xlsx`;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
 }
-

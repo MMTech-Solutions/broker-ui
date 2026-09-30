@@ -50,7 +50,7 @@ export type OpenPositionsSnapshotPayload = {
 };
 
 export type ListAccountPositionsParams = {
-  status: "open" | "closed";
+  status: "all" | "open" | "closed";
   page?: number;
   per_page?: number;
   symbol?: string;
