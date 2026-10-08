@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useFeatureAvailability } from "@/features/feature-availability/components/feature-availability-provider";
+import { featureForPage } from "@/features/feature-availability/types";
 import { usePathname } from "next/navigation";
 import {
   CalendarClockIcon,
@@ -219,6 +221,12 @@ const systemNavigation = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { states, canManageConfigs } = useFeatureAvailability();
+  const visible = (item: { href: string }) => {
+    if (item.href === "/configuration") return canManageConfigs;
+    const feature = featureForPage(item.href);
+    return feature === null || states[feature];
+  };
 
   return (
     <Sidebar>
@@ -232,17 +240,16 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Trading</SidebarGroupLabel>
+          <SidebarGroupLabel>Finance</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {tradingNavigation.map((item) => (
+              {[
+                { title: "Internas (legado)", href: "/finance/internal-transactions" },
+                { title: "Movimientos de saldo", href: "/finance/account-balance-transactions" },
+              ].map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    render={<Link href={item.href} />}
-                    isActive={pathname.startsWith(item.href)}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
+                  <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname.startsWith(item.href)}>
+                    <CoinsIcon /><span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -250,43 +257,69 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>IB</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {ibNavigation.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    render={<Link href={item.href} />}
-                    isActive={pathname.startsWith(item.href)}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Bonuses</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {bonusNavigation.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    render={<Link href={item.href} />}
-                    isActive={pathname.startsWith(item.href)}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {states.trading ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Trading</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {tradingNavigation.filter(visible).map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={pathname.startsWith(item.href)}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
+
+        {states.ib ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>IB</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {ibNavigation.filter(visible).map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={pathname.startsWith(item.href)}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
+
+        {states.bonus ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Bonuses</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {bonusNavigation.filter(visible).map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={pathname.startsWith(item.href)}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
 
         <SidebarGroup>
           <SidebarGroupLabel>Reports</SidebarGroupLabel>
@@ -304,49 +337,53 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Insurance</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {insuranceNavigation.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    render={<Link href={item.href} />}
-                    isActive={pathname.startsWith(item.href)}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {states.insurance ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Insurance</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {insuranceNavigation.filter(visible).map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={pathname.startsWith(item.href)}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Contests</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {contestsNavigation.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    render={<Link href={item.href} />}
-                    isActive={pathname.startsWith(item.href)}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {states.contests ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Contests</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {contestsNavigation.filter(visible).map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={pathname.startsWith(item.href)}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
 
         <SidebarGroup>
           <SidebarGroupLabel>System</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {systemNavigation.map((item) => (
+              {systemNavigation.filter(visible).map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     render={<Link href={item.href} />}

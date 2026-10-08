@@ -69,7 +69,7 @@ export async function browserBrokerRequest<T>(
     body = JSON.stringify(options.body);
   }
   
-  let url = `${options.basePath ?? BFF_BASE_PATH}/${normalizedPath}${search}`;
+  const url = `${options.basePath ?? BFF_BASE_PATH}/${normalizedPath}${search}`;
 
   const response = await fetch(
     url,
@@ -129,7 +129,9 @@ export async function browserBrokerRequest<T>(
 
   if(options.basePath == undefined) {
     if (!response.ok || !isBrokerSuccessResponse<T>(payload)) {
-      throw BrokerApiError.fromResponse(response.status, payload);
+      const error = BrokerApiError.fromResponse(response.status, payload);
+      if (error.code === "FEATURE_DISABLED" && typeof window !== "undefined") window.dispatchEvent(new Event("broker:features-changed"));
+      throw error;
     }
   }
 

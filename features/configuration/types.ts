@@ -1,6 +1,6 @@
 /**
  * Admin broker configs (`v1/admin/configs`).
- * Requires IAM permission `broker.configs.manage` (enforced by API; UI does not gate nav).
+ * Requires IAM permission `broker.configs.manage` (enforced by API; UI gates Configuration nav using the authorized configs endpoint).
  */
 export const MASKED_SECRET_VALUE = "********";
 
@@ -12,6 +12,7 @@ export type ConfigSchemaOption = {
 export type ConfigSchema = {
   type: "string" | "text" | "integer" | "number" | "bool" | "select" | "file";
   required: boolean;
+  area: "features" | "shared" | "ib" | "insurance" | "bonus" | "contests" | "trading";
   label: string;
   description?: string;
   placeholder?: string;

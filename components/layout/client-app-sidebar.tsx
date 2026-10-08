@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useFeatureAvailability } from "@/features/feature-availability/components/feature-availability-provider";
+import { featureForPage } from "@/features/feature-availability/types";
 import { usePathname } from "next/navigation";
 import { CircleHelpIcon, GiftIcon, HandshakeIcon, HomeIcon, ShieldCheckIcon, TrophyIcon, WalletIcon } from "lucide-react";
 
@@ -17,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const clientNavigation = [
+  { title: "Reportes IB", href: "/client/ib/analytics", icon: HandshakeIcon, match: (pathname: string) => pathname.startsWith("/client/ib/analytics") },
   {
     title: "Inicio",
     href: "/client",
@@ -33,7 +36,7 @@ const clientNavigation = [
     title: "IB Dashboard",
     href: "/client/ib",
     icon: HandshakeIcon,
-    match: (pathname: string) => pathname.startsWith("/client/ib"),
+    match: (pathname: string) => pathname.startsWith("/client/ib") && !pathname.startsWith("/client/ib/analytics"),
   },
   {
     title: "Bonos",
@@ -63,6 +66,12 @@ const clientNavigation = [
 
 export function ClientAppSidebar() {
   const pathname = usePathname();
+  const { states, canManageConfigs } = useFeatureAvailability();
+  const visible = (item: { href: string }) => {
+    if (item.href === "/configuration") return canManageConfigs;
+    const feature = featureForPage(item.href);
+    return feature === null || states[feature];
+  };
 
   return (
     <Sidebar>
@@ -79,7 +88,7 @@ export function ClientAppSidebar() {
           <SidebarGroupLabel>Navegación</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {clientNavigation.map((item) => (
+              {clientNavigation.filter(visible).map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     render={<Link href={item.href} />}

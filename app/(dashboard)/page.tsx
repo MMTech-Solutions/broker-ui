@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FeatureSection } from "@/features/feature-availability/components/feature-availability-provider";
 import { jwtPayloadSegment } from "@/lib/auth/jwt";
 import { readSession } from "@/lib/auth/session.server";
 
@@ -47,7 +48,9 @@ export default async function DashboardPage() {
               </code>{" "}
               and will be wired in the next step.
             </p>
-            <Button render={<Link href="/platforms" />}>Go to Platforms</Button>
+            <FeatureSection feature="trading">
+              <Button render={<Link href="/platforms" />}>Go to Platforms</Button>
+            </FeatureSection>
           </CardContent>
         </Card>
       </div>

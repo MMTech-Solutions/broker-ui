@@ -2,6 +2,8 @@ import { MASKED_SECRET_VALUE } from "@/features/configuration/types";
 import type { BrokerConfig } from "@/features/configuration/types";
 
 const CATEGORY_LABELS: Record<string, string> = {
+  features: "Features",
+  bonus: "Bonus",
   apicore: "API Core / IAM",
   trading: "Trading",
   finance: "Finance",

@@ -37,3 +37,15 @@ export async function updateConfigsBatch(
     body: input,
   });
 }
+
+export async function listAllConfigs(): Promise<BrokerConfig[]> {
+  const rows: BrokerConfig[] = [];
+  let page = 1;
+  while (true) {
+    const response = await listConfigs({ per_page: 100, page });
+    rows.push(...response.data);
+    const lastPage = response.meta.pagination?.last_page ?? page;
+    if (page >= lastPage) return rows;
+    page++;
+  }
+}

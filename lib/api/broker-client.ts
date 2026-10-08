@@ -150,6 +150,7 @@ export async function proxyBrokerRequest(
   );
 
   const responseHeaders = new Headers();
+  responseHeaders.set("Cache-Control", "no-store");
   const upstreamContentType = upstream.headers.get("Content-Type");
 
   if (upstreamContentType) {

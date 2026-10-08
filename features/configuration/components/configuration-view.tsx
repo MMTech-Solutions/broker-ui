@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ApiErrorAlert } from "@/components/feedback/api-error-alert";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  listConfigs,
+  listAllConfigs,
   updateConfigsBatch,
 } from "@/features/configuration/api";
 import {
@@ -29,6 +29,8 @@ import {
 import type { BrokerConfig } from "@/features/configuration/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
+import { useFeatureAvailability } from "@/features/feature-availability/components/feature-availability-provider";
+import { FEATURE_NAMES, type FeatureName } from "@/features/feature-availability/types";
 import { cn } from "@/lib/utils";
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -37,6 +39,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export function ConfigurationView() {
+  const { states, loading: availabilityLoading, error: availabilityError, refresh } = useFeatureAvailability();
   const [configs, setConfigs] = useState<BrokerConfig[]>([]);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -46,55 +49,80 @@ export function ConfigurationView() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
-  const groups = useMemo(() => groupConfigsByCategory(configs), [configs]);
-
-  const loadConfigs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await listConfigs({ per_page: 50, page: 1 });
-      setConfigs(response.data);
-      setFormValues(
-        Object.fromEntries(
-          response.data.map((config) => [
-            config.key,
-            displayValueForForm(config),
-          ]),
-        ),
-      );
-      setActiveCategory((current) => {
-        if (current && response.data.some((item) => item.category === current)) {
-          return current;
-        }
-        return response.data[0]?.category ?? null;
-      });
-    } catch (loadError) {
-      setError(formatBrokerApiError(loadError));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const availableConfigs = useMemo(() => configs.filter((config) => {
+    const area = config.schema.area;
+    return area === "features" || area === "shared" || (!availabilityLoading && !availabilityError && states[area as FeatureName]);
+  }), [configs, states, availabilityLoading, availabilityError]);
+  const groups = useMemo(() => groupConfigsByCategory(availableConfigs), [availableConfigs]);
+  const selectedCategory = groups.some((group) => group.category === activeCategory) ? activeCategory : (groups.find((group) => group.category === "features")?.category ?? groups[0]?.category ?? null);
 
   useEffect(() => {
-    void loadConfigs();
-  }, [loadConfigs]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const data = await listAllConfigs();
+        if (cancelled) {
+          return;
+        }
+        setConfigs(data);
+        setFormValues(
+          Object.fromEntries(
+            data.map((config) => [
+              config.key,
+              displayValueForForm(config),
+            ]),
+          ),
+        );
+        setActiveCategory((current) => {
+          if (current && data.some((item) => item.category === current)) {
+            return current;
+          }
+          return data.some((item) => item.category === "features")
+            ? "features"
+            : (data[0]?.category ?? null);
+        });
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(formatBrokerApiError(loadError));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const visibleConfigs = useMemo(
     () =>
-      activeCategory
-        ? configs.filter((config) => config.category === activeCategory)
+      selectedCategory
+        ? availableConfigs.filter((config) => config.category === selectedCategory)
         : [],
-    [activeCategory, configs],
+    [selectedCategory, availableConfigs],
   );
 
   function setValue(key: string, value: string) {
+    const dependents = FEATURE_NAMES.filter((feature) => feature !== "trading" && formValues["features." + feature + ".enabled"] === "true");
+    if (key === "features.trading.enabled" && value === "false" && dependents.length) {
+      setSubmitError("Disable these features before Trading: " + dependents.join(", "));
+      return;
+    }
+    if (key.startsWith("features.") && key !== "features.trading.enabled" && value === "true" && formValues["features.trading.enabled"] !== "true") {
+      setSubmitError("Enable Trading before enabling another feature.");
+      return;
+    }
+    setSubmitError(null);
     setFormValues((current) => ({ ...current, [key]: value }));
     setSavedMessage(null);
   }
 
   async function handleSave() {
-    if (!activeCategory) {
+    if (!selectedCategory) {
       return;
     }
 
@@ -123,6 +151,11 @@ export function ConfigurationView() {
         }
         return next;
       });
+      await refresh(true);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("broker:features-changed"));
+      }
+      setActiveCategory(selectedCategory);
       setSavedMessage(`Saved ${response.data.length} setting(s).`);
     } catch (saveError) {
       setSubmitError(formatBrokerApiError(saveError));
@@ -136,6 +169,7 @@ export function ConfigurationView() {
       <PageContentToolbar breadcrumbs={breadcrumbs} />
 
       {error ? <ApiErrorAlert message={error} /> : null}
+      {availabilityError ? <div role="alert" className="space-y-2"><ApiErrorAlert message={availabilityError} /><Button onClick={() => void refresh()}>Retry availability</Button></div> : null}
       {submitError ? <ApiErrorAlert message={submitError} /> : null}
       {savedMessage ? (
         <p className="text-sm text-emerald-700 dark:text-emerald-400">
@@ -157,7 +191,7 @@ export function ConfigurationView() {
                 type="button"
                 size="sm"
                 variant={
-                  activeCategory === group.category ? "default" : "outline"
+                  selectedCategory === group.category ? "default" : "outline"
                 }
                 onClick={() => {
                   setActiveCategory(group.category);
@@ -219,7 +253,7 @@ function ConfigField({
         {description ? (
           <p className="text-sm text-muted-foreground">{description}</p>
         ) : null}
-        <p className="text-xs text-muted-foreground/80">{config.key}</p>
+        <p className="text-xs text-muted-foreground/80">{config.key} · Area: {config.schema.area}</p>
       </div>
 
       {config.schema.type === "bool" ? (

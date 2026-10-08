@@ -1,6 +1,7 @@
-import { SiteHeader } from "@/components/layout/site-header";
 import { PageContentToolbar } from "@/components/layout/page-content-toolbar";
+import { SiteHeader } from "@/components/layout/site-header";
 import { ClientContestHelpCard } from "@/features/client-contest/components/client-contest-help-card";
+import { FeatureSection } from "@/features/feature-availability/components/feature-availability-provider";
 
 export default function ClientHelpPage() {
   return (
@@ -17,7 +18,9 @@ export default function ClientHelpPage() {
           ]}
           backHref="/client"
         />
-        <ClientContestHelpCard />
+        <FeatureSection feature="contests">
+          <ClientContestHelpCard />
+        </FeatureSection>
       </div>
     </>
   );
