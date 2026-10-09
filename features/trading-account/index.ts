@@ -1,9 +1,14 @@
 export {
+  adjustTradingAccountBalance,
   listTradingAccounts,
   resetTradingAccountCredentials,
   updateTradingAccount,
 } from "@/features/trading-account/api";
-export type { ResetTradingAccountCredentialsInput, TradingAccountListResponse } from "@/features/trading-account/api";
+export type {
+  AdjustTradingAccountBalanceInput,
+  ResetTradingAccountCredentialsInput,
+  TradingAccountListResponse,
+} from "@/features/trading-account/api";
 export type {
   TradingAccount,
   TradingAccountFilterFormState,

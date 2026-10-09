@@ -24,11 +24,21 @@ import {
   listServerGroupsForAdmin,
   listTradingServersForAdmin,
 } from "@/features/trading-server/api";
+import {
+  formatServerGroupOptionLabel,
+  getServerGroupCurrency,
+  hasResolvedServerGroupCurrency,
+} from "@/features/trading-server/format";
+import {
+  TRADING_SERVER_ENVIRONMENT,
+  type ServerGroup,
+} from "@/features/trading-server/types";
 import { formatBrokerApiError } from "@/lib/api/errors";
 
 type ServerGroupOption = {
   id: string;
   label: string;
+  precision: number;
 };
 
 type InsurancePlanServerGroupsDialogProps = {
@@ -37,6 +47,35 @@ type InsurancePlanServerGroupsDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 };
+
+function toEligibleServerGroupOption(
+  server: { connection_signature: string },
+  group: ServerGroup,
+): ServerGroupOption | null {
+  if (group.environment !== TRADING_SERVER_ENVIRONMENT.LIVE) {
+    return null;
+  }
+
+  if (!group.is_active) {
+    return null;
+  }
+
+  if (!hasResolvedServerGroupCurrency(group.currency)) {
+    return null;
+  }
+
+  const currency = getServerGroupCurrency(group.currency);
+
+  return {
+    id: group.id,
+    label: formatServerGroupOptionLabel(
+      group.name ?? "",
+      group.currency,
+      server.connection_signature,
+    ),
+    precision: currency.precision as number,
+  };
+}
 
 export function InsurancePlanServerGroupsDialog({
   insurancePlan,
@@ -53,11 +92,27 @@ export function InsurancePlanServerGroupsDialog({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [incompatibleNotice, setIncompatibleNotice] = useState<string | null>(
+    null,
+  );
 
   const selectedSet = useMemo(
     () => new Set(selectedServerGroupIds),
     [selectedServerGroupIds],
   );
+
+  const lockedPrecision = useMemo(() => {
+    const selected = serverGroupOptions.filter((option) =>
+      selectedSet.has(option.id),
+    );
+    const precision = selected[0]?.precision;
+
+    if (precision == null || precision < 0) {
+      return null;
+    }
+
+    return precision;
+  }, [selectedSet, serverGroupOptions]);
 
   useEffect(() => {
     if (!open || !insurancePlan) {
@@ -69,6 +124,7 @@ export function InsurancePlanServerGroupsDialog({
     async function loadData() {
       setLoading(true);
       setError(null);
+      setIncompatibleNotice(null);
 
       try {
         const [planResponse, serversResponse] = await Promise.all([
@@ -86,10 +142,9 @@ export function InsurancePlanServerGroupsDialog({
               per_page: 100,
             });
 
-            return groupsResponse.data.map((group) => ({
-              id: group.id,
-              label: `${server.connection_signature} · ${group.name}`,
-            }));
+            return groupsResponse.data
+              .map((group) => toEligibleServerGroupOption(server, group))
+              .filter((option): option is ServerGroupOption => option != null);
           }),
         );
 
@@ -97,15 +152,22 @@ export function InsurancePlanServerGroupsDialog({
           return;
         }
 
-        setServerGroupOptions(
-          groupsByServer.flat().sort((left, right) =>
-            left.label.localeCompare(right.label),
-          ),
+        const options = groupsByServer
+          .flat()
+          .sort((left, right) => left.label.localeCompare(right.label));
+        const eligibleIds = new Set(options.map((option) => option.id));
+        const linkedIds = (planResponse.data.server_groups ?? []).map(
+          (entry) => entry.server_group_id,
         );
-        setSelectedServerGroupIds(
-          (planResponse.data.server_groups ?? []).map(
-            (entry) => entry.server_group_id,
-          ),
+        const compatibleIds = linkedIds.filter((id) => eligibleIds.has(id));
+        const omittedCount = linkedIds.length - compatibleIds.length;
+
+        setServerGroupOptions(options);
+        setSelectedServerGroupIds(compatibleIds);
+        setIncompatibleNotice(
+          omittedCount > 0
+            ? `${omittedCount} previously linked group(s) were omitted because they are not Live, active, or missing currency/precision.`
+            : null,
         );
       } catch (loadError) {
         if (!cancelled) {
@@ -146,6 +208,25 @@ export function InsurancePlanServerGroupsDialog({
       return;
     }
 
+    if (selectedServerGroupIds.length === 0) {
+      setError("Select at least one Live server group.");
+      return;
+    }
+
+    const selected = serverGroupOptions.filter((option) =>
+      selectedSet.has(option.id),
+    );
+    const precisions = [
+      ...new Set(selected.map((option) => option.precision)),
+    ];
+
+    if (precisions.length > 1) {
+      setError(
+        "All selected server groups must share the same currency precision.",
+      );
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -169,11 +250,13 @@ export function InsurancePlanServerGroupsDialog({
         <DialogHeader className="shrink-0">
           <DialogTitle>Server groups</DialogTitle>
           <DialogDescription>
-            Choose which server groups can access{" "}
+            Choose which Live server groups can access{" "}
             <span className="font-medium text-foreground">
               {insurancePlan?.name ?? "this plan"}
             </span>
-            . An empty list makes the plan available on all groups.
+            . Only active Live groups with currency and precision are listed.
+            Select at least one group; all selected groups must share the same
+            currency precision.
           </DialogDescription>
         </DialogHeader>
 
@@ -189,23 +272,36 @@ export function InsurancePlanServerGroupsDialog({
               />
             ) : null}
 
+            {incompatibleNotice ? (
+              <p className="text-sm text-muted-foreground">
+                {incompatibleNotice}
+              </p>
+            ) : null}
+
             {loading ? (
               <div className="space-y-2">
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton key={`group-skeleton-${index}`} className="h-10 w-full" />
+                  <Skeleton
+                    key={`group-skeleton-${index}`}
+                    className="h-10 w-full"
+                  />
                 ))}
               </div>
             ) : null}
 
             {!loading && serverGroupOptions.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No server groups found.
+                No eligible Live server groups found.
               </p>
             ) : null}
 
             {!loading
               ? serverGroupOptions.map((option) => {
                   const checkboxId = `insurance-plan-group-${option.id}`;
+                  const disabledByPrecision =
+                    lockedPrecision != null &&
+                    option.precision !== lockedPrecision &&
+                    !selectedSet.has(option.id);
 
                   return (
                     <div
@@ -218,10 +314,14 @@ export function InsurancePlanServerGroupsDialog({
                         onCheckedChange={(checked) =>
                           toggleServerGroup(option.id, checked === true)
                         }
-                        disabled={submitting}
+                        disabled={submitting || disabledByPrecision}
                       />
-                      <Label htmlFor={checkboxId} className="flex-1 cursor-pointer">
+                      <Label
+                        htmlFor={checkboxId}
+                        className="flex-1 cursor-pointer"
+                      >
                         {option.label}
+                        {disabledByPrecision ? " — different precision" : ""}
                       </Label>
                     </div>
                   );

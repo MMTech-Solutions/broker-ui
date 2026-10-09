@@ -29,14 +29,12 @@ import { formatBrokerApiError } from "@/lib/api/errors";
 type ClientInsuranceEligibleAccountsDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  environmentByAccountId?: Map<string, number | null>;
   onSelectAccount: (account: ClientInsuranceEligibleAccount) => void;
 };
 
 export function ClientInsuranceEligibleAccountsDialog({
   open,
   onOpenChange,
-  environmentByAccountId,
   onSelectAccount,
 }: ClientInsuranceEligibleAccountsDialogProps) {
   const [accounts, setAccounts] = useState<ClientInsuranceEligibleAccount[]>(
@@ -57,9 +55,7 @@ export function ClientInsuranceEligibleAccountsDialog({
       setError(null);
 
       try {
-        const eligibleAccounts = await loadClientInsuranceEligibleAccounts({
-          environmentByAccountId,
-        });
+        const eligibleAccounts = await loadClientInsuranceEligibleAccounts();
 
         if (!cancelled) {
           setAccounts(eligibleAccounts);
@@ -81,7 +77,7 @@ export function ClientInsuranceEligibleAccountsDialog({
     return () => {
       cancelled = true;
     };
-  }, [environmentByAccountId, open]);
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

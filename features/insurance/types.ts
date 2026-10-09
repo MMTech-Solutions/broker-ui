@@ -86,10 +86,27 @@ export type AccountInsuranceOwner = {
   name: string;
 };
 
+export type AccountInsuranceRecoveryOutcome = {
+  code: string;
+  message?: string | null;
+  attempted_amount?: string | number | null;
+  compensation_amount?: string | number | null;
+  equity?: string | number | null;
+  balance?: string | number | null;
+  credit?: string | number | null;
+  recorded_at?: string | null;
+};
+
+export type AccountInsuranceAccount = {
+  id: string;
+  external_trader_id: string | null;
+};
+
 export type AccountInsurance = {
   id: string;
   user: AccountInsuranceOwner;
   account_id: string;
+  account?: AccountInsuranceAccount;
   insurance_plan_option_id: string;
   initial_balance: string | number;
   insured_amount: string | number;
@@ -102,7 +119,17 @@ export type AccountInsurance = {
   final_balance?: string | number | null;
   balance_withdrawn?: string | number | null;
   loss_amount?: string | number | null;
+  /** Derived on list read: min(loss, insured). */
+  claimable_amount?: string | number | null;
+  /** Derived on list read: 0.0–1.0 toward insured_amount. */
+  coverage_progress?: number | null;
+  /** Derived on list read: max(0, insured - loss). */
+  remaining_insured_amount?: string | number | null;
   compensation_amount?: string | number | null;
+  /** Minor→major from API: amount actually debited on recovery (0 if equity ≤ 0). */
+  recovered_amount?: string | number | null;
+  /** Present when platform rejected debit (e.g. No money); monetary fields in major. */
+  recovery_outcome?: AccountInsuranceRecoveryOutcome | null;
   claimed_at?: string | null;
   reviewed_at?: string | null;
   reviewed_by_user_id?: string | null;
@@ -177,6 +204,100 @@ export function resolveAccountInsuranceOwner(
     email: insurance.user?.email ?? null,
     name: insurance.user?.name ?? "",
   };
+}
+
+export type DisplayedInsuranceAmount = {
+  amount: string | number | null;
+  /** Always show the bar; fill reflects loss vs insured (live or frozen). */
+  showProgress: boolean;
+  coverageProgress: number;
+  remainingInsuredAmount: string | number | null;
+};
+
+function resolveCoverageProgress(insurance: AccountInsurance): number {
+  if (insurance.coverage_progress != null) {
+    const fromApi = Number(insurance.coverage_progress);
+
+    if (Number.isFinite(fromApi)) {
+      return Math.min(1, Math.max(0, fromApi));
+    }
+  }
+
+  const insured = Number(insurance.insured_amount);
+  if (!Number.isFinite(insured) || insured <= 0) {
+    return 0;
+  }
+
+  const lossReference = Number(
+    insurance.loss_amount ??
+      insurance.claimable_amount ??
+      insurance.compensation_amount ??
+      0,
+  );
+
+  if (!Number.isFinite(lossReference) || lossReference <= 0) {
+    return 0;
+  }
+
+  return Math.min(1, Math.max(0, lossReference / insured));
+}
+
+/**
+ * Resolves which monetary amount to show in list UIs:
+ * - active → live claimable_amount + live progress
+ * - claimable → frozen claimable_amount + frozen progress (loss vs insured)
+ * - pending_claim / credited / credit_recovered → compensation_amount + frozen progress
+ * - cancelled → compensation_amount, else claimable_amount + frozen progress when available
+ */
+export function resolveDisplayedInsuranceAmount(
+  insurance: AccountInsurance,
+): DisplayedInsuranceAmount {
+  const coverageProgress = resolveCoverageProgress(insurance);
+  const remainingInsuredAmount =
+    insurance.status === "active"
+      ? (insurance.remaining_insured_amount ?? null)
+      : null;
+
+  switch (insurance.status) {
+    case "active":
+      return {
+        amount: insurance.claimable_amount ?? 0,
+        showProgress: true,
+        coverageProgress,
+        remainingInsuredAmount,
+      };
+    case "claimable":
+      return {
+        amount: insurance.claimable_amount ?? 0,
+        showProgress: true,
+        coverageProgress,
+        remainingInsuredAmount,
+      };
+    case "pending_claim":
+    case "credited":
+    case "credit_recovered":
+      return {
+        amount: insurance.compensation_amount ?? null,
+        showProgress: true,
+        coverageProgress,
+        remainingInsuredAmount,
+      };
+    case "cancelled":
+      return {
+        amount:
+          insurance.compensation_amount ?? insurance.claimable_amount ?? null,
+        showProgress: true,
+        coverageProgress,
+        remainingInsuredAmount,
+      };
+    default:
+      return {
+        amount: null,
+        showProgress: true,
+        coverageProgress,
+        remainingInsuredAmount: null,
+      };
+  }
 }
 
 export type RejectAccountInsuranceClaimInput = {

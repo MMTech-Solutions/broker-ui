@@ -44,4 +44,7 @@ export {
   EMPTY_ACCOUNT_INSURANCE_ADMIN_FILTERS,
   PREMIUM_MODES,
   resolveAccountInsuranceOwner,
+  resolveDisplayedInsuranceAmount,
 } from "@/features/insurance/types";
+export type { DisplayedInsuranceAmount } from "@/features/insurance/types";
+export { AccountInsuranceCoverageCell } from "@/features/insurance/components/account-insurance-coverage-cell";

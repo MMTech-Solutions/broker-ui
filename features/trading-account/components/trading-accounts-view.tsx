@@ -39,6 +39,7 @@ import {
   type TradingAccountAccessAction,
 } from "@/features/trading-account/components/trading-account-access-dialog";
 import { TradingAccountActionsMenu } from "@/features/trading-account/components/trading-account-actions-menu";
+import { TradingAccountAdjustBalanceDialog } from "@/features/trading-account/components/trading-account-adjust-balance-dialog";
 import { TradingAccountNotesDialog } from "@/features/trading-account/components/trading-account-notes-dialog";
 import { TradingAccountResetCredentialsDialog } from "@/features/trading-account/components/trading-account-reset-credentials-dialog";
 import {
@@ -307,6 +308,9 @@ export function TradingAccountsView() {
   const [accessDialogOpen, setAccessDialogOpen] = useState(false);
   const [resetAccount, setResetAccount] = useState<TradingAccount | null>(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [adjustBalanceAccount, setAdjustBalanceAccount] =
+    useState<TradingAccount | null>(null);
+  const [adjustBalanceDialogOpen, setAdjustBalanceDialogOpen] = useState(false);
   const [notesAccount, setNotesAccount] = useState<TradingAccount | null>(null);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
 
@@ -500,6 +504,11 @@ export function TradingAccountsView() {
     setAccessDialogOpen(true);
   }
 
+  function openAdjustBalanceDialog(account: TradingAccount) {
+    setAdjustBalanceAccount(account);
+    setAdjustBalanceDialogOpen(true);
+  }
+
   function openResetPasswordDialog(account: TradingAccount) {
     setResetAccount(account);
     setResetDialogOpen(true);
@@ -518,25 +527,6 @@ export function TradingAccountsView() {
     () => new Map(serverGroupOptions.map((option) => [option.id, option])),
     [serverGroupOptions],
   );
-
-  const environmentLabelByValue = useMemo(
-    () =>
-      new Map(
-        environmentOptions.map((environment) => [
-          environment.value,
-          environment.label,
-        ]),
-      ),
-    [environmentOptions],
-  );
-
-  function formatEnvironmentLabel(environment: number | null | undefined): string {
-    if (environment == null) {
-      return "—";
-    }
-
-    return environmentLabelByValue.get(environment) ?? String(environment);
-  }
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-hidden p-4">
@@ -1012,7 +1002,7 @@ export function TradingAccountsView() {
                           "—"}
                       </TableCell>
                       <TableCell>
-                        {formatEnvironmentLabel(serverGroupMeta?.environment)}
+                        {account.server_group.environment_label?.trim() || "—"}
                       </TableCell>
                       <TableCell>
                         {serverGroupMeta?.label ??
@@ -1072,6 +1062,7 @@ export function TradingAccountsView() {
                           account={account}
                           onViewPositions={openPositionsDialog}
                           onResetPassword={openResetPasswordDialog}
+                          onAdjustBalance={openAdjustBalanceDialog}
                           onViewNotes={openNotesDialog}
                           onViewRiskControl={openRiskControl}
                           onAccessAction={openAccessDialog}
@@ -1218,6 +1209,20 @@ export function TradingAccountsView() {
           setResetDialogOpen(open);
           if (!open) {
             setResetAccount(null);
+          }
+        }}
+        onSuccess={() => {
+          void loadTradingAccounts(page, pageSize, appliedFilters);
+        }}
+      />
+
+      <TradingAccountAdjustBalanceDialog
+        account={adjustBalanceAccount}
+        open={adjustBalanceDialogOpen}
+        onOpenChange={(open) => {
+          setAdjustBalanceDialogOpen(open);
+          if (!open) {
+            setAdjustBalanceAccount(null);
           }
         }}
         onSuccess={() => {

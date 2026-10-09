@@ -1,5 +1,4 @@
 import type { TradingAccount } from "@/features/trading-account/types";
-import { TRADING_SERVER_ENVIRONMENT } from "@/features/trading-server/types";
 import type {
   ClientAccountInsurance,
   ClientAccountInsuranceListFilters,
@@ -11,11 +10,11 @@ import {
   IN_PROGRESS_INSURANCE_STATUSES,
   type ClientInsurancePlan,
 } from "@/features/client-insurance/types";
-import { hasContractableInsuranceOptions } from "@/features/client-insurance/format";
 import {
-  listClientTradingAccounts,
-  loadClientServerGroupEnvironments,
-} from "@/features/client-trading-account/api";
+  hasContractableInsuranceOptions,
+  isLiveEnvironmentLabel,
+} from "@/features/client-insurance/format";
+import { listClientTradingAccounts } from "@/features/client-trading-account/api";
 import { browserBrokerRequest } from "@/lib/api/browser-client";
 import type { BrokerSuccessResponse } from "@/lib/api/types/broker-response";
 
@@ -119,12 +118,11 @@ export async function loadAccountsWithInProgressInsurance(): Promise<
 
 export function isInsuranceCandidateAccount(
   account: TradingAccount,
-  environment: number | null | undefined,
   insuredAccountIds: Set<string>,
 ): boolean {
   return (
     account.is_active &&
-    environment === TRADING_SERVER_ENVIRONMENT.LIVE &&
+    isLiveEnvironmentLabel(account.server_group.environment_label) &&
     account.current_balance > 0 &&
     account.margin === 0 &&
     !insuredAccountIds.has(account.id)
@@ -147,43 +145,16 @@ export async function resolveInsuranceEligibilityForAccount(
   }
 }
 
-async function resolveEnvironmentByAccountId(
-  accounts: TradingAccount[],
-  provided?: Map<string, number | null>,
-): Promise<Map<string, number | null>> {
-  if (provided) {
-    return provided;
-  }
-
-  const environmentByServerGroupId = await loadClientServerGroupEnvironments();
-
-  return new Map(
-    accounts.map((account) => [
-      account.id,
-      environmentByServerGroupId.get(account.server_group.id) ?? null,
-    ]),
-  );
-}
-
-export async function loadClientInsuranceEligibleAccounts(options?: {
-  environmentByAccountId?: Map<string, number | null>;
-}): Promise<ClientInsuranceEligibleAccount[]> {
+export async function loadClientInsuranceEligibleAccounts(): Promise<
+  ClientInsuranceEligibleAccount[]
+> {
   const [accountsResponse, insuredAccountIds] = await Promise.all([
     listClientTradingAccounts({ per_page: 100 }),
     loadAccountsWithInProgressInsurance(),
   ]);
 
-  const environmentByAccountId = await resolveEnvironmentByAccountId(
-    accountsResponse.data,
-    options?.environmentByAccountId,
-  );
-
   const candidates = accountsResponse.data.filter((account) =>
-    isInsuranceCandidateAccount(
-      account,
-      environmentByAccountId.get(account.id) ?? null,
-      insuredAccountIds,
-    ),
+    isInsuranceCandidateAccount(account, insuredAccountIds),
   );
 
   const eligibilityResults = await Promise.all(
@@ -211,16 +182,11 @@ export async function loadClientInsuranceEligibleAccounts(options?: {
 
 export async function loadInsuranceEligibleAccountIds(
   accounts: TradingAccount[],
-  environmentByAccountId: Map<string, number | null>,
 ): Promise<Set<string>> {
   const insuredAccountIds = await loadAccountsWithInProgressInsurance();
 
   const candidates = accounts.filter((account) =>
-    isInsuranceCandidateAccount(
-      account,
-      environmentByAccountId.get(account.id) ?? null,
-      insuredAccountIds,
-    ),
+    isInsuranceCandidateAccount(account, insuredAccountIds),
   );
 
   const eligibilityResults = await Promise.all(

@@ -143,21 +143,3 @@ export async function listClientServerGroupsForSelection(filters: {
 
   return response.data.map(toClientServerGroup);
 }
-
-/**
- * Lightweight map of server_group_id → environment.
- * Used by insurance eligibility without loading leverages/initial amounts.
- */
-export async function loadClientServerGroupEnvironments(): Promise<
-  Map<string, number>
-> {
-  const serverGroupsResponse = await listCatalogServerGroups({
-    per_page: 100,
-  });
-
-  return new Map(
-    serverGroupsResponse.data
-      .filter((group) => group.environment != null)
-      .map((group) => [group.id, group.environment as number]),
-  );
-}

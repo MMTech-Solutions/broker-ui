@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CircleDollarSignIcon,
   KeyRoundIcon,
   LineChartIcon,
   MessageSquareTextIcon,
@@ -27,6 +28,7 @@ type TradingAccountActionsMenuProps = {
   account: TradingAccount;
   onViewPositions: (account: TradingAccount) => void;
   onResetPassword: (account: TradingAccount) => void;
+  onAdjustBalance: (account: TradingAccount) => void;
   onViewNotes: (account: TradingAccount) => void;
   onViewRiskControl: (account: TradingAccount) => void;
   onAccessAction: (
@@ -39,6 +41,7 @@ export function TradingAccountActionsMenu({
   account,
   onViewPositions,
   onResetPassword,
+  onAdjustBalance,
   onViewNotes,
   onViewRiskControl,
   onAccessAction,
@@ -65,6 +68,14 @@ export function TradingAccountActionsMenu({
         <DropdownMenuItem onClick={() => onResetPassword(account)}>
           <KeyRoundIcon />
           Reset password
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          disabled={!account.is_active}
+          onClick={() => onAdjustBalance(account)}
+        >
+          <CircleDollarSignIcon />
+          Adjust balance
         </DropdownMenuItem>
 
         <DropdownMenuItem onClick={() => onViewNotes(account)}>

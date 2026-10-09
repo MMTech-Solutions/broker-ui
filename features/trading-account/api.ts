@@ -87,6 +87,28 @@ export async function resetTradingAccountCredentials(
   );
 }
 
+export type AdjustTradingAccountBalanceInput = {
+  /** Signed major units: positive credits MT balance, negative debits. */
+  amount: string;
+  comment: string;
+};
+
+export async function adjustTradingAccountBalance(
+  accountId: string,
+  input: AdjustTradingAccountBalanceInput,
+): Promise<BrokerSuccessResponse<TradingAccount>> {
+  return browserBrokerRequest<TradingAccount>(
+    `${TRADING_ACCOUNTS_PATH}/${accountId}/balance-adjustments`,
+    {
+      method: "POST",
+      body: {
+        amount: input.amount,
+        comment: input.comment,
+      },
+    },
+  );
+}
+
 export type ListTradingAccountPositionsParams = {
   status?: "open" | "closed";
   page?: number;

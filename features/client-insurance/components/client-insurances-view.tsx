@@ -37,7 +37,7 @@ import {
   clientAccountInsuranceStatusVariant,
   formatCoveragePercent,
   formatInsuranceDateTime,
-  formatInsuranceMinorAmount,
+  formatInsuranceAmount,
 } from "@/features/client-insurance/format";
 import {
   CLIENT_ACCOUNT_INSURANCE_STATUSES,
@@ -46,6 +46,7 @@ import {
   type ClientInsuranceEligibleAccount,
 } from "@/features/client-insurance/types";
 import { listClientTradingAccounts } from "@/features/client-trading-account/api";
+import { AccountInsuranceCoverageCell } from "@/features/insurance";
 import { formatBrokerApiError } from "@/lib/api/errors";
 import type { BrokerPaginationMeta } from "@/lib/api/types/broker-response";
 import type { BreadcrumbItem } from "@/lib/navigation/breadcrumbs";
@@ -235,6 +236,8 @@ export function ClientInsurancesView() {
               <TableHead>Plan</TableHead>
               <TableHead>Cobertura</TableHead>
               <TableHead className="text-right">Monto asegurado</TableHead>
+              <TableHead className="min-w-[140px]">Monto a reclamar</TableHead>
+              <TableHead className="text-right">Recuperado</TableHead>
               <TableHead className="text-right">Prima</TableHead>
               <TableHead>Vigencia</TableHead>
               <TableHead>Estado</TableHead>
@@ -245,7 +248,7 @@ export function ClientInsurancesView() {
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={10}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -255,7 +258,7 @@ export function ClientInsurancesView() {
             {!loading && insurances.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={10}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No tienes seguros registrados con este filtro.
@@ -275,12 +278,33 @@ export function ClientInsurancesView() {
                       {formatCoveragePercent(insurance.coverage_percent)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatInsuranceMinorAmount(insurance.insured_amount)}
+                      {formatInsuranceAmount(insurance.insured_amount)}
+                    </TableCell>
+                    <TableCell>
+                      <AccountInsuranceCoverageCell
+                        insurance={insurance}
+                        formatAmount={formatInsuranceAmount}
+                        remainingLabel={(remaining) =>
+                          `Quedan ${remaining} por perder`
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <div>{formatInsuranceAmount(insurance.recovered_amount)}</div>
+                      {insurance.recovery_outcome?.code ===
+                      "platform_rejected_no_money" ? (
+                        <p
+                          className="text-xs text-muted-foreground"
+                          title={insurance.recovery_outcome.message ?? undefined}
+                        >
+                          Sin fondos en plataforma
+                        </p>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {insurance.is_free
                         ? "Gratis"
-                        : formatInsuranceMinorAmount(insurance.premium_charged)}
+                        : formatInsuranceAmount(insurance.premium_charged)}
                     </TableCell>
                     <TableCell className="text-sm">
                       <div>{formatInsuranceDateTime(insurance.started_at)}</div>

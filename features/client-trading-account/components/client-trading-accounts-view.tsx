@@ -52,6 +52,7 @@ import type {
 import { ClientInsuranceContractDialog } from "@/features/client-insurance/components/client-insurance-contract-dialog";
 import { ClientInsuranceEligibleAccountsDialog } from "@/features/client-insurance/components/client-insurance-eligible-accounts-dialog";
 import { loadInsuranceEligibleAccountIds } from "@/features/client-insurance/api";
+import { isLiveEnvironmentLabel } from "@/features/client-insurance/format";
 import type { ClientInsuranceEligibleAccount } from "@/features/client-insurance/types";
 import {
   getServerGroupCurrency,
@@ -84,6 +85,12 @@ function formatLeverageLabel(
   return leverage.value ? String(leverage.value) : leverage.id;
 }
 
+function resolveEnvironmentLabel(account: TradingAccount): string {
+  const fromAccount = account.server_group.environment_label?.trim();
+
+  return fromAccount && fromAccount.length > 0 ? fromAccount : "—";
+}
+
 function enrichAccounts(
   accounts: TradingAccount[],
   catalog: ClientAccountCatalog | null,
@@ -94,7 +101,7 @@ function enrichAccounts(
       serverGroupLabel:
         account.server_group.name || account.server_group.id,
       platformLabel: account.platform?.name ?? "—",
-      environmentLabel: "—",
+      environmentLabel: resolveEnvironmentLabel(account),
       leverageLabel: formatLeverageLabel(account.leverage),
       tradingServerId: account.server_group.trading_server_id || null,
       platformId: account.platform?.id ?? null,
@@ -127,7 +134,7 @@ function enrichAccounts(
         (typeof serverGroup?.platform === "object"
           ? serverGroup.platform.name
           : String(serverGroup?.platform ?? "—")),
-      environmentLabel: formatEnvironmentLabel(serverGroup?.environment),
+      environmentLabel: resolveEnvironmentLabel(account),
       leverageLabel:
         leverageFromCatalog?.name ?? formatLeverageLabel(account.leverage),
       tradingServerId: serverGroup?.trading_server_id ?? null,
@@ -216,14 +223,8 @@ export function ClientTradingAccountsView() {
     [accounts, catalog],
   );
 
-  const environmentByAccountId = useMemo(() => {
-    return new Map(
-      enrichedAccounts.map((account) => [account.id, account.environment]),
-    );
-  }, [enrichedAccounts]);
-
   useEffect(() => {
-    if (!catalog || accounts.length === 0) {
+    if (accounts.length === 0) {
       setEligibleAccountIds(new Set());
       return;
     }
@@ -234,10 +235,7 @@ export function ClientTradingAccountsView() {
       setLoadingEligibility(true);
 
       try {
-        const ids = await loadInsuranceEligibleAccountIds(
-          accounts,
-          environmentByAccountId,
-        );
+        const ids = await loadInsuranceEligibleAccountIds(accounts);
 
         if (!cancelled) {
           setEligibleAccountIds(ids);
@@ -258,7 +256,7 @@ export function ClientTradingAccountsView() {
     return () => {
       cancelled = true;
     };
-  }, [accounts, catalog, environmentByAccountId]);
+  }, [accounts]);
 
   const filteredAccounts = useMemo(() => {
     return enrichedAccounts.filter((account) => {
@@ -507,8 +505,9 @@ export function ClientTradingAccountsView() {
                     <TableCell>
                       <Badge
                         variant={
-                          account.environment ===
-                          TRADING_SERVER_ENVIRONMENT.LIVE
+                          isLiveEnvironmentLabel(
+                            account.server_group.environment_label,
+                          )
                             ? "default"
                             : "secondary"
                         }
@@ -629,7 +628,6 @@ export function ClientTradingAccountsView() {
       <ClientInsuranceEligibleAccountsDialog
         open={insuranceEligibleOpen}
         onOpenChange={setInsuranceEligibleOpen}
-        environmentByAccountId={environmentByAccountId}
         onSelectAccount={openInsuranceFromEligible}
       />
 

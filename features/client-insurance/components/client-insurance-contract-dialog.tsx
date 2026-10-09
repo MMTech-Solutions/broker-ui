@@ -28,7 +28,7 @@ import {
 import {
   formatAccountBalance,
   formatCoveragePercent,
-  formatInsuranceMinorAmount,
+  formatInsuranceAmount,
   formatInsuranceOptionSummary,
   getContractableOptions,
 } from "@/features/client-insurance/format";
@@ -306,7 +306,7 @@ export function ClientInsuranceContractDialog({
                     <span className="text-muted-foreground">Prima:</span>{" "}
                     {selectedOption.is_free_eligible
                       ? "Gratis (primera contratación)"
-                      : formatInsuranceMinorAmount(selectedOption.premium)}
+                      : formatInsuranceAmount(selectedOption.premium)}
                   </p>
                   {selectedPlan?.requires_approval ? (
                     <p className="text-xs text-muted-foreground">

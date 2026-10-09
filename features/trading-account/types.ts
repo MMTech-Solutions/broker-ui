@@ -7,6 +7,8 @@ export type TradingAccountServerGroup = {
   /** Present for admin responses only. */
   meta_name?: string | null;
   trading_server_id: string;
+  /** Human label from broker (`Demo` / `Live`); null when unset. */
+  environment_label?: string | null;
   currency: {
     code: string | null;
     precision: number | null;

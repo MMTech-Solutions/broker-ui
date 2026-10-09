@@ -1,11 +1,11 @@
-import { formatInitialAmount } from "@/features/initial-amount/format";
 import type {
   ClientInsurancePlan,
   ClientInsurancePlanOption,
   InsurancePlansForAccount,
 } from "@/features/client-insurance/types";
 
-export function formatInsuranceMinorAmount(
+/** Formats insurance money already expressed in major units by the API. */
+export function formatInsuranceAmount(
   value: string | number | null | undefined,
 ): string {
   if (value == null || value === "") {
@@ -18,7 +18,17 @@ export function formatInsuranceMinorAmount(
     return String(value);
   }
 
-  return formatInitialAmount(parsed);
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(parsed);
+}
+
+/** @deprecated Use formatInsuranceAmount — API now returns major units. */
+export function formatInsuranceMinorAmount(
+  value: string | number | null | undefined,
+): string {
+  return formatInsuranceAmount(value);
 }
 
 export function formatInsuranceDateTime(value?: string | null): string {
@@ -92,7 +102,7 @@ export function formatInsuranceOptionSummary(
     return `${coverage} cobertura · ${duration} · primera vez gratis`;
   }
 
-  return `${coverage} cobertura · ${duration} · prima ${formatInsuranceMinorAmount(option.premium)}`;
+  return `${coverage} cobertura · ${duration} · prima ${formatInsuranceAmount(option.premium)}`;
 }
 
 export function hasContractableInsuranceOptions(
@@ -114,4 +124,11 @@ export function formatAccountBalance(value: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+/** Matches EnvironmentEnum::label() from broker (`Live` / `Demo`). */
+export function isLiveEnvironmentLabel(
+  environmentLabel?: string | null,
+): boolean {
+  return environmentLabel?.trim().toLowerCase() === "live";
 }
